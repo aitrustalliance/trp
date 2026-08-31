@@ -12,7 +12,7 @@ Trust infrastructure is the foundation of the AI economy. TRP is the standard th
 
 Trust requirements for AI will be defined with or without an open standard. Without open trust, authority defaults according to resources rather than utility. TRP exists to prevent that outcome.
 
-Version 0.5, public working draft. Field names and normative requirements may still change before 1.0.
+Version 0.5.1, public working draft. Field names and normative requirements may still change before 1.0.
 
 Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 
