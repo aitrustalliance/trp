@@ -7,7 +7,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 ## [0.5.1] - 2026-08-28
 
 ### Added
-- Conformance test suite with 17 tests across schema validation, rejection,
+- Conformance test suite with 27 tests across schema validation, rejection,
   example verification, and evaluator determinism (`tests/`).
 - GitHub Actions CI workflow running on Python 3.10 and 3.12 on every push
   and pull request (`.github/workflows/ci.yml`).
