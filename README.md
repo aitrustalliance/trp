@@ -1,8 +1,8 @@
-[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5.1_Draft-orange.svg)](spec/trp-spec.md) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099404.svg)] [![Conformance](https://img.shields.io/badge/Conformance-27%2F27_passing-brightgreen.svg)](tests/run_conformance.py)
-[![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/)
-[![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml)(https://doi.org/10.5281/zenodo.22099404)
+[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5_Draft-orange.svg)](spec/trp-spec.md) [![Release](https://img.shields.io/badge/Release-v0.5.1-blue.svg)](https://github.com/aitrustalliance/trp/releases) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![Conformance](https://img.shields.io/badge/Conformance-27%2F27_passing-brightgreen.svg)](tests/run_conformance.py) [![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/) [![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099404.svg)](https://doi.org/10.5281/zenodo.22099404)
 
 # Trust Requirements Profile (TRP)
+
+**An open standard for stating and verifying the trust requirements of AI and autonomous systems.**
 
 The promise of AI, from breakthroughs in medicine to broad economic opportunity, depends on trust. The question is whether we solve standardization and interoperability across the AI ecosystem, or leave it fragmented inside a handful of closed platforms. Trust is the enablement layer for a broad and inclusive AI economy, yet today the greatest developments in AI are concentrated in fewer than ten companies. That creates technical uncertainty, economic co-dependence, and concentrates risk in a way that narrows who can participate. Trust cannot be solved in a vacuum. This is the Trust Gap: the absence of shared, open infrastructure for declaring and verifying trust across the AI ecosystem. Ecosystems are built on standards, primitives, and collaborative development among all participants.
 
@@ -12,7 +12,7 @@ Trust infrastructure is the foundation of the AI economy. TRP is the standard th
 
 Trust requirements for AI will be defined with or without an open standard. Without open trust, authority defaults according to resources rather than utility. TRP exists to prevent that outcome.
 
-Version 0.5.1, public working draft. Field names and normative requirements may still change before 1.0.
+Specification version 0.5, public working draft. Field names and normative requirements may still change before 1.0.
 
 Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 
@@ -26,7 +26,7 @@ The standard defines the profile, the requirements it carries, and the vocabular
 
 TRP follows a document-based governance model: simple, declarative, machine-readable documents that carry trust requirements across organizational boundaries, the same pattern that has proven most durable for coordination at scale.
 
-A TRP is declarative and precise: it states what trust requires and how outcomes are expressed, in a form any machine can read and verify. Defined tightly enough that any conforming evaluation source acting on the same profile reaches the same result, it makes trust checkable and portable across the ecosystem rather than locked to one vendor's tooling. The standard is open, and the implementations built on it- the engines, tools, and services that act on a profile are what evolve into an ecosystem.
+A TRP is declarative and precise: it states what trust requires and how outcomes are expressed, in a form any machine can read and verify. Defined tightly enough that any conforming evaluation source acting on the same profile reaches the same result, it makes trust checkable and portable across the ecosystem rather than locked to one vendor's tooling. The standard is open, and the implementations built on it, the engines, tools, and services that act on a profile are what evolve into an ecosystem.
 
 ## The Trust Requirements Layer
 
@@ -52,7 +52,7 @@ tools/
   evaluate.js                                    reference evaluator (Node.js)
   README.md                                      evaluator documentation and usage
 tests/
-  run_conformance.py                             conformance test suite (17 tests)
+  run_conformance.py                             conformance test suite (27 tests)
   profiles/valid/                                profiles that must pass schema validation
   profiles/invalid/                              profiles that must fail schema validation
   evidence/                                      evidence samples with expected evaluation outcomes
@@ -100,7 +100,7 @@ The evaluator loads the profile, checks hard rules, scores signals against thres
 
 ## Conformance Testing
 
-There are two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic; whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body, not for a validator. See the specification for the full definitions.
+Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic; whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body, not for a validator. See the specification for the full definitions.
 
 The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs:
 
