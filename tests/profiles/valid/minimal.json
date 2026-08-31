@@ -1,0 +1,16 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "trp_id": "minimal-valid",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Minimal profile containing only required fields for conformance testing."
+  },
+  "standing_bands": [
+    {
+      "band": "acceptable",
+      "severity": 0
+    }
+  ]
+}

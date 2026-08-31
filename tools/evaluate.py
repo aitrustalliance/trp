@@ -21,6 +21,8 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
+import hashlib
+import datetime
 from typing import Any
 
 
@@ -256,9 +258,7 @@ def evaluate(profile: Profile, signals: dict[str, Any],
         if drift_detector and ss.signal in drift_detector.signals:
             drift_detector.update(ss.signal, value)
 
-    # 3. Trust score (0-100, higher is better)
-    trust_score = max(0.0, 100.0 - weighted_penalty)
-    result["trust_score"] = round(trust_score, 2)
+    # 3. Aggregate penalty (internal, not exposed in output)
     result["signal_results"] = signal_results
     result["missing_signals"] = missing_signals
 
@@ -300,6 +300,17 @@ def evaluate(profile: Profile, signals: dict[str, Any],
                 "window": drift_detector.window}
             for s in drift_detector.signals
         }
+
+    # 6. Evaluation metadata (provenance and tamper detection)
+    result_payload = json.dumps(result, sort_keys=True, separators=(",", ":"))
+    result["evaluation"] = {
+        "profile_id": profile.trp_id,
+        "profile_version": profile.version,
+        "spec_version": profile.spec_version,
+        "evaluator": "trp-reference-python",
+        "evaluated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "result_hash": hashlib.sha256(result_payload.encode()).hexdigest(),
+    }
 
     return result
 

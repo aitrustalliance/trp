@@ -1,0 +1,30 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "trp_id": "extension-fields-test",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Test that vendor extension fields (x_ prefix) are accepted in all objects."
+  },
+  "x_vendor_id": "vendor-123",
+  "taxonomy": {
+    "industry": "financial-services",
+    "use_case": "transaction-monitoring",
+    "x_regulatory_framework": "FFIEC"
+  },
+  "scored_signals": [
+    {
+      "signal": "fraud_score",
+      "weight": 40,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.6,
+      "critical_threshold": 0.85,
+      "x_signal_source": "internal-ml-pipeline"
+    }
+  ],
+  "standing_bands": [
+    { "band": "cleared", "severity": 0 },
+    { "band": "flagged", "severity": 1 }
+  ]
+}

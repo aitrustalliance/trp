@@ -1,0 +1,41 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "trp_id": "multi-framework-mapping",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Test that assurance_mapping accepts multiple framework references.",
+    "jurisdiction": ["US", "EU", "UK"]
+  },
+  "scored_signals": [
+    {
+      "signal": "explainability_score",
+      "weight": 30,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.70,
+      "critical_threshold": 0.40,
+      "reason": "Required under EU AI Act Article 13 transparency obligations."
+    },
+    {
+      "signal": "demographic_parity_gap",
+      "weight": 35,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.05,
+      "critical_threshold": 0.10,
+      "reason": "NIST AI RMF MEASURE 2.6 fairness metric."
+    }
+  ],
+  "standing_bands": [
+    { "band": "compliant", "severity": 0 },
+    { "band": "review-required", "severity": 1 },
+    { "band": "non-compliant", "severity": 2 }
+  ],
+  "assurance_mapping": [
+    { "framework": "NIST AI RMF", "reference": "MEASURE 2.6" },
+    { "framework": "NIST AI RMF", "reference": "GOVERN 1.1" },
+    { "framework": "ISO/IEC 42001", "reference": "6.1.2" },
+    { "framework": "EU AI Act", "reference": "Article 13" },
+    { "framework": "OWASP LLM Top 10", "reference": "LLM06" }
+  ]
+}

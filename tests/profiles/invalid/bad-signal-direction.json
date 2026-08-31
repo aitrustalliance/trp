@@ -1,0 +1,19 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: scored signal direction 'up' is not in the allowed enum [higher_is_unsafe, lower_is_unsafe].",
+  "trp_id": "bad-direction",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "scored_signals": [
+    {
+      "signal": "test_signal",
+      "weight": 10,
+      "direction": "up",
+      "warning_threshold": 0.5,
+      "critical_threshold": 0.9
+    }
+  ],
+  "standing_bands": [{ "band": "ok", "severity": 0 }]
+}

@@ -1,0 +1,15 @@
+{
+  "_test_description": "Both PII detected (halt) and consent missing (block_startup) triggered simultaneously. Expected standing: untrusted with hard override.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": true,
+  "accuracy": 0.95,
+  "latency_ms": 200,
+  "bias_score": 0.04,
+  "data_freshness_hours": 6,
+  "uptime_ratio": 0.998,
+  "pii_detected": true,
+  "user_consent": false,
+  "compliance_status": "compliant",
+  "error_rate": 0.02
+}

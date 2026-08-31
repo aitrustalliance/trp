@@ -1,0 +1,15 @@
+{
+  "_test_description": "All signals well within safe thresholds. Expected standing: trusted.",
+  "_expected_standing": "trusted",
+  "_expected_response": "full",
+  "_expected_hard_override": false,
+  "accuracy": 0.97,
+  "latency_ms": 120,
+  "bias_score": 0.03,
+  "data_freshness_hours": 4,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

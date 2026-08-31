@@ -1,0 +1,10 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: version 'v1' does not match required MAJOR.MINOR.PATCH pattern.",
+  "trp_id": "bad-version",
+  "spec_version": "0.5",
+  "version": "v1",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }]
+}

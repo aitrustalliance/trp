@@ -1,0 +1,10 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: scope object is present but missing required 'intended_use' field.",
+  "trp_id": "missing-scope-field",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "boundary": "Has boundary but no intended_use." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }]
+}

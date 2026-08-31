@@ -1,0 +1,14 @@
+{
+  "_test_description": "Accuracy signal is absent. Profile marks accuracy on_missing=critical. Evaluator applies full weight penalty (30 points) but remaining signals are healthy, so standing is 'trusted'. Note: the penalty reduces trust_score but does not trigger critical-band override because no measured signal is in critical range.",
+  "_expected_standing": "trusted",
+  "_expected_response": "full",
+  "_expected_hard_override": false,
+  "latency_ms": 120,
+  "bias_score": 0.03,
+  "data_freshness_hours": 4,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

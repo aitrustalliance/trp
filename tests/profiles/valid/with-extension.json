@@ -1,0 +1,29 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "trp_id": "extended-test",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Conformance test for profile inheritance via the extends field."
+  },
+  "standing_bands": [
+    { "band": "good", "severity": 0 },
+    { "band": "failing", "severity": 1 }
+  ],
+  "extends": {
+    "trp_id": "full-featured-test",
+    "version": "2.1.0"
+  },
+  "scored_signals": [
+    {
+      "signal": "domain_specific_metric",
+      "weight": 20,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.80,
+      "critical_threshold": 0.60,
+      "unit": "ratio",
+      "reason": "Domain-specific signal added by the child profile."
+    }
+  ]
+}

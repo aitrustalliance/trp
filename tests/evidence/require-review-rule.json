@@ -1,0 +1,15 @@
+{
+  "_test_description": "Error rate exceeds 0.15 threshold, triggering require_review hard rule. All scored signals are healthy. Hard override applies, standing: untrusted.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": true,
+  "accuracy": 0.96,
+  "latency_ms": 100,
+  "bias_score": 0.02,
+  "data_freshness_hours": 2,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.20
+}

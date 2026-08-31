@@ -1,28 +1,30 @@
-# Reference Evaluator
+# Reference Evaluators
 
-A minimal reference implementation that loads a TRP profile and evaluates a data sample against it. Demonstrates that TRP profiles are machine-actionable: any conforming evaluator reading the same profile and evidence reaches the same result.
+Two independent reference implementations that load a TRP profile and
+evaluate a data sample against it. The Python and Node.js evaluators share
+no code. Both produce identical standings, hard-override decisions, and
+response actions for the same profile and evidence, proving that the
+specification is independently implementable.
 
-This is a reference tool for testing and development, not a production evaluation source.
+These are reference tools for testing and development, not production
+evaluation sources.
 
-## What It Does
+## Implementations
 
-1. **Loads a TRP profile** from JSON and validates its structure.
-2. **Checks hard rules** first. If any hard rule triggers (e.g., emergency stop active, safety certification expired), the system is placed in the worst standing band regardless of scores.
-3. **Evaluates scored signals** against their warning and critical thresholds, computing severity and weighted penalty for each.
-4. **Assigns a standing band** from the profile's declared bands based on the evaluation.
-5. **Tracks drift** when configured, maintaining a moving average over the profile's declared window.
-6. **Outputs a JSON result** with the standing, response, all signal evidence, triggered rules, and drift state.
+| File | Language | Dependencies |
+|------|----------|-------------|
+| `evaluate.py` | Python 3.10+ | `jsonschema` (optional, for schema validation) |
+| `evaluate.js` | Node.js 18+ | None |
 
 ## Quick Start
 
-No dependencies beyond Python 3.10+ and `jsonschema` (for optional schema validation).
+```shell
+# Python
+python3 tools/evaluate.py examples/manufacturing-safety/trp.json --generate-sample > sample.json
+python3 tools/evaluate.py examples/manufacturing-safety/trp.json sample.json
 
-```bash
-# Generate a sample with safe default values for a profile
-python3 evaluate.py ../../examples/manufacturing-safety/trp.json --generate-sample > sample.json
-
-# Evaluate the sample against the profile
-python3 evaluate.py ../../examples/manufacturing-safety/trp.json sample.json
+# Node.js
+node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
 ```
 
 ## Example Output
@@ -32,7 +34,6 @@ python3 evaluate.py ../../examples/manufacturing-safety/trp.json sample.json
   "trp_id": "manufacturing-safety",
   "trp_version": "1.0.0",
   "hard_rules_triggered": [],
-  "trust_score": 100.0,
   "signal_results": [
     {
       "signal": "human_distance_m",

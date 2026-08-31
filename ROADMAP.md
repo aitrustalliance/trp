@@ -14,12 +14,13 @@ This roadmap reflects the current planning direction for the TRP specification a
 
 ## Near-Term
 
-- [ ] Conformance test suite for cross-evaluator agreement
+- [x] Conformance test suite for cross-evaluator agreement
+- [x] GitHub Actions CI pipeline (Python 3.10, 3.12)
+- [x] Zenodo DOI for academic citation (10.5281/zenodo.22099404)
 - [ ] Additional domain profiles (financial operations, insurance, defense)
 - [ ] Per-signal drift window configuration (see [Issue #2][issue-2])
 - [ ] Extension namespacing and registry design (see [Issue #3][issue-3])
 - [ ] Evidence format specification for evaluation results
-- [ ] Zenodo DOI for academic citation
 - [ ] Community feedback on v0.5 draft incorporated
 
 ## Medium-Term
@@ -27,7 +28,9 @@ This roadmap reflects the current planning direction for the TRP specification a
 - [ ] Spec v1.0 candidate with community input
 - [ ] Formal semantics for the requirement language
 - [ ] Composition and inheritance verification tooling
-- [ ] Integration guidance for DID/VC and agent-identity systems
+- [ ] Integration guidance for agent-identity and authorization systems (SPIFFE, AAuth, auth.md)
+- [ ] Integration guidance for tool invocation protocols (MCP, A2A)
+- [ ] Integration guidance for credential systems (DID/VC, W3C Verifiable Credentials)
 - [ ] Training pathway and profile-authoring guide
 - [ ] Domain working groups seeded through workshops
 

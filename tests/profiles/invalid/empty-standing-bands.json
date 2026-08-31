@@ -1,0 +1,10 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: standing_bands is an empty array, violating minItems: 1.",
+  "trp_id": "empty-bands",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": []
+}

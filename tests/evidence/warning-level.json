@@ -1,0 +1,15 @@
+{
+  "_test_description": "Accuracy and latency in warning range but not critical. Expected standing: conditional.",
+  "_expected_standing": "conditional",
+  "_expected_response": "restricted",
+  "_expected_hard_override": false,
+  "accuracy": 0.88,
+  "latency_ms": 600,
+  "bias_score": 0.05,
+  "data_freshness_hours": 10,
+  "uptime_ratio": 0.998,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.05
+}

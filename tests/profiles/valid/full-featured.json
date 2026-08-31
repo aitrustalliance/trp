@@ -1,0 +1,150 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "trp_id": "full-featured-test",
+  "spec_version": "0.5",
+  "version": "2.1.0",
+  "name": "Full-featured conformance test profile",
+  "description": "Exercises every optional field in the TRP schema to verify that conforming evaluators accept the full grammar.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "TRP Conformance Suite",
+    "role": "Automated test author",
+    "credential": "N/A"
+  },
+  "created_at": "2026-08-28T00:00:00Z",
+  "valid_from": "2026-08-01T00:00:00Z",
+  "valid_to": "2027-08-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "cross-domain",
+    "use_case": "conformance-testing"
+  },
+  "scope": {
+    "intended_use": "Validate that an evaluator correctly processes a profile using every TRP schema feature.",
+    "boundary": "Test harness only. Not a real governance profile.",
+    "jurisdiction": ["US", "EU"],
+    "out_of_scope": ["Production deployment", "Certification claims"]
+  },
+  "scored_signals": [
+    {
+      "signal": "accuracy",
+      "weight": 30,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.90,
+      "critical_threshold": 0.70,
+      "unit": "ratio",
+      "reason": "Model accuracy below threshold indicates unreliable output.",
+      "on_missing": "critical"
+    },
+    {
+      "signal": "latency_ms",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 500,
+      "critical_threshold": 2000,
+      "unit": "ms",
+      "reason": "High latency degrades user experience and may indicate system issues."
+    },
+    {
+      "signal": "bias_score",
+      "weight": 25,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.10,
+      "critical_threshold": 0.25,
+      "unit": "ratio",
+      "reason": "Bias above threshold violates fairness requirements.",
+      "on_missing": "incomplete"
+    },
+    {
+      "signal": "data_freshness_hours",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 24,
+      "critical_threshold": 72,
+      "unit": "hours",
+      "reason": "Stale training data reduces model relevance."
+    },
+    {
+      "signal": "uptime_ratio",
+      "weight": 15,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.995,
+      "critical_threshold": 0.990,
+      "unit": "ratio",
+      "reason": "Low availability violates SLA commitments.",
+      "on_missing": "ignore"
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "pii-detected",
+      "field": "pii_detected",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "consent-missing",
+      "field": "user_consent",
+      "condition": "is_false",
+      "action": "block_startup"
+    },
+    {
+      "rule": "regulation-violation",
+      "field": "compliance_status",
+      "condition": "equals",
+      "value": "violation",
+      "action": "halt"
+    },
+    {
+      "rule": "excessive-error-rate",
+      "field": "error_rate",
+      "condition": "greater_than",
+      "value": 0.15,
+      "action": "require_review"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": ["accuracy", "bias_score"]
+  },
+  "standing_bands": [
+    {
+      "band": "trusted",
+      "severity": 0,
+      "range": "All signals within acceptable range, no hard rules triggered."
+    },
+    {
+      "band": "conditional",
+      "severity": 1,
+      "range": "One or more signals in warning range."
+    },
+    {
+      "band": "untrusted",
+      "severity": 2,
+      "range": "Any signal in critical range or a hard rule triggered."
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "conditional",
+    "source_requirement": "Evaluation source must be independent of the system operator.",
+    "response_bands": [
+      { "band": "trusted", "response": "full" },
+      { "band": "conditional", "response": "restricted" },
+      { "band": "untrusted", "response": "suspended" }
+    ]
+  },
+  "assurance_mapping": [
+    {
+      "framework": "NIST AI RMF",
+      "reference": "MEASURE 2.6"
+    },
+    {
+      "framework": "ISO/IEC 42001",
+      "reference": "Annex B.3"
+    }
+  ],
+  "notes": [
+    "This profile exists solely for automated conformance testing.",
+    "All threshold values are illustrative and carry no operational meaning."
+  ]
+}

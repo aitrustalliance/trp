@@ -1,0 +1,11 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: 'custom_field' is not a defined property and does not use the x_ extension prefix.",
+  "trp_id": "bad-extra-field",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }],
+  "custom_field": "this should not be allowed"
+}

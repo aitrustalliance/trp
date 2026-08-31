@@ -1,0 +1,15 @@
+{
+  "_test_description": "Accuracy below critical threshold. Expected standing: untrusted.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": false,
+  "accuracy": 0.55,
+  "latency_ms": 300,
+  "bias_score": 0.08,
+  "data_freshness_hours": 12,
+  "uptime_ratio": 0.997,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.04
+}

@@ -1,0 +1,38 @@
+{
+  "version": "0.1.0",
+  "entity": {
+    "name": "AI Trust Alliance",
+    "domain": "aitrustalliance.com",
+    "contact": "trust@aitrustalliance.com"
+  },
+  "profiles": [
+    {
+      "id": "manufacturing-safety",
+      "name": "Manufacturing Robot Cell Safety",
+      "description": "Trust requirements for a collaborative robot cell operating near people.",
+      "profile_url": "https://aitrustalliance.com/profiles/manufacturing-safety/1.0.0/trp.json",
+      "spec_version": "0.5",
+      "scope": "manufacturing-robotics",
+      "enforcement": "required",
+      "evaluation": {
+        "mode": "independent"
+      }
+    },
+    {
+      "id": "healthcare-data-governance",
+      "name": "Healthcare AI Data Governance",
+      "description": "Trust requirements for AI systems processing protected health information.",
+      "profile_url": "https://aitrustalliance.com/profiles/healthcare-data-governance/1.0.0/trp.json",
+      "spec_version": "0.5",
+      "scope": "healthcare-phi",
+      "enforcement": "required",
+      "evaluation": {
+        "mode": "independent"
+      }
+    }
+  ],
+  "policy": {
+    "default_action": "deny",
+    "documentation": "https://aitrustalliance.com/docs/trust-policy"
+  }
+}

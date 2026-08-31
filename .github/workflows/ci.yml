@@ -1,0 +1,140 @@
+name: TRP Conformance CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  conformance:
+    name: Schema validation & evaluator conformance
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install jsonschema
+
+      - name: Run conformance test suite
+        run: python tests/run_conformance.py --verbose
+
+      - name: Validate schema is valid JSON Schema
+        run: |
+          python -c "
+          import json, jsonschema
+          with open('schema/trp.schema.json') as f:
+              schema = json.load(f)
+          jsonschema.Draft202012Validator.check_schema(schema)
+          print('Schema is a valid JSON Schema (2020-12)')
+          "
+
+      - name: Run evaluator against manufacturing example
+        run: |
+          python tools/evaluate.py \
+            examples/manufacturing-safety/trp.json \
+            --generate-sample > /tmp/sample.json
+          python tools/evaluate.py \
+            examples/manufacturing-safety/trp.json \
+            /tmp/sample.json
+
+      - name: Run evaluator against healthcare example
+        run: |
+          python tools/evaluate.py \
+            examples/healthcare-data-governance/trp.json \
+            --generate-sample > /tmp/sample.json
+          python tools/evaluate.py \
+            examples/healthcare-data-governance/trp.json \
+            /tmp/sample.json
+
+  cross-evaluator:
+    name: Cross-evaluator agreement (Python + Node.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies
+        run: pip install jsonschema
+
+      - name: Cross-validate evaluators against all evidence
+        run: |
+          python3 -c "
+          import glob, json, subprocess, sys
+          from tools.evaluate import load_profile, evaluate, DriftDetector
+
+          VOLATILE = {'evaluated_at', 'result_hash', 'evaluator'}
+
+          def strip(d):
+              if isinstance(d, dict):
+                  return {k: strip(v) for k, v in d.items() if k not in VOLATILE}
+              if isinstance(d, list):
+                  return [strip(x) for x in d]
+              return d
+
+          profiles = sorted(glob.glob('tests/profiles/valid/*.json'))
+          evidences = sorted(glob.glob('tests/evidence/*.json'))
+
+          passed = 0
+          failed = 0
+
+          for profile_path in profiles:
+              profile = load_profile(profile_path)
+              for evidence_path in evidences:
+                  with open(evidence_path) as f:
+                      raw = json.load(f)
+                  clean = {k: v for k, v in raw.items() if not k.startswith('_')}
+                  with open('/tmp/clean_ev.json', 'w') as f:
+                      json.dump(clean, f)
+
+                  drift = None
+                  if profile.drift_window > 0:
+                      drift = DriftDetector(profile.drift_window, profile.drift_signals)
+                  py_result = strip(evaluate(profile, clean, drift))
+
+                  proc = subprocess.run(
+                      ['node', 'tools/evaluate.js', profile_path, '/tmp/clean_ev.json'],
+                      capture_output=True, text=True,
+                  )
+                  name = f'{profile_path} + {evidence_path}'
+                  if proc.returncode != 0:
+                      print(f'ERROR  {name}')
+                      print(proc.stderr)
+                      failed += 1
+                      continue
+
+                  js_result = strip(json.loads(proc.stdout))
+
+                  if py_result == js_result:
+                      print(f'AGREE  {name}')
+                      passed += 1
+                  else:
+                      print(f'DISAGREE  {name}')
+                      print(f'  Python: {py_result}')
+                      print(f'  NodeJS: {js_result}')
+                      failed += 1
+
+          print()
+          print(f'Cross-evaluator agreement: {passed}/{passed + failed}')
+          sys.exit(1 if failed else 0)
+          "

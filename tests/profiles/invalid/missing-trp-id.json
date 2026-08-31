@@ -1,0 +1,9 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: missing required field 'trp_id'.",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }]
+}

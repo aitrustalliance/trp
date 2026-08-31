@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5_Draft-orange.svg)](spec/trp-spec.md) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099404.svg)](https://doi.org/10.5281/zenodo.22099404)
+[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5_Draft-orange.svg)](spec/trp-spec.md) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099404.svg)](https://doi.org/10.5281/zenodo.22099404)
 
 # Trust Requirements Profile (TRP)
 
@@ -7,6 +7,8 @@ The promise of AI, from breakthroughs in medicine to broad economic opportunity,
 Remarkable research and transformational capabilities are sitting on the sidelines, waiting for a trusted path to mainstream use. At the same time, companies reshape their AI strategies around cost, access, control, and ownership of their data, models, weights, and infrastructure. We believe open standards that invite greater investment, sovereign development, and collaborative innovation open the door to economic inclusion and human flourishing. Open trust standards are the pathway to democratized access and adoption of the world's most promising technology.
 
 Trust infrastructure is the foundation of the AI economy. TRP is the standard that lets every part of the AI ecosystem operate with openly shared and enforced trust requirements, opening the door to more participants and to inference that is more specialized, more efficient, and closer to the value creators. We are building and recruiting into an open ecosystem to put the promise of AI within everyone's reach, starting with the foundational Trust Requirements Profile (TRP) standard.
+
+Trust requirements for AI will be defined with or without an open standard. Without open trust, authority defaults according to resources rather than utility. TRP exists to prevent that outcome.
 
 Version 0.5, public working draft. Field names and normative requirements may still change before 1.0.
 
@@ -35,22 +37,40 @@ A trust requirement cannot belong to a frontier lab. When the definition of a tr
 ## Repository Contents
 
 ```
-README.md                                       this file
+spec/
+  trp-spec.md                                    the specification
+  trust-json-discovery.md                        trust.json discovery protocol specification
+schema/trp.schema.json                           the JSON Schema a profile validates against
+examples/
+  trust.json                                     example trust.json discovery file
+  manufacturing-safety/trp.json                  reference profile: collaborative robot cell safety
+  healthcare-data-governance/trp.json            reference profile: AI processing of protected health information
+tools/
+  evaluate.py                                    reference evaluator (Python)
+  evaluate.js                                    reference evaluator (Node.js)
+  README.md                                      evaluator documentation and usage
+tests/
+  run_conformance.py                             conformance test suite (17 tests)
+  profiles/valid/                                profiles that must pass schema validation
+  profiles/invalid/                              profiles that must fail schema validation
+  evidence/                                      evidence samples with expected evaluation outcomes
+  README.md                                      test suite documentation
+.github/workflows/ci.yml                         CI pipeline: runs on every push and PR
+INTEGRATIONS.md                                  integration architecture with SPIFFE, AAuth, MCP, VCs, A2A
+docs/
+  authoring-guide.md                             step-by-step guide to writing your first TRP profile
 CONTRIBUTING.md                                  how to contribute profiles and spec changes
 GOVERNANCE.md                                    stewardship model and decision process
 ROADMAP.md                                       project direction and planned work
-spec/trp-spec.md                                 the specification
-schema/trp.schema.json                           the JSON Schema a profile validates against
-examples/manufacturing-safety/trp.json           reference profile: collaborative robot cell safety
-examples/healthcare-data-governance/trp.json     reference profile: AI processing of protected health information
-tools/evaluate.py                                TRP Reference Evaluator: loads any profile and evaluates data against it
-tools/README.md                                  evaluator documentation and usage
+CHANGELOG.md                                     release history
+SECURITY.md                                      vulnerability reporting policy
+requirements.txt                                 Python dependencies
 LICENSE                                          Apache License 2.0
 ```
 
 ## Getting Started
 
-Read the specification in `spec/` for the full field-by-field definition. Then look at the reference profiles in `examples/` to see the format in use across two domains:
+Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across two domains:
 
 - **Manufacturing safety** (`examples/manufacturing-safety/trp.json`): a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone, and certification status.
 - **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`): an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for HIPAA basis, IRB status, and data use agreements.
@@ -76,9 +96,18 @@ python3 tools/evaluate.py examples/manufacturing-safety/trp.json sample.json
 
 The evaluator loads the profile, checks hard rules, scores signals against thresholds, tracks drift, and assigns a standing from the profile's declared bands. See `tools/README.md` for full documentation.
 
-## Conformance
+## Conformance Testing
 
 There are two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic; whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body, not for a validator. See the specification for the full definitions.
+
+The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs:
+
+```bash
+pip install -r requirements.txt
+python tests/run_conformance.py --verbose
+```
+
+The GitHub Actions CI pipeline runs this suite on every push and pull request. See `tests/README.md` for the full test inventory and instructions for adding new test cases.
 
 ## Governance
 

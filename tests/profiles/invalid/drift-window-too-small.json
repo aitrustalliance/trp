@@ -1,0 +1,23 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: drift window of 1 violates minimum of 2.",
+  "trp_id": "bad-drift-window",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }],
+  "scored_signals": [
+    {
+      "signal": "test",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 50,
+      "critical_threshold": 100
+    }
+  ],
+  "drift": {
+    "window": 1,
+    "signals": ["test"]
+  }
+}

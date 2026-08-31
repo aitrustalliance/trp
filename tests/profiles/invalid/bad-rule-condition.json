@@ -1,0 +1,19 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: hard rule condition 'contains' is not in the allowed enum.",
+  "trp_id": "bad-rule-condition",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": { "intended_use": "Should be rejected." },
+  "standing_bands": [{ "band": "ok", "severity": 0 }],
+  "hard_rules": [
+    {
+      "rule": "test-rule",
+      "field": "some_field",
+      "condition": "contains",
+      "value": "bad",
+      "action": "halt"
+    }
+  ]
+}
