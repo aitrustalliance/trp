@@ -17,6 +17,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Test profiles exercising minimal, full-featured, and inheritance scenarios.
 - Evidence samples covering healthy, warning, critical, hard-rule, and
   missing-signal evaluation paths.
+- Drift detection in the Node.js evaluator, matching the Python reference implementation.
 
 ### Changed
 - Updated `ROADMAP.md` to reflect completed conformance test suite.
