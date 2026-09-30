@@ -7,7 +7,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 ## [0.5.1] - 2026-08-28
 
 ### Added
-- Conformance test suite with 17 tests across schema validation, rejection,
+- Conformance test suite with 27 tests across schema validation, rejection,
   example verification, and evaluator determinism (`tests/`).
 - GitHub Actions CI workflow running on Python 3.10 and 3.12 on every push
   and pull request (`.github/workflows/ci.yml`).
@@ -17,6 +17,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Test profiles exercising minimal, full-featured, and inheritance scenarios.
 - Evidence samples covering healthy, warning, critical, hard-rule, and
   missing-signal evaluation paths.
+- Drift detection in the Node.js evaluator, matching the Python reference implementation.
 
 ### Changed
 - Updated `ROADMAP.md` to reflect completed conformance test suite.
