@@ -463,6 +463,29 @@ meaning:
 Use extensions to map TRP signals to your internal systems without
 modifying the standard.
 
+### URI-Namespaced Extensions
+
+An organization that defines an extension for others to use, such as another
+standards body or an integration, can key it with a URI it controls. The
+schema accepts absolute `https://` URIs and `urn:` URNs as extension keys in
+any object:
+
+```json
+{
+  "https://example.org/trp/ext/risk-tier": { "tier": 2 },
+  "urn:example:trp:ext:program-code": "PRG-42"
+}
+```
+
+These keys need no registration, because the namespace owner prevents
+collisions. A plain `http://` key is rejected.
+
+### Registered Modules
+
+A module intended for wide use, such as `x_provenance`, registers its
+top-level `x_` key in `extensions/registry.json` so no other module claims the
+same name. See `extensions/README.md`.
+
 ## Profile Design Checklist
 
 Before publishing, verify:

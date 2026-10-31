@@ -18,10 +18,35 @@ const fs = require("fs");
 const crypto = require("crypto");
 const path = require("path");
 
+// --- Errors -----------------------------------------------------------------
+
+// Raised when a profile uses a feature this evaluator does not support.
+// Section 7 requires a consumer that does not support `extends` to reject
+// the profile instead of ignoring the base.
+class UnsupportedProfileError extends Error {}
+
+// --- Value types (Section 3.4) ----------------------------------------------
+
+// Return the TRP scalar type of a value: boolean, number, string or other.
+function valueType(value) {
+  if (typeof value === "boolean") return "boolean";
+  if (typeof value === "number") return Number.isFinite(value) ? "number" : "other";
+  if (typeof value === "string") return "string";
+  return "other";
+}
+
 // --- Profile loading --------------------------------------------------------
 
 function loadProfile(filePath) {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+  if (Object.prototype.hasOwnProperty.call(raw, "extends")) {
+    throw new UnsupportedProfileError(
+      `${filePath}: profile uses 'extends', which this reference evaluator ` +
+      "does not support. Section 7 requires rejecting the profile. " +
+      "Resolve the inheritance into a single profile before evaluating."
+    );
+  }
 
   const scoredSignals = (raw.scored_signals || []).map((s) => ({
     signal: s.signal,
@@ -96,28 +121,58 @@ function signalSeverity(sig, value) {
 
 // --- Hard rule evaluation ---------------------------------------------------
 
-function ruleTriggered(rule, signals) {
-  if (!(rule.fieldName in signals)) {
-    return false;
+// The type the inspected field must have for this rule's condition.
+function expectedType(rule) {
+  if (rule.condition === "is_true" || rule.condition === "is_false") return "boolean";
+  if (rule.condition === "less_than" || rule.condition === "greater_than") return "number";
+  return valueType(rule.value);
+}
+
+// Three-valued check: triggered, not_triggered or inconclusive.
+// The reason is "missing" or "type_mismatch" when inconclusive, else null.
+function ruleCheck(rule, signals) {
+  if (!Object.prototype.hasOwnProperty.call(signals, rule.fieldName)) {
+    return { outcome: "inconclusive", reason: "missing" };
   }
   const actual = signals[rule.fieldName];
+  const expected = expectedType(rule);
+  if (expected === "other" || valueType(actual) !== expected) {
+    return { outcome: "inconclusive", reason: "type_mismatch" };
+  }
+  if ((rule.condition === "less_than" || rule.condition === "greater_than") &&
+      valueType(rule.value) !== "number") {
+    return { outcome: "inconclusive", reason: "type_mismatch" };
+  }
 
+  let met;
   switch (rule.condition) {
     case "is_true":
-      return Boolean(actual) === true;
+      met = actual === true;
+      break;
     case "is_false":
-      return Boolean(actual) === false;
+      met = actual === false;
+      break;
     case "equals":
-      return actual === rule.value;
+      met = actual === rule.value;
+      break;
     case "not_equals":
-      return actual !== rule.value;
+      met = actual !== rule.value;
+      break;
     case "less_than":
-      return Number(actual) < Number(rule.value);
+      met = actual < rule.value;
+      break;
     case "greater_than":
-      return Number(actual) > Number(rule.value);
+      met = actual > rule.value;
+      break;
     default:
-      return false;
+      return { outcome: "inconclusive", reason: "type_mismatch" };
   }
+  return { outcome: met ? "triggered" : "not_triggered", reason: null };
+}
+
+// True only when the condition is met. Kept for backward compatibility.
+function ruleTriggered(rule, signals) {
+  return ruleCheck(rule, signals).outcome === "triggered";
 }
 
 // --- Evaluation -------------------------------------------------------------
@@ -190,17 +245,27 @@ function evaluate(profile, signals, driftDetector) {
 
   // 1. Hard rules
   const triggeredRules = [];
+  const inconclusiveRules = [];
   for (const rule of profile.hardRules) {
-    if (ruleTriggered(rule, signals)) {
+    const { outcome, reason } = ruleCheck(rule, signals);
+    if (outcome === "triggered") {
       triggeredRules.push({
         rule: rule.rule,
         action: rule.action,
         field: rule.fieldName,
         condition: rule.condition,
       });
+    } else if (outcome === "inconclusive") {
+      inconclusiveRules.push({
+        rule: rule.rule,
+        field: rule.fieldName,
+        condition: rule.condition,
+        reason: reason,
+      });
     }
   }
   result.hard_rules_triggered = triggeredRules;
+  result.hard_rules_inconclusive = inconclusiveRules;
   const hardOverride = triggeredRules.length > 0;
 
   // 2. Scored signals
@@ -267,7 +332,7 @@ function evaluate(profile, signals, driftDetector) {
     const anyWarning = signalResults.some((s) => s.in_warning);
     const hasIncomplete = missingSignals.some(
       (m) => m.on_missing === "incomplete"
-    );
+    ) || inconclusiveRules.length > 0;
 
     if (anyCritical || hasIncomplete) {
       assignedBand = sortedBands.length > 0
@@ -331,17 +396,37 @@ function generateSample(profile) {
     }
   }
 
+  // Give every hard rule field a safe value of the right type, so a
+  // generated sample never leaves a rule inconclusive.
+  // A field that is also a scored signal keeps its safe signal value when
+  // that value already leaves the rule unmet.
   for (const rule of profile.hardRules) {
-    if (rule.condition === "is_true") {
-      sample[rule.fieldName] = false;
-    } else if (rule.condition === "is_false") {
-      sample[rule.fieldName] = true;
-    } else if (rule.condition === "equals") {
-      sample[rule.fieldName] = "__safe__";
+    if (Object.prototype.hasOwnProperty.call(sample, rule.fieldName) &&
+        ruleCheck(rule, sample).outcome === "not_triggered") {
+      continue;
     }
+    sample[rule.fieldName] = safeRuleValue(rule);
   }
 
   return sample;
+}
+
+// A value of the expected type that does not meet the rule's condition.
+function safeRuleValue(rule) {
+  if (rule.condition === "is_true") return false;
+  if (rule.condition === "is_false") return true;
+  if (rule.condition === "less_than" || rule.condition === "greater_than" ||
+      rule.condition === "not_equals") {
+    // The boundary value itself never triggers these conditions.
+    return rule.value;
+  }
+  if (rule.condition === "equals") {
+    const kind = valueType(rule.value);
+    if (kind === "boolean") return !rule.value;
+    if (kind === "number") return rule.value + 1;
+    if (kind === "string") return rule.value !== "__safe__" ? "__safe__" : "__safe_value__";
+  }
+  return null;
 }
 
 // --- CLI --------------------------------------------------------------------
@@ -366,7 +451,16 @@ function main() {
     process.exit(1);
   }
 
-  const profile = loadProfile(filePaths[0]);
+  let profile;
+  try {
+    profile = loadProfile(filePaths[0]);
+  } catch (err) {
+    if (err instanceof UnsupportedProfileError) {
+      console.error(`error: ${err.message}`);
+      process.exit(2);
+    }
+    throw err;
+  }
 
   if (generateMode) {
     console.log(JSON.stringify(generateSample(profile), null, 2));

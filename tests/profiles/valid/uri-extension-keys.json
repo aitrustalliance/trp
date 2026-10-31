@@ -1,0 +1,41 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "Extension keys in both forms Section 7 allows, an x_ key and URI-namespaced keys (https and urn), at the top level and inside defined objects.",
+  "trp_id": "uri-extension-keys-test",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Conformance test for URI-namespaced extension keys.",
+    "https://example.org/trp/ext/review-board": "board-7"
+  },
+  "x_provenance": {
+    "module": "trp-provenance",
+    "module_version": "0.1.0"
+  },
+  "https://example.org/trp/ext/risk-tier": {
+    "tier": 2
+  },
+  "urn:example:trp:ext:program-code": "PRG-42",
+  "scored_signals": [
+    {
+      "signal": "latency_ms",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 500,
+      "critical_threshold": 1000,
+      "urn:example:trp:ext:metric-source": "pipeline-3"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0
+    },
+    {
+      "band": "failing",
+      "severity": 1,
+      "https://example.org/trp/ext/color": "red"
+    }
+  ]
+}

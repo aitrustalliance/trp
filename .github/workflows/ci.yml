@@ -81,7 +81,7 @@ jobs:
         run: |
           python3 -c "
           import glob, json, subprocess, sys
-          from tools.evaluate import load_profile, evaluate, DriftDetector
+          from tools.evaluate import load_profile, evaluate, DriftDetector, UnsupportedProfileError
 
           VOLATILE = {'evaluated_at', 'result_hash', 'evaluator'}
 
@@ -99,6 +99,29 @@ jobs:
           failed = 0
 
           for profile_path in profiles:
+              with open(profile_path) as f:
+                  uses_extends = 'extends' in json.load(f)
+              if uses_extends:
+                  # Section 7: both evaluators must reject a profile that uses extends.
+                  try:
+                      load_profile(profile_path)
+                      py_rejected = False
+                  except UnsupportedProfileError:
+                      py_rejected = True
+                  proc = subprocess.run(
+                      ['node', 'tools/evaluate.js', profile_path, 'tests/evidence/all-healthy.json'],
+                      capture_output=True, text=True,
+                  )
+                  node_rejected = proc.returncode == 2
+                  name = f'{profile_path} (extends rejected)'
+                  if py_rejected and node_rejected:
+                      print(f'AGREE  {name}')
+                      passed += 1
+                  else:
+                      print(f'DISAGREE  {name}: python rejected={py_rejected}, node rejected={node_rejected}')
+                      failed += 1
+                  continue
+
               profile = load_profile(profile_path)
               for evidence_path in evidences:
                   with open(evidence_path) as f:

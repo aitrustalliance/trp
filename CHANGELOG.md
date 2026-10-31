@@ -4,6 +4,49 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.5.2] - 2026-10-31
+
+### Added
+- Extension registry at `extensions/registry.json` with `extensions/README.md`,
+  and `x_provenance` reserved for the provenance module.
+- Schema support for URI-namespaced extension keys (`https://` URIs and `urn:`
+  URNs) in every object that accepts `x_` keys, including `extends`, matching
+  Section 7.
+- Section 3.4 requires a hard rule whose field is missing to be treated as
+  inconclusive, and states that an inconclusive rule marks the assessment
+  incomplete without applying the rule's action.
+- `hard_rules_inconclusive` in both evaluators' output, listing each
+  inconclusive rule with its reason (`missing` or `type_mismatch`).
+- Conformance tests for URI keys, `http://` key rejection, missing and
+  mistyped hard rule fields, `extends` rejection, and the registry
+  (42 tests, up from 27).
+
+### Changed
+- Spec header and Section 12, GOVERNANCE.md, README and CONTRIBUTING describe
+  Striv AI as steward during the formative stage, with stewardship
+  transferring to the AI Trust Alliance once its governance is formalized,
+  and Ohio State as a founding participant.
+- Section 3.6 and the schema description give the severity range as 0 to 10,
+  matching the schema and every published profile.
+- Section 7 describes both extension key forms and how a module changes
+  assessment through an evidence adapter.
+- README and ROADMAP cite the concept DOI 10.5281/zenodo.22099403, which
+  resolves to the latest release. Version DOIs are 10.5281/zenodo.22099404
+  (v0.5.0) and 10.5281/zenodo.22216886 (v0.5.1).
+- `--generate-sample` writes a safe, correctly typed value for every hard
+  rule field in both evaluators.
+- The Python evaluator uses a timezone-aware UTC timestamp.
+- `tools/README.md` states that `drift_detected` is a placeholder, which both
+  reference evaluators always report as `false`.
+
+### Fixed
+- Both evaluators now reject a profile that uses `extends`, as Section 7
+  requires. They previously ignored the base profile silently.
+- Hard rule type mismatches are inconclusive in both evaluators, as Section 3.4
+  requires. The text "false" previously counted as true. Non-numeric text in a
+  numeric rule crashed the Python evaluator while the Node evaluator passed it,
+  and numeric-looking text such as "0.01" was silently converted by both.
+
 ## [0.5.1] - 2026-08-28
 
 ### Added

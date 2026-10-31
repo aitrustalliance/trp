@@ -2,7 +2,8 @@
 
 Version 0.5 public working draft. Expect field names and normative requirements may change before 1.0.
 
-Author and maintainer: Striv AI.
+Author: Striv AI.
+Steward: Striv AI during the formative stage, with stewardship transferring to the AI Trust Alliance once its governance is formalized (see GOVERNANCE.md).
 Copyright 2026 Striv AI.
 Licensed under Apache License 2.0.
 
@@ -133,7 +134,11 @@ When a declared signal is absent, its `on_missing` value governs. `ignore` drops
 
 When more than one hard rule is met in the same assessment, the most restrictive action applies. The actions are ordered, from most to least restrictive: halt, block_startup, require_review. The resulting action is the most restrictive among all met rules. All met rules SHOULD be recorded even though one action governs, so the full basis of the outcome is visible to a relying party.
 
-A condition is valid only for the operand type it applies to. A scalar value is a boolean, number, or string. is_true and is_false apply only to a boolean field and take no value. less_than and greater_than apply only to a numeric field and a numeric value. equals and not_equals apply to a boolean, number, or string and compare by exact match. A profile MUST NOT pair a condition with an incompatible operand type, for example greater_than with a string. A document that does so is malformed and MUST be rejected. An evaluation source that encounters a type mismatch at assessment time, for example a field expected to be numeric that arrives as a string, MUST treat the rule as inconclusive rather than passed, consistent with the three-valued treatment in Section 3.3.
+A condition is valid only for the operand type it applies to. A scalar value is a boolean, number, or string. is_true and is_false apply only to a boolean field and take no value. less_than and greater_than apply only to a numeric field and a numeric value. equals and not_equals apply to a boolean, number, or string and compare by exact match. A profile MUST NOT pair a condition with an incompatible operand type, for example greater_than with a string. A document that does so is malformed and MUST be rejected. An evaluation source that encounters a type mismatch at assessment time, for example a field expected to be numeric that arrives as a string, MUST treat the rule as inconclusive rather than passed, consistent with the three-valued treatment in Section 3.3. The expected type of a field is the type its condition requires. For equals and not_equals it is the type of the rule's value, and a boolean is never treated as a number.
+
+When the field a hard rule inspects is absent from an assessment, the evaluation source MUST treat the rule as inconclusive. A missing input never counts as a passed rule.
+
+An inconclusive hard rule marks the assessment incomplete, the same outcome as a scored signal whose on_missing value is incomplete. It does not apply the rule's action, because the condition was neither met nor shown to be unmet. The evaluation source SHOULD record each inconclusive rule and the reason, missing or type mismatch, so a relying party can tell an incomplete assessment apart from a pass.
 
 ### 3.5 Drift definition
 
@@ -153,7 +158,7 @@ The evaluation source determines how a trend is judged over the window. The prof
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
 | band | string | 1 | MUST | Band name, for example good, review, failing. Unique within the array. |
-| severity | integer (1-10) | 1 | MUST | Ordinal rank from 1 to 10, lower is better, so consumers compare bands without hardcoding names. |
+| severity | integer (0-10) | 1 | MUST | Ordinal rank from 0 to 10, lower is better, so consumers compare bands without hardcoding names. |
 | range | string | 0..1 | MAY | Description of what falls in the band. |
 
 Any artifact that reports a standing for a subject MUST use a band declared here.
@@ -196,7 +201,14 @@ Assessment, enforcement, and transport are left to the evaluation source and the
 
 ## 7. Extensibility
 
-A profile MAY carry additional fields under an `x_` prefix or a URI-namespaced key. Consumers MUST ignore extension fields they do not recognize and MUST NOT treat an unrecognized extension as an error. Extensions MUST NOT change the meaning of the defined fields.
+A profile MAY carry additional fields under an `x_` prefix or a URI-namespaced key, at the top level and inside any defined object. Consumers MUST ignore extension fields they do not recognize and MUST NOT treat an unrecognized extension as an error. Extensions MUST NOT change the meaning of the defined fields.
+
+Two key forms are recognized, and both are accepted by the schema.
+
+- An `x_` key is short and suits vendor fields and modules. Its name SHOULD be lowercase with underscores. A module intended for wide use SHOULD register its top-level key in the extension registry at `extensions/registry.json` so two modules never claim the same name.
+- A URI-namespaced key is an absolute `https://` URI or a `urn:` URN controlled by the organization that defines the extension, for example `https://example.org/trp/ext/risk-tier`. It needs no registration, because the namespace owner prevents collisions. Another standards body or integration that extends TRP SHOULD use this form.
+
+A module that changes how a subject is assessed does so through an evidence adapter. The adapter reads the module's configuration from the profile and writes ordinary evidence values that the profile's scored signals and hard rules consume. The core evaluation semantics stay unchanged, and a consumer that does not know the module still reads the profile.
 
 A profile MAY declare inheritance from a base profile via `extends`, giving a trp_id and version. A domain template can serve as a base for a specific profile to refine. A consumer that does not support extends MUST reject a profile that uses it rather than ignore the base.
 
@@ -242,7 +254,7 @@ Extension points: New ideas enter at the declared extension points (Section 7), 
 
 Promotion: When an extension proves broadly useful across many domains, the standard's governing body MAY promote it into the core in a later version. This lets the core learn from the edges instead of trying to anticipate every domain at the start.
 
-Governance of the core: The stable core and the promotion decision are governed by the standard's independent steward (see the README). Openness under this standard covers the TRP core and its published profiles. Implementations built on the TRP standard may be licensed however their authors choose.
+Governance of the core: The stable core and the promotion decision are governed by the standard's steward, which is Striv AI during the formative stage and the AI Trust Alliance after stewardship transfers (see GOVERNANCE.md). Openness under this standard covers the TRP core and its published profiles. Implementations built on the TRP standard may be licensed however their authors choose.
 
 ## 13. Versioning and change policy
 
