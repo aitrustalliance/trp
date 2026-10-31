@@ -34,6 +34,7 @@ node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
   "trp_id": "manufacturing-safety",
   "trp_version": "1.0.0",
   "hard_rules_triggered": [],
+  "hard_rules_inconclusive": [],
   "signal_results": [
     {
       "signal": "human_distance_m",
@@ -58,10 +59,12 @@ node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
 |---|---|
 | Scored signals with direction and thresholds | Severity computed per signal using the spec's directional threshold model |
 | Hard rules with conditions and actions | Checked before scoring; any trigger overrides the standing |
+| Inconclusive hard rules (Section 3.4) | A missing field or a type mismatch makes the rule inconclusive, lists it in `hard_rules_inconclusive` and marks the assessment incomplete |
+| Inheritance via `extends` (Section 7) | Not supported yet, so the profile is rejected with exit code 2 |
 | On-missing policy | Missing signals handled per their declared policy (critical, incomplete, or ignore) |
 | Standing bands with severity order | Bands sorted by severity; assignment based on worst active condition |
 | Required standing and response bands | Response action mapped from the assigned band |
-| Drift over a window | Moving average tracked per signal across consecutive evaluations |
+| Drift over a window | Moving average tracked per signal across consecutive evaluations. The `drift_detected` field is a placeholder that both reference evaluators always report as `false`, because the specification leaves the method for judging drift to the evaluation source |
 
 ## Limitations
 

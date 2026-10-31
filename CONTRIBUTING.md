@@ -24,7 +24,11 @@ Open a [GitHub Issue](../../issues) to report a problem with the spec, suggest a
 
 ### Propose a Spec Change
 
-For changes to the specification itself (`spec/trp-spec.md`) or the schema (`schema/trp.schema.json`), open an issue first to discuss the change before submitting a pull request. Spec changes require review by the AI Trust Alliance governance process.
+For changes to the specification itself (`spec/trp-spec.md`) or the schema (`schema/trp.schema.json`), open an issue first to discuss the change before submitting a pull request. Spec changes require review and approval by the steward under [GOVERNANCE.md](GOVERNANCE.md).
+
+### Register An Extension Key
+
+A module intended for wide use registers its top-level `x_` key by pull request to `extensions/registry.json`. Keys that use a URI namespace you control need no registration. See [extensions/README.md](extensions/README.md).
 
 ### Improve Documentation
 

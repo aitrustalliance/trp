@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections import deque
 from dataclasses import dataclass, field
@@ -24,6 +25,32 @@ from pathlib import Path
 import hashlib
 import datetime
 from typing import Any
+
+
+class UnsupportedProfileError(ValueError):
+    """Raised when a profile uses a feature this evaluator does not support.
+
+    Section 7 of the specification requires a consumer that does not support
+    `extends` to reject the profile instead of ignoring the base.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Value types (Section 3.4)
+# ---------------------------------------------------------------------------
+
+def value_type(value: Any) -> str:
+    """Return the TRP scalar type of a value: boolean, number, string or other.
+
+    A boolean is never a number, even though Python treats bool as an int.
+    """
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number" if math.isfinite(value) else "other"
+    if isinstance(value, str):
+        return "string"
+    return "other"
 
 
 # ---------------------------------------------------------------------------
@@ -68,23 +95,49 @@ class HardRule:
     value: Any = None
     action: str = "halt"
 
-    def triggered(self, signals: dict[str, Any]) -> bool:
+    def expected_type(self) -> str:
+        """The type the inspected field must have for this condition."""
+        if self.condition in ("is_true", "is_false"):
+            return "boolean"
+        if self.condition in ("less_than", "greater_than"):
+            return "number"
+        return value_type(self.value)
+
+    def check(self, signals: dict[str, Any]) -> tuple[str, str | None]:
+        """Three-valued check: triggered, not_triggered or inconclusive.
+
+        Returns (outcome, reason). The reason is "missing" or "type_mismatch"
+        when the outcome is inconclusive, and None otherwise.
+        """
         if self.field_name not in signals:
-            return False
+            return "inconclusive", "missing"
         actual = signals[self.field_name]
+        expected = self.expected_type()
+        if expected == "other" or value_type(actual) != expected:
+            return "inconclusive", "type_mismatch"
+        if self.condition in ("less_than", "greater_than") and \
+                value_type(self.value) != "number":
+            return "inconclusive", "type_mismatch"
+
         if self.condition == "is_true":
-            return bool(actual) is True
-        if self.condition == "is_false":
-            return bool(actual) is False
-        if self.condition == "equals":
-            return actual == self.value
-        if self.condition == "not_equals":
-            return actual != self.value
-        if self.condition == "less_than":
-            return float(actual) < float(self.value)
-        if self.condition == "greater_than":
-            return float(actual) > float(self.value)
-        return False
+            met = actual is True
+        elif self.condition == "is_false":
+            met = actual is False
+        elif self.condition == "equals":
+            met = actual == self.value
+        elif self.condition == "not_equals":
+            met = actual != self.value
+        elif self.condition == "less_than":
+            met = actual < self.value
+        elif self.condition == "greater_than":
+            met = actual > self.value
+        else:
+            return "inconclusive", "type_mismatch"
+        return ("triggered" if met else "not_triggered"), None
+
+    def triggered(self, signals: dict[str, Any]) -> bool:
+        """True only when the condition is met. Kept for backward compatibility."""
+        return self.check(signals)[0] == "triggered"
 
 
 @dataclass(frozen=True)
@@ -112,6 +165,13 @@ class Profile:
 def load_profile(path: Path) -> Profile:
     with open(path) as f:
         raw = json.load(f)
+
+    if "extends" in raw:
+        raise UnsupportedProfileError(
+            f"{path}: profile uses 'extends', which this reference evaluator "
+            "does not support. Section 7 requires rejecting the profile. "
+            "Resolve the inheritance into a single profile before evaluating."
+        )
 
     signals = tuple(
         ScoredSignal(
@@ -205,16 +265,26 @@ def evaluate(profile: Profile, signals: dict[str, Any],
 
     # 1. Hard rules (checked first, override everything)
     triggered_rules = []
+    inconclusive_rules = []
     for rule in profile.hard_rules:
-        if rule.triggered(signals):
+        outcome, reason = rule.check(signals)
+        if outcome == "triggered":
             triggered_rules.append({
                 "rule": rule.rule,
                 "action": rule.action,
                 "field": rule.field_name,
                 "condition": rule.condition,
             })
+        elif outcome == "inconclusive":
+            inconclusive_rules.append({
+                "rule": rule.rule,
+                "field": rule.field_name,
+                "condition": rule.condition,
+                "reason": reason,
+            })
 
     result["hard_rules_triggered"] = triggered_rules
+    result["hard_rules_inconclusive"] = inconclusive_rules
     hard_override = len(triggered_rules) > 0
 
     # 2. Scored signals
@@ -273,7 +343,7 @@ def evaluate(profile: Profile, signals: dict[str, Any],
         any_warning = any(s.get("in_warning") for s in signal_results)
         has_incomplete = any(
             m["on_missing"] == "incomplete" for m in missing_signals
-        )
+        ) or len(inconclusive_rules) > 0
 
         if any_critical or has_incomplete:
             # Worst band
@@ -308,7 +378,7 @@ def evaluate(profile: Profile, signals: dict[str, Any],
         "profile_version": profile.version,
         "spec_version": profile.spec_version,
         "evaluator": "trp-reference-python",
-        "evaluated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "evaluated_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "result_hash": hashlib.sha256(result_payload.encode()).hexdigest(),
     }
 
@@ -334,16 +404,38 @@ def generate_sample(profile: Profile) -> dict[str, Any]:
                 ss.warning_threshold * 0.8, 4
             )
 
-    # Set boolean fields used by hard rules to safe defaults
+    # Give every hard rule field a safe value of the right type, so a
+    # generated sample never leaves a rule inconclusive.
+    # A field that is also a scored signal keeps its safe signal value when
+    # that value already leaves the rule unmet.
     for rule in profile.hard_rules:
-        if rule.condition == "is_true":
-            sample[rule.field_name] = False
-        elif rule.condition == "is_false":
-            sample[rule.field_name] = True
-        elif rule.condition == "equals":
-            sample[rule.field_name] = "__safe__"
+        if rule.field_name in sample and \
+                rule.check(sample)[0] == "not_triggered":
+            continue
+        sample[rule.field_name] = safe_rule_value(rule)
 
     return sample
+
+
+def safe_rule_value(rule: HardRule) -> Any:
+    """A value of the expected type that does not meet the rule's condition."""
+    if rule.condition == "is_true":
+        return False
+    if rule.condition == "is_false":
+        return True
+    if rule.condition in ("less_than", "greater_than", "not_equals"):
+        # The boundary value itself is not less than, not greater than,
+        # and not unequal, so it never triggers these conditions.
+        return rule.value
+    if rule.condition == "equals":
+        kind = value_type(rule.value)
+        if kind == "boolean":
+            return not rule.value
+        if kind == "number":
+            return rule.value + 1
+        if kind == "string":
+            return "__safe__" if rule.value != "__safe__" else "__safe_value__"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -361,7 +453,11 @@ def main() -> None:
                         help="Generate and print a sample with safe values.")
     args = parser.parse_args()
 
-    profile = load_profile(args.profile)
+    try:
+        profile = load_profile(args.profile)
+    except UnsupportedProfileError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     if args.generate_sample:
         sample = generate_sample(profile)

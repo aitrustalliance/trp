@@ -23,7 +23,8 @@ Files in `profiles/valid/` must pass JSON Schema validation against
 |------|-------------------|
 | `minimal.json` | Only required fields; proves the schema accepts a bare profile. |
 | `full-featured.json` | Every optional field populated; proves the full grammar works. |
-| `with-extension.json` | Profile inheritance via the `extends` field. |
+| `with-extension.json` | Profile inheritance via the `extends` field. The schema accepts it, and the reference evaluators must reject it (group 5). |
+| `uri-extension-keys.json` | Extension keys in both forms, `x_` and URI-namespaced (`https://` and `urn:`). |
 
 ### 2. Schema rejection (invalid profiles)
 
@@ -39,6 +40,7 @@ field:
 | `bad-version-format.json` | Version string not in MAJOR.MINOR.PATCH format. |
 | `bad-signal-direction.json` | Signal direction not in allowed enum. |
 | `empty-standing-bands.json` | Empty `standing_bands` array (minItems: 1). |
+| `bad-extension-key-http.json` | An `http://` extension key, which is not an accepted namespace. |
 
 ### 3. Example profile validation
 
@@ -55,7 +57,21 @@ hard-override flag. The suite verifies that:
 - Warning-level evidence produces `conditional` standing with `restricted` response.
 - Critical-level evidence produces `untrusted` standing with `suspended` response.
 - A triggered hard rule produces `untrusted` standing with hard override.
+- A hard rule whose field is missing, or arrives as the wrong type, is
+  inconclusive. The assessment is incomplete, so the standing is `untrusted`
+  without hard override, and the rule appears in `hard_rules_inconclusive`.
 - The same input always produces the same output (determinism check).
+
+### 5. Unsupported extends
+
+The reference evaluators do not support `extends` yet, so Section 7 requires
+them to reject any profile that uses it. Every valid profile that declares
+`extends` must be rejected, and every other valid profile must load.
+
+### 6. Extension registry
+
+Every key in `extensions/registry.json` starts with `x_`, keys are unique,
+and each status is `reserved`, `active` or `retired`.
 
 ## Adding new tests
 
@@ -68,7 +84,9 @@ fail schema validation.
 
 **New evidence sample:** Add a `.json` file to `evidence/` with
 `_expected_standing`, `_expected_response`, and `_expected_hard_override`
-fields. The test runner evaluates it against `profiles/valid/full-featured.json`.
+fields. Add `_expected_inconclusive_rules` (a list of rule identifiers) when
+the sample should leave rules inconclusive. The test runner evaluates it
+against `profiles/valid/full-featured.json`.
 
 ## Continuous integration
 

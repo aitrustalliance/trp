@@ -1,0 +1,18 @@
+{
+  "_test_description": "pii_detected arrives as the text \"false\" for an is_true rule. Section 3.4: a type mismatch makes the rule inconclusive. Earlier evaluators treated the text as true and halted. Expected standing: untrusted without hard override.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": false,
+  "_expected_inconclusive_rules": [
+    "pii-detected"
+  ],
+  "accuracy": 0.97,
+  "latency_ms": 120,
+  "bias_score": 0.03,
+  "data_freshness_hours": 4,
+  "uptime_ratio": 0.999,
+  "pii_detected": "false",
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

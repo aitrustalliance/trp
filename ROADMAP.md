@@ -16,10 +16,14 @@ This roadmap reflects the current planning direction for the TRP specification a
 
 - [x] Conformance test suite for cross-evaluator agreement
 - [x] GitHub Actions CI pipeline (Python 3.10, 3.12)
-- [x] Zenodo DOI for academic citation (10.5281/zenodo.22099404)
+- [x] Zenodo DOI for academic citation (concept DOI 10.5281/zenodo.22099403, which resolves to the latest release)
 - [ ] Additional domain profiles (financial operations, insurance, defense)
 - [ ] Per-signal drift window configuration (see [Issue #2][issue-2])
-- [ ] Extension namespacing and registry design (see [Issue #3][issue-3])
+- [x] Extension namespacing and registry, with `x_` and URI-namespaced keys and `extensions/registry.json` (v0.5.2, see [Issue #3][issue-3])
+- [x] Inconclusive handling for hard rules with missing fields or type mismatches in both evaluators (v0.5.2)
+- [ ] Inheritance via `extends` in the reference evaluators (both reject it as of v0.5.2, as Section 7 requires)
+- [ ] Type handling for scored signal values that arrive as the wrong type
+- [ ] Provenance module (`x_provenance`) for model and dataset bills of materials
 - [ ] Evidence format specification for evaluation results
 - [ ] Community feedback on v0.5 draft incorporated
 

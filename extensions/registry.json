@@ -1,0 +1,16 @@
+{
+  "registry_version": "1",
+  "description": "Registered top-level x_ extension keys for TRP profiles. Registering a key prevents two modules from claiming the same name. URI-namespaced keys need no entry here. See extensions/README.md.",
+  "entries": [
+    {
+      "key": "x_provenance",
+      "name": "TRP Provenance Module",
+      "status": "reserved",
+      "maintainer": "AI Trust Alliance",
+      "summary": "Model and dataset provenance evidence from CycloneDX and SPDX bills of materials.",
+      "specification": null,
+      "repository": null,
+      "registered": "2026-10-31"
+    }
+  ]
+}
