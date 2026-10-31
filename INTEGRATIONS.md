@@ -218,7 +218,8 @@ To connect a new evidence source to TRP:
    artifact.
 3. Build an evidence adapter that extracts values from the protocol's native
    format and passes them to the evaluator.
-4. Validate using the conformance test suite.
+4. Write every field your rules inspect on every run, even when the value is false or zero. Section 3.4 treats a missing hard rule field as inconclusive, which marks the assessment incomplete.
+5. Validate using the conformance test suite.
 
 Contributions of evidence adapters are welcome. See
 [CONTRIBUTING.md](CONTRIBUTING.md).

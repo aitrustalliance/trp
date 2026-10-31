@@ -1,0 +1,18 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "x_test_description": "MUST fail: extension keys must use x_, https:// or urn:. A plain http:// key is not an accepted namespace.",
+  "trp_id": "bad-extension-key-http",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "intended_use": "Should be rejected."
+  },
+  "standing_bands": [
+    {
+      "band": "ok",
+      "severity": 0
+    }
+  ],
+  "http://example.org/trp/ext/risk-tier": 2
+}

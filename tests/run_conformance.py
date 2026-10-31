@@ -33,7 +33,9 @@ except ImportError:
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "tools"))
 
-from evaluate import load_profile, evaluate, DriftDetector  # noqa: E402
+from evaluate import (  # noqa: E402
+    load_profile, evaluate, DriftDetector, UnsupportedProfileError,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +181,7 @@ def test_evaluator_determinism(results: Results, verbose: bool):
         expected_standing = data.get("_expected_standing")
         expected_response = data.get("_expected_response")
         expected_hard = data.get("_expected_hard_override")
+        expected_inconclusive = data.get("_expected_inconclusive_rules", [])
 
         if expected_standing is None:
             results.fail(
@@ -228,6 +231,19 @@ def test_evaluator_determinism(results: Results, verbose: bool):
             )
             continue
 
+        # Check inconclusive hard rules (Section 3.4)
+        got_inconclusive = sorted(
+            r["rule"] for r in result.get("hard_rules_inconclusive", [])
+        )
+        if got_inconclusive != sorted(expected_inconclusive):
+            results.fail(
+                test_name,
+                f"inconclusive rules: expected {sorted(expected_inconclusive)}, "
+                f"got {got_inconclusive}",
+                verbose,
+            )
+            continue
+
         results.ok(test_name, verbose)
 
     # Determinism check: run the same evaluation twice and compare
@@ -244,6 +260,63 @@ def test_evaluator_determinism(results: Results, verbose: bool):
             "same input produced different output",
             verbose,
         )
+
+
+def test_unsupported_extends(results: Results, verbose: bool):
+    """Section 7: a consumer that does not support `extends` MUST reject a
+    profile that uses it. Every valid profile that declares `extends` must be
+    rejected by the reference evaluator, and every other one must load."""
+    valid_dir = PROJECT_ROOT / "tests" / "profiles" / "valid"
+    for path in sorted(valid_dir.glob("*.json")):
+        with open(path) as f:
+            uses_extends = "extends" in json.load(f)
+        name = f"extends/{path.name}"
+        try:
+            load_profile(path)
+            loaded = True
+        except UnsupportedProfileError:
+            loaded = False
+        if uses_extends and loaded:
+            results.fail(name, "profile uses extends but was not rejected", verbose)
+        elif not uses_extends and not loaded:
+            results.fail(name, "profile without extends was rejected", verbose)
+        else:
+            results.ok(name, verbose)
+
+
+def test_extension_registry(results: Results, verbose: bool):
+    """extensions/registry.json: keys start with x_, are unique, and carry
+    a known status."""
+    registry_path = PROJECT_ROOT / "extensions" / "registry.json"
+    if not registry_path.exists():
+        results.fail("registry", "extensions/registry.json not found", verbose)
+        return
+    with open(registry_path) as f:
+        registry = json.load(f)
+
+    keys = [e.get("key", "") for e in registry.get("entries", [])]
+    statuses = {"reserved", "active", "retired"}
+
+    bad_prefix = [k for k in keys if not k.startswith("x_")]
+    if bad_prefix:
+        results.fail("registry/key-prefix", f"keys without x_: {bad_prefix}", verbose)
+    else:
+        results.ok("registry/key-prefix", verbose)
+
+    dupes = sorted({k for k in keys if keys.count(k) > 1})
+    if dupes:
+        results.fail("registry/unique-keys", f"duplicate keys: {dupes}", verbose)
+    else:
+        results.ok("registry/unique-keys", verbose)
+
+    bad_status = [
+        e.get("key") for e in registry.get("entries", [])
+        if e.get("status") not in statuses
+    ]
+    if bad_status:
+        results.fail("registry/status", f"unknown status for: {bad_status}", verbose)
+    else:
+        results.ok("registry/status", verbose)
 
 
 # ---------------------------------------------------------------------------
@@ -272,6 +345,12 @@ def main():
 
     print("\n4. Evaluator determinism (expected standings)")
     test_evaluator_determinism(results, args.verbose)
+
+    print("\n5. Unsupported extends (must be rejected)")
+    test_unsupported_extends(results, args.verbose)
+
+    print("\n6. Extension registry")
+    test_extension_registry(results, args.verbose)
 
     # Summary
     print("\n" + "=" * 50)

@@ -63,7 +63,9 @@
       },
       "additionalProperties": false,
       "patternProperties": {
-        "^x_": {}
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
       }
     },
     "created_at": {
@@ -98,7 +100,9 @@
       },
       "additionalProperties": false,
       "patternProperties": {
-        "^x_": {}
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
       }
     },
     "scope": {
@@ -129,7 +133,9 @@
       },
       "additionalProperties": false,
       "patternProperties": {
-        "^x_": {}
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
       }
     },
     "scored_signals": {
@@ -186,7 +192,9 @@
         },
         "additionalProperties": false,
         "patternProperties": {
-          "^x_": {}
+          "^x_": {},
+          "^https://\\S+$": {},
+          "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
         }
       }
     },
@@ -241,7 +249,9 @@
         },
         "additionalProperties": false,
         "patternProperties": {
-          "^x_": {}
+          "^x_": {},
+          "^https://\\S+$": {},
+          "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
         }
       }
     },
@@ -268,7 +278,9 @@
       },
       "additionalProperties": false,
       "patternProperties": {
-        "^x_": {}
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
       }
     },
     "standing_bands": {
@@ -289,7 +301,7 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 10,
-            "description": "Ordinal rank from 1 to 10, lower is better."
+            "description": "Ordinal rank from 0 to 10, lower is better."
           },
           "range": {
             "type": "string",
@@ -298,7 +310,9 @@
         },
         "additionalProperties": false,
         "patternProperties": {
-          "^x_": {}
+          "^x_": {},
+          "^https://\\S+$": {},
+          "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
         }
       }
     },
@@ -341,14 +355,18 @@
             },
             "additionalProperties": false,
             "patternProperties": {
-              "^x_": {}
+              "^x_": {},
+              "^https://\\S+$": {},
+              "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
             }
           }
         }
       },
       "additionalProperties": false,
       "patternProperties": {
-        "^x_": {}
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
       }
     },
     "assurance_mapping": {
@@ -371,7 +389,9 @@
         },
         "additionalProperties": false,
         "patternProperties": {
-          "^x_": {}
+          "^x_": {},
+          "^https://\\S+$": {},
+          "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
         }
       }
     },
@@ -396,10 +416,17 @@
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x_": {},
+        "^https://\\S+$": {},
+        "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
+      }
     }
   },
   "patternProperties": {
-    "^x_": {}
+    "^x_": {},
+    "^https://\\S+$": {},
+    "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$": {}
   }
 }
