@@ -52,7 +52,7 @@ button { font: inherit; color: inherit; }
 .wordmark { display: flex; align-items: baseline; gap: 8px; letter-spacing: 0.02em; }
 .mark { font-weight: 600; font-size: 17px; }
 .mark-sub { font-weight: 300; font-size: 17px; color: var(--silver); }
-.packs { display: flex; gap: 26px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.packs { display: flex; gap: 22px; flex: 1; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); padding-right: 40px; }
 .packs::-webkit-scrollbar { display: none; }
 .pack-tab {
   background: none; border: 0; padding: 6px 0; cursor: pointer;
