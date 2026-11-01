@@ -1,0 +1,209 @@
+{
+  "pack_version": "1",
+  "id": "robot-cell",
+  "title": "Robot Cell",
+  "subtitle": "A collaborative robot arm picking parts beside a person.",
+  "scene": "robot-cell",
+  "profile": "../../../examples/manufacturing-safety/trp.json",
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "signals": {
+    "human_distance_m": {
+      "base": 2.6,
+      "jitter": 0.02,
+      "min": 0,
+      "max": 4,
+      "decimals": 2,
+      "label": "Human distance"
+    },
+    "robot_speed_mm_s": {
+      "base": 600,
+      "jitter": 8,
+      "min": 0,
+      "max": 1400,
+      "decimals": 0,
+      "label": "Arm speed"
+    },
+    "vibration_rms_g": {
+      "base": 0.34,
+      "jitter": 0.02,
+      "min": 0,
+      "max": 2,
+      "decimals": 2,
+      "label": "Vibration"
+    },
+    "temperature_C": {
+      "base": 52,
+      "jitter": 0.3,
+      "min": 20,
+      "max": 100,
+      "decimals": 1,
+      "label": "Motor temperature"
+    },
+    "model_confidence": {
+      "base": 0.94,
+      "jitter": 0.01,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Model confidence"
+    },
+    "data_quality": {
+      "base": 0.98,
+      "jitter": 0.005,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Data quality"
+    },
+    "estop_active": {
+      "base": false,
+      "label": "Emergency stop"
+    },
+    "safety_certification_status": {
+      "base": "valid",
+      "label": "Safety certification"
+    }
+  },
+  "rule_labels": {
+    "estop_active": "Emergency stop pressed",
+    "human_in_exclusion_zone": "Person inside the exclusion zone",
+    "safety_certification_expired": "Safety certification expired",
+    "critical_data_quality": "Data quality critically low"
+  },
+  "controls": [
+    {
+      "id": "distance",
+      "label": "Person distance",
+      "type": "slider",
+      "signal": "human_distance_m",
+      "min": 0.3,
+      "max": 3.2,
+      "step": 0.05
+    },
+    {
+      "id": "speed",
+      "label": "Arm speed",
+      "type": "slider",
+      "signal": "robot_speed_mm_s",
+      "min": 200,
+      "max": 1200,
+      "step": 10
+    },
+    {
+      "id": "loose",
+      "label": "Loose fixture",
+      "type": "toggle",
+      "effects": {
+        "vibration_rms_g": {
+          "to": 1.32,
+          "ramp_s": 2.5
+        }
+      }
+    },
+    {
+      "id": "heat",
+      "label": "Motor overheats",
+      "type": "toggle",
+      "effects": {
+        "temperature_C": {
+          "to": 84,
+          "ramp_s": 6
+        }
+      }
+    },
+    {
+      "id": "dropout",
+      "label": "Sensor dropout",
+      "type": "toggle",
+      "effects": {
+        "data_quality": {
+          "to": 0.44,
+          "ramp_s": 0.5
+        },
+        "human_distance_m": {
+          "omit": true
+        }
+      }
+    },
+    {
+      "id": "estop",
+      "label": "Emergency stop",
+      "type": "toggle",
+      "effects": {
+        "estop_active": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "cert",
+      "label": "Certification expires",
+      "type": "toggle",
+      "effects": {
+        "safety_certification_status": {
+          "set": "expired"
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "The cell runs normally. Every reading sits inside the profile's operating range."
+    },
+    {
+      "at_s": 4,
+      "caption": "A person walks toward the cell.",
+      "set": {
+        "distance": 1.25
+      }
+    },
+    {
+      "at_s": 9,
+      "caption": "They step inside the exclusion zone. The profile's hard rule halts the arm.",
+      "set": {
+        "distance": 0.6
+      }
+    },
+    {
+      "at_s": 14,
+      "caption": "They step back out, and the cell recovers.",
+      "set": {
+        "distance": 2.6
+      }
+    },
+    {
+      "at_s": 19,
+      "caption": "A proximity sensor drops out. Missing evidence is treated as unknown, never as safe.",
+      "toggle": {
+        "dropout": true
+      }
+    },
+    {
+      "at_s": 25,
+      "caption": "The sensor comes back.",
+      "toggle": {
+        "dropout": false
+      }
+    },
+    {
+      "at_s": 29,
+      "caption": "A fixture works loose and vibration climbs past the warning line.",
+      "toggle": {
+        "loose": true
+      }
+    },
+    {
+      "at_s": 37,
+      "caption": "Fixed. One profile, read by any evaluator, gives the same answer every time.",
+      "toggle": {
+        "loose": false
+      }
+    },
+    {
+      "at_s": 42,
+      "end": true
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "pack_version": "1",
+  "id": "agno",
+  "title": "Agno",
+  "subtitle": "The agnostic agent. Any model, any framework, the same trust requirements.",
+  "scene": "agent-trace",
+  "profile": "../../../examples/agent-tool-use/trp.json",
+  "tick_ms": 250,
+  "cycle_s": 5,
+  "tools": [
+    "search",
+    "read_file",
+    "run_code",
+    "send_email",
+    "write_db"
+  ],
+  "signals": {
+    "steps_per_task": {
+      "base": 9,
+      "jitter": 0.4,
+      "min": 0,
+      "max": 80,
+      "decimals": 0,
+      "label": "Steps this task"
+    },
+    "tool_error_rate": {
+      "base": 0.01,
+      "jitter": 0.003,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "Tool error rate"
+    },
+    "records_beyond_need": {
+      "base": 0.02,
+      "jitter": 0.004,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Data beyond need"
+    },
+    "grounding_score": {
+      "base": 0.93,
+      "jitter": 0.006,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Grounding"
+    },
+    "cost_per_task_usd": {
+      "base": 0.12,
+      "jitter": 0.01,
+      "min": 0,
+      "max": 10,
+      "decimals": 2,
+      "label": "Cost this task"
+    },
+    "unapproved_tool_called": {
+      "base": false,
+      "label": "Unapproved tool"
+    },
+    "secret_in_output": {
+      "base": false,
+      "label": "Secret in output"
+    },
+    "output_destination_approved": {
+      "base": true,
+      "label": "Output destination"
+    },
+    "write_without_approval": {
+      "base": false,
+      "label": "Write without approval"
+    }
+  },
+  "rule_labels": {
+    "unapproved_tool_called": "Unapproved tool called",
+    "secret_in_output": "Access key in output",
+    "unapproved_destination": "Output sent to an unapproved destination",
+    "write_without_approval": "Write without approval"
+  },
+  "controls": [
+    {
+      "id": "loop",
+      "label": "Agent loops",
+      "type": "toggle",
+      "effects": {
+        "steps_per_task": {
+          "to": 46,
+          "ramp_s": 8
+        },
+        "cost_per_task_usd": {
+          "to": 2.4,
+          "ramp_s": 8
+        }
+      }
+    },
+    {
+      "id": "overreach",
+      "label": "Pulls extra records",
+      "type": "toggle",
+      "effects": {
+        "records_beyond_need": {
+          "to": 0.36,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "ungrounded",
+      "label": "Answers without sources",
+      "type": "toggle",
+      "effects": {
+        "grounding_score": {
+          "to": 0.74,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "tool",
+      "label": "Calls an unapproved tool",
+      "type": "toggle",
+      "effects": {
+        "unapproved_tool_called": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "secret",
+      "label": "Leaks a key in output",
+      "type": "toggle",
+      "effects": {
+        "secret_in_output": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "write",
+      "label": "Writes without approval",
+      "type": "toggle",
+      "effects": {
+        "write_without_approval": {
+          "set": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "Agno works a task, step by step, using only approved tools."
+    },
+    {
+      "at_s": 4,
+      "caption": "It starts pulling more customer records than the task needs.",
+      "toggle": {
+        "overreach": true
+      }
+    },
+    {
+      "at_s": 10,
+      "caption": "Scope is pulled back.",
+      "toggle": {
+        "overreach": false
+      }
+    },
+    {
+      "at_s": 13,
+      "caption": "It gets stuck in a loop. Steps and cost climb.",
+      "toggle": {
+        "loop": true
+      }
+    },
+    {
+      "at_s": 22,
+      "caption": "The loop is broken.",
+      "toggle": {
+        "loop": false
+      }
+    },
+    {
+      "at_s": 26,
+      "caption": "It reaches for a tool nobody approved. The task halts before the call runs.",
+      "toggle": {
+        "tool": true
+      }
+    },
+    {
+      "at_s": 31,
+      "caption": "Same profile, any model, any framework.",
+      "toggle": {
+        "tool": false
+      }
+    },
+    {
+      "at_s": 35,
+      "end": true
+    }
+  ]
+}

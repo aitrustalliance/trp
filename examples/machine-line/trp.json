@@ -1,0 +1,157 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/machine-line/1.0.0/trp.json",
+  "trp_id": "machine-line",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "Automated machine line",
+  "description": "Reference Trust Requirements Profile for an automated production line of machines running in sequence. Illustrative draft values, not certified safety limits.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-10-31T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "manufacturing",
+    "use_case": "automated-machine-line"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for an automated line of machines and conveyors controlled by software or AI.",
+    "boundary": "One production line from infeed to outfeed, including its guarding and stop circuits.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "spindle_vibration_mm_s",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 4.5,
+      "critical_threshold": 7.1,
+      "unit": "mm/s",
+      "reason": "Rising vibration is an early sign of bearing wear, imbalance or a loose tool."
+    },
+    {
+      "signal": "bearing_temperature_C",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 75,
+      "critical_threshold": 90,
+      "unit": "C",
+      "reason": "Overheating bearings fail quickly and can seize the line."
+    },
+    {
+      "signal": "line_speed_units_min",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 130,
+      "critical_threshold": 160,
+      "unit": "units/min",
+      "reason": "Running above rated speed raises jam and injury risk."
+    },
+    {
+      "signal": "jam_rate_per_hour",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 2,
+      "critical_threshold": 6,
+      "unit": "per hour",
+      "reason": "Frequent jams lead to manual clearing, the most common cause of line injuries."
+    },
+    {
+      "signal": "first_pass_yield",
+      "weight": 10,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.95,
+      "critical_threshold": 0.85,
+      "unit": "ratio",
+      "reason": "Falling yield signals drift in the process or the model controlling it."
+    },
+    {
+      "signal": "sensor_health",
+      "weight": 10,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.9,
+      "critical_threshold": 0.6,
+      "unit": "ratio",
+      "reason": "Decisions made on failing sensors should not be trusted."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "guard_door_open",
+      "field": "guard_door_open",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "stop_circuit_fault",
+      "field": "stop_circuit_ok",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "lockout_tagout_active",
+      "field": "lockout_tagout_active",
+      "condition": "is_true",
+      "action": "block_startup"
+    },
+    {
+      "rule": "unvalidated_control_model",
+      "field": "control_model_status",
+      "condition": "equals",
+      "value": "unvalidated",
+      "action": "require_review"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": [
+      "spindle_vibration_mm_s",
+      "bearing_temperature_C"
+    ]
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable operating range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "For audit or insurance use, the evaluation source should be independent.",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values, not certified safety limits.",
+    "This profile is a reference template. Real deployments should set values to their equipment and applicable safety practice."
+  ]
+}

@@ -36,6 +36,12 @@ A trust requirement is that missing piece: a portable contract of interaction re
 
 A trust requirement cannot belong to any single platform. When the definition of a trusted interaction lives inside one company's system, every other participant is trusting that company rather than the system, and the record is theirs to shape. That holds regardless of how well-intentioned the company is, which makes it a structural problem rather than a question of conduct. This is a big part of the trust gap in AI: trust is compartmentalized inside individual platforms and fragmented into private formats and protocols that cannot agree across parties. An open standard confronts fragmentation and breaks platform lock-in. Trust orchestration is the problem: ensuring every party in an interaction can prove it met the requirements. TRP is built to solve it. TRP integrates with identity, authorization, and enforcement. It must be open, because it requires shared agreement across the ecosystem.
 
+## Try It Live
+
+**[Open TRP Studio](https://aitrustalliance.github.io/trp/studio/)** to watch a profile at work. Pick a robot cell, a machine line, a healthcare data flow or Agno, an agent that works with any model or framework. Change the conditions and watch the standing respond, with every hard rule, signal and change in standing evaluated in your browser by the open TRP engine. Drag in your own profile and it becomes a live demo too.
+
+To run it locally, clone the repository, run `python3 -m http.server 8000` from its root and open http://localhost:8000/studio/. See [studio/README.md](studio/README.md) to build your own scenario pack.
+
 ## Repository Contents
 
 ```
@@ -47,12 +53,16 @@ examples/
   trust.json                                     example trust.json discovery file
   manufacturing-safety/trp.json                  reference profile: collaborative robot cell safety
   healthcare-data-governance/trp.json            reference profile: AI processing of protected health information
+  machine-line/trp.json                          reference profile: automated machine line
+  agent-tool-use/trp.json                        reference profile: AI agent tool use, framework agnostic
+studio/                                          TRP Studio, a live browser demo with scenario packs
 tools/
   evaluate.py                                    reference evaluator (Python)
   evaluate.js                                    reference evaluator (Node.js)
   README.md                                      evaluator documentation and usage
 tests/
-  run_conformance.py                             conformance test suite (27 tests)
+  run_conformance.py                             conformance test suite
+  studio_parity.js                               checks the Studio engine matches the reference evaluator
   profiles/valid/                                profiles that must pass schema validation
   profiles/invalid/                              profiles that must fail schema validation
   evidence/                                      evidence samples with expected evaluation outcomes
@@ -72,10 +82,12 @@ LICENSE                                          Apache License 2.0
 
 ## Getting Started
 
-Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across two domains:
+Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across four domains:
 
 - **Manufacturing safety** (`examples/manufacturing-safety/trp.json`): a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone, and certification status.
 - **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`): an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for HIPAA basis, IRB status, and data use agreements.
+- **Machine line** (`examples/machine-line/trp.json`): an automated production line, with scored signals for spindle vibration, bearing temperature, line speed, jam rate, first pass yield, and sensor health, plus hard rules for guard doors, the stop circuit, lockout and tagout, and unvalidated control models.
+- **Agent tool use** (`examples/agent-tool-use/trp.json`): an AI agent completing tasks with tools, independent of model or framework, with scored signals for step count, tool errors, data pulled beyond need, grounding, and cost, plus hard rules for unapproved tools, secrets in output, unapproved destinations, and writes without approval.
 
 To check a profile against the schema, use any standard JSON Schema validator (Draft 2020-12):
 

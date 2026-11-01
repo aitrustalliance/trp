@@ -1,0 +1,205 @@
+{
+  "pack_version": "1",
+  "id": "machine-line",
+  "title": "Machine Line",
+  "subtitle": "An automated line of machines and conveyors running in sequence.",
+  "scene": "machine-line",
+  "profile": "../../../examples/machine-line/trp.json",
+  "tick_ms": 250,
+  "cycle_s": 6,
+  "signals": {
+    "spindle_vibration_mm_s": {
+      "base": 2.4,
+      "jitter": 0.08,
+      "min": 0,
+      "max": 12,
+      "decimals": 1,
+      "label": "Spindle vibration"
+    },
+    "bearing_temperature_C": {
+      "base": 58,
+      "jitter": 0.3,
+      "min": 20,
+      "max": 110,
+      "decimals": 1,
+      "label": "Bearing temperature"
+    },
+    "line_speed_units_min": {
+      "base": 110,
+      "jitter": 1.5,
+      "min": 0,
+      "max": 200,
+      "decimals": 0,
+      "label": "Line speed"
+    },
+    "jam_rate_per_hour": {
+      "base": 0.6,
+      "jitter": 0.05,
+      "min": 0,
+      "max": 12,
+      "decimals": 1,
+      "label": "Jam rate"
+    },
+    "first_pass_yield": {
+      "base": 0.985,
+      "jitter": 0.002,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "First pass yield"
+    },
+    "sensor_health": {
+      "base": 0.99,
+      "jitter": 0.003,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Sensor health"
+    },
+    "guard_door_open": {
+      "base": false,
+      "label": "Guard door"
+    },
+    "stop_circuit_ok": {
+      "base": true,
+      "label": "Stop circuit"
+    },
+    "lockout_tagout_active": {
+      "base": false,
+      "label": "Lockout and tagout"
+    },
+    "control_model_status": {
+      "base": "validated",
+      "label": "Control model"
+    }
+  },
+  "rule_labels": {
+    "guard_door_open": "Guard door open",
+    "stop_circuit_fault": "Stop circuit fault",
+    "lockout_tagout_active": "Lockout and tagout active",
+    "unvalidated_control_model": "Control model not validated"
+  },
+  "controls": [
+    {
+      "id": "speed",
+      "label": "Line speed",
+      "type": "slider",
+      "signal": "line_speed_units_min",
+      "min": 60,
+      "max": 180,
+      "step": 1
+    },
+    {
+      "id": "bearing",
+      "label": "Bearing wears",
+      "type": "toggle",
+      "effects": {
+        "spindle_vibration_mm_s": {
+          "to": 7.6,
+          "ramp_s": 8
+        },
+        "bearing_temperature_C": {
+          "to": 82,
+          "ramp_s": 10
+        }
+      }
+    },
+    {
+      "id": "jams",
+      "label": "Jams pile up",
+      "type": "toggle",
+      "effects": {
+        "jam_rate_per_hour": {
+          "to": 4.2,
+          "ramp_s": 3
+        },
+        "first_pass_yield": {
+          "to": 0.93,
+          "ramp_s": 4
+        }
+      }
+    },
+    {
+      "id": "door",
+      "label": "Guard door opens",
+      "type": "toggle",
+      "effects": {
+        "guard_door_open": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "circuit",
+      "label": "Stop circuit fault",
+      "type": "toggle",
+      "effects": {
+        "stop_circuit_ok": {
+          "set": false
+        }
+      }
+    },
+    {
+      "id": "model",
+      "label": "Unvalidated model",
+      "type": "toggle",
+      "effects": {
+        "control_model_status": {
+          "set": "unvalidated"
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "Parts move down the line at rated speed."
+    },
+    {
+      "at_s": 4,
+      "caption": "The line is pushed past its rated speed.",
+      "set": {
+        "speed": 142
+      }
+    },
+    {
+      "at_s": 10,
+      "caption": "Back to rated speed.",
+      "set": {
+        "speed": 110
+      }
+    },
+    {
+      "at_s": 13,
+      "caption": "A bearing starts to wear. Vibration and heat climb together.",
+      "toggle": {
+        "bearing": true
+      }
+    },
+    {
+      "at_s": 24,
+      "caption": "Maintenance replaces it.",
+      "toggle": {
+        "bearing": false
+      }
+    },
+    {
+      "at_s": 28,
+      "caption": "Someone opens a guard door while the line runs. It halts at once.",
+      "toggle": {
+        "door": true
+      }
+    },
+    {
+      "at_s": 33,
+      "caption": "Door closed. The line restarts.",
+      "toggle": {
+        "door": false
+      }
+    },
+    {
+      "at_s": 37,
+      "end": true
+    }
+  ]
+}

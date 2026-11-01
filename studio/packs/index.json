@@ -1,0 +1,8 @@
+{
+  "packs": [
+    { "id": "robot-cell", "path": "robot-cell/pack.json" },
+    { "id": "machine-line", "path": "machine-line/pack.json" },
+    { "id": "healthcare", "path": "healthcare/pack.json" },
+    { "id": "agno", "path": "agno/pack.json" }
+  ]
+}

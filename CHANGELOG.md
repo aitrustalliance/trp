@@ -4,6 +4,20 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Added
+- TRP Studio (`studio/`), a browser demo that runs a live system against a
+  profile and evaluates it every tick, with scenario packs for a robot cell,
+  a machine line, a healthcare data flow and an agent (Agno). Any profile can
+  be imported and becomes a live demo.
+- `studio/engine.js`, a browser port of the Node.js reference evaluator, and
+  `tests/studio_parity.js`, which requires identical results from both for
+  every example profile and evidence sample. CI runs it.
+- Reference profiles `examples/machine-line/trp.json` and
+  `examples/agent-tool-use/trp.json`.
+- GitHub Pages workflow that publishes the Studio.
+
 ## [0.5.2] - 2026-10-31
 
 ### Added

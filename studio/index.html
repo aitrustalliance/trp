@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TRP Studio</title>
+  <meta name="description" content="Trust Requirements Profile Studio. Load a profile, run a live system against it, and watch its standing change in real time.">
+  <link rel="stylesheet" href="studio.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="wordmark" href="./" aria-label="TRP Studio home">
+      <span class="mark">TRP</span><span class="mark-sub">Studio</span>
+    </a>
+    <nav class="packs" id="pack-tabs" aria-label="Scenario packs"></nav>
+    <div class="top-actions">
+      <label class="link" for="file-input">Import</label>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+      <a class="link" href="https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md">Spec</a>
+      <a class="link" href="https://github.com/aitrustalliance/trp">GitHub</a>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="scene-wrap" aria-label="Live scene">
+      <div class="scene-head">
+        <div>
+          <h1 id="pack-title">Loading</h1>
+          <p id="pack-subtitle" class="muted"></p>
+        </div>
+        <div class="transport">
+          <button id="story-btn" class="text-btn" type="button">Play story</button>
+          <button id="pause-btn" class="text-btn" type="button" aria-pressed="false">Pause</button>
+          <button id="reset-btn" class="text-btn" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="scene" id="scene">
+        <canvas id="canvas" aria-label="Animated scene of the system being evaluated" role="img"></canvas>
+        <div class="halt" id="halt" hidden>
+          <div class="halt-word" id="halt-word">Halted</div>
+          <div class="halt-why" id="halt-why"></div>
+        </div>
+        <p class="caption" id="caption" aria-live="polite"></p>
+      </div>
+      <div class="controls" id="controls" aria-label="Conditions you can change"></div>
+    </section>
+
+    <aside class="readout" aria-label="Evaluation">
+      <div class="standing">
+        <div class="eyebrow">Standing</div>
+        <div class="standing-word" id="standing-word" aria-live="polite">—</div>
+        <div class="standing-response" id="standing-response"></div>
+        <div class="scale" id="scale">
+          <div class="scale-line"></div>
+          <div class="scale-dot" id="scale-dot"></div>
+          <div class="scale-labels" id="scale-labels"></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="eyebrow">Signals</div>
+        <ul class="signals" id="signals"></ul>
+      </div>
+
+      <div class="block">
+        <div class="eyebrow">Hard rules</div>
+        <ul class="rules" id="rules"></ul>
+      </div>
+
+      <div class="block">
+        <div class="eyebrow-row">
+          <span class="eyebrow">Events</span>
+          <span class="exports">
+            <button class="text-btn small" id="export-json" type="button">JSON</button>
+            <button class="text-btn small" id="export-csv" type="button">CSV</button>
+            <button class="text-btn small" id="export-jsonl" type="button">Frames</button>
+            <button class="text-btn small" id="export-profile" type="button">Profile</button>
+          </span>
+        </div>
+        <ol class="events" id="events"></ol>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <span>Evaluated in your browser by the open TRP reference engine. Nothing leaves this page.</span>
+    <span class="muted">Drop any TRP profile here to bring it to life.</span>
+  </footer>
+
+  <div class="drop" id="drop" hidden><div>Drop a TRP profile or scenario pack</div></div>
+
+  <script src="engine.js"></script>
+  <script src="sim.js"></script>
+  <script src="scenes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

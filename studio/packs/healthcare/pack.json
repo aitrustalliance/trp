@@ -1,0 +1,197 @@
+{
+  "pack_version": "1",
+  "id": "healthcare",
+  "title": "Healthcare",
+  "subtitle": "Patient data moving from hospital records into an AI model.",
+  "scene": "data-flow",
+  "profile": "../../../examples/healthcare-data-governance/trp.json",
+  "tick_ms": 250,
+  "cycle_s": 3,
+  "stages": [
+    "Hospital records",
+    "De-identification",
+    "Model training",
+    "Clinical use"
+  ],
+  "signals": {
+    "data_deidentification_confidence": {
+      "base": 0.97,
+      "jitter": 0.003,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "De-identification confidence"
+    },
+    "consent_coverage_ratio": {
+      "base": 0.985,
+      "jitter": 0.002,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "Consent coverage"
+    },
+    "model_subgroup_performance_gap": {
+      "base": 0.03,
+      "jitter": 0.003,
+      "min": 0,
+      "max": 0.4,
+      "decimals": 3,
+      "label": "Subgroup performance gap"
+    },
+    "data_freshness_hours": {
+      "base": 12,
+      "jitter": 0.4,
+      "min": 0,
+      "max": 400,
+      "decimals": 0,
+      "label": "Data age"
+    },
+    "access_log_completeness": {
+      "base": 0.995,
+      "jitter": 0.001,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "Access log completeness"
+    },
+    "model_confidence": {
+      "base": 0.93,
+      "jitter": 0.008,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Model confidence"
+    },
+    "hipaa_basis_verified": {
+      "base": true,
+      "label": "HIPAA basis"
+    },
+    "irb_status": {
+      "base": "approved",
+      "label": "Ethics board approval"
+    },
+    "external_sharing_without_dua": {
+      "base": false,
+      "label": "External sharing"
+    },
+    "phi_training_review_status": {
+      "base": "reviewed",
+      "label": "Training data review"
+    }
+  },
+  "rule_labels": {
+    "no_valid_hipaa_basis": "No verified legal basis under HIPAA",
+    "irb_approval_expired": "Ethics board (IRB) approval expired",
+    "dua_missing_for_external_share": "Shared without a data use agreement",
+    "phi_in_training_data_unreviewed": "Unreviewed patient data in training"
+  },
+  "controls": [
+    {
+      "id": "deid",
+      "label": "De-identification confidence",
+      "type": "slider",
+      "signal": "data_deidentification_confidence",
+      "min": 0.7,
+      "max": 1,
+      "step": 0.005
+    },
+    {
+      "id": "consent",
+      "label": "Consent gaps",
+      "type": "toggle",
+      "effects": {
+        "consent_coverage_ratio": {
+          "to": 0.9,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "bias",
+      "label": "Model underperforms for a group",
+      "type": "toggle",
+      "effects": {
+        "model_subgroup_performance_gap": {
+          "to": 0.17,
+          "ramp_s": 5
+        }
+      }
+    },
+    {
+      "id": "share",
+      "label": "Shared without an agreement",
+      "type": "toggle",
+      "effects": {
+        "external_sharing_without_dua": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "irb",
+      "label": "Ethics approval expires",
+      "type": "toggle",
+      "effects": {
+        "irb_status": {
+          "set": "expired"
+        }
+      }
+    },
+    {
+      "id": "logs",
+      "label": "Access logs go missing",
+      "type": "toggle",
+      "effects": {
+        "access_log_completeness": {
+          "omit": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "De-identified patient records flow into model training, all within the profile."
+    },
+    {
+      "at_s": 4,
+      "caption": "Consent records fall behind for part of the data.",
+      "toggle": {
+        "consent": true
+      }
+    },
+    {
+      "at_s": 10,
+      "caption": "The model starts underperforming for one patient group.",
+      "toggle": {
+        "bias": true
+      }
+    },
+    {
+      "at_s": 17,
+      "caption": "Both are corrected.",
+      "toggle": {
+        "consent": false,
+        "bias": false
+      }
+    },
+    {
+      "at_s": 22,
+      "caption": "Someone shares data with a partner without a data use agreement. The flow stops.",
+      "toggle": {
+        "share": true
+      }
+    },
+    {
+      "at_s": 28,
+      "caption": "Sharing is revoked and the flow resumes.",
+      "toggle": {
+        "share": false
+      }
+    },
+    {
+      "at_s": 32,
+      "end": true
+    }
+  ]
+}
