@@ -618,6 +618,7 @@
     $("controls").hidden = mode !== "live";
     $("arena-panel").hidden = mode !== "arena";
     $("stress-panel").hidden = mode !== "stress";
+    $("learn-panel").hidden = mode !== "learn";
     $("story-btn").hidden = mode !== "live" || !(pack.story && pack.story.length);
     $("hud").hidden = true;
     stopStory(true);
@@ -628,6 +629,7 @@
     reset();
     if (mode === "arena") renderArenaPrep();
     if (mode === "stress") renderStressPrep();
+    if (mode === "learn") renderLearn();
   }
 
   function logControl(id, value) {
@@ -857,6 +859,122 @@
         </div>
         <table class="table"><thead><tr><th>Fault</th><th>Runs</th><th>Harm caught</th><th>False stops</th><th>Time to stop</th></tr></thead><tbody>${rows}</tbody></table>
         <p>Faults the profile misses are where a guard in the Arena, or a better profile, earns its keep.</p>`);
+    }, 30);
+  }
+
+  // ------------------------------------------------------------------ Learn
+
+  // Challenges hand the player a profile with a gap, let them change its
+  // limits, and grade the result with a fixed-seed stress test.
+  async function loadChallenges() {
+    try { app.challenges = await fetchJSON("challenges.json"); } catch (err) { app.challenges = { challenges: [] }; }
+  }
+
+  function renderLearn() {
+    const panel = $("learn-panel");
+    const set = app.challenges;
+    if (!set) { setHTML(panel, html`<p>Loading challenges…</p>`); return; }
+    const c = app.learnId && set.challenges.find((x) => x.id === app.learnId);
+    if (c && app.current.pack.id === c.pack) { renderChallenge(c); return; }
+    app.learnId = null;
+    const done = set.challenges.filter((x) => store("learn-" + x.id)).length;
+    const cards = set.challenges.map((x) => {
+      const entry = app.packs.find((p) => p.id === x.pack);
+      return html`<button class="challenge" type="button" data-id="${x.id}"><span class="c-title">${x.title}</span><span class="c-pack">${entry ? entry.title : x.pack}</span><span class="c-status">${store("learn-" + x.id) ? "Complete" : "Not started"}</span></button>`;
+    });
+    setHTML(panel, html`<div class="panel-row"><h2>Learn</h2><span class="muted">${done} of ${set.challenges.length} complete</span></div>
+      <p>Each challenge hands you a profile with a gap in it. Change its limits, test them against ${set.episodes} runs with faults mixed in, and see what your rules catch and what they stop for nothing.</p>
+      <div class="challenges">${cards}</div>`);
+    for (const b of panel.querySelectorAll(".challenge")) b.addEventListener("click", () => openChallenge(b.dataset.id));
+  }
+
+  function openChallenge(id) {
+    const c = app.challenges.challenges.find((x) => x.id === id);
+    if (!c) return;
+    app.learnId = id;
+    app.learnEdits = {};
+    if (app.current.pack.id !== c.pack) selectPack(c.pack, { mode: "learn" });
+    else renderLearn();
+  }
+
+  function learnProfile(c) {
+    const prof = JSON.parse(JSON.stringify(app.current.pack.profileObject));
+    for (const [name, e] of Object.entries(app.learnEdits || {})) {
+      const s = prof.scored_signals.find((x) => x.signal === name);
+      if (!s || !c.edit.includes(name)) continue;
+      if (Number.isFinite(e.warning)) s.warning_threshold = e.warning;
+      if (Number.isFinite(e.critical)) s.critical_threshold = e.critical;
+    }
+    return prof;
+  }
+
+  function renderChallenge(c) {
+    const pack = app.current.pack;
+    const prof = learnProfile(c);
+    const g = c.goal;
+    const rows = c.edit.map((name) => {
+      const s = prof.scored_signals.find((x) => x.signal === name);
+      const spec = pack.signals[name] || {};
+      const step = Math.pow(10, -(spec.decimals == null ? 2 : spec.decimals));
+      const dir = s.direction === "lower_is_unsafe" ? "Lower is unsafe" : "Higher is unsafe";
+      return html`<div class="limit-row"><div><div class="limit-name">${labelFor(name)}</div><div class="muted small">${dir}. Normally about ${spec.base} ${s.unit || ""}</div></div>
+        <label>Warning <input type="number" data-sig="${name}" data-k="warning" value="${s.warning_threshold}" step="${step}"></label>
+        <label>Critical <input type="number" data-sig="${name}" data-k="critical" value="${s.critical_threshold}" step="${step}"></label></div>`;
+    });
+    const pct = (x) => Math.round(x * 100) + "%";
+    setHTML($("learn-panel"), html`<div class="panel-row"><h2>${c.title}</h2><button class="text-btn" id="learn-back" type="button">All challenges</button></div>
+      <p>${c.brief}</p>
+      <p class="muted">Goal: stop ${g.safety >= 1 ? "every harm" : `at least ${pct(g.safety)} of harm`} in time, with no more than ${g.false_stops} needless stops and at least ${pct(g.uptime)} uptime.</p>
+      <div class="limits">${rows}</div>
+      <div class="panel-row" style="justify-content:flex-start;gap:24px;flex-wrap:wrap">
+        <button class="primary" id="learn-test" type="button">Test my rules</button>
+        <button class="text-btn" id="learn-reset" type="button">Reset limits</button>
+        <button class="text-btn" id="learn-hint" type="button">Hint</button>
+        <button class="text-btn" id="learn-export" type="button">Download my profile</button>
+      </div>
+      <div id="learn-out" aria-live="polite"></div>`);
+    for (const input of $("learn-panel").querySelectorAll("input[data-sig]")) {
+      input.addEventListener("change", () => {
+        const e = (app.learnEdits[input.dataset.sig] = app.learnEdits[input.dataset.sig] || {});
+        e[input.dataset.k] = Number(input.value);
+      });
+    }
+    $("learn-back").addEventListener("click", () => { app.learnId = null; renderLearn(); });
+    $("learn-reset").addEventListener("click", () => { app.learnEdits = {}; renderChallenge(c); });
+    $("learn-hint").addEventListener("click", () => toast(c.hint));
+    $("learn-export").addEventListener("click", () => download(`${prof.trp_id}-${c.id}.json`, JSON.stringify(learnProfile(c), null, 2), "application/json"));
+    $("learn-test").addEventListener("click", () => testChallenge(c));
+  }
+
+  function testChallenge(c) {
+    const prof = learnProfile(c);
+    for (const name of c.edit) {
+      const s = prof.scored_signals.find((x) => x.signal === name);
+      const ok = s.direction === "lower_is_unsafe" ? s.warning_threshold > s.critical_threshold : s.warning_threshold < s.critical_threshold;
+      if (!Number.isFinite(s.warning_threshold) || !Number.isFinite(s.critical_threshold) || !ok) {
+        setHTML($("learn-out"), html`<p>${labelFor(name)} needs its warning limit on the safe side of its critical limit.</p>`);
+        return;
+      }
+    }
+    setHTML($("learn-out"), html`<p>Testing against ${app.challenges.episodes} runs…</p>`);
+    setTimeout(() => {
+      const pack = app.current.pack;
+      const r = A.stressTest(pack, prof, { episodes: app.challenges.episodes, seed: app.challenges.seed }, { engine: E, sim: S });
+      const o = r.overall;
+      const checks = [
+        [`Harm stopped in time: ${Math.round(o.safety * 100)}%`, o.safety >= c.goal.safety],
+        [`Needless stops: ${o.falseHalts}`, o.falseHalts <= c.goal.false_stops],
+        [`Uptime: ${Math.round(o.uptime * 100)}%`, o.uptime >= c.goal.uptime],
+      ];
+      const passed = checks.every((x) => x[1]);
+      const misses = r.rows.filter((x) => x.incidents > x.caught).sort((a, b) => (b.incidents - b.caught) - (a.incidents - a.caught)).slice(0, 4);
+      const list = checks.map(([t, ok]) => html`<li class="${ok ? "pass" : "fail"}">${ok ? "Met" : "Not yet"} · ${t}</li>`);
+      const missed = misses.map((x) => html`<li>${x.label}: ${x.incidents - x.caught} of ${x.incidents} slipped through</li>`);
+      if (passed) store("learn-" + c.id, { done: 1, safety: o.safety });
+      setHTML($("learn-out"), html`<ul class="checks">${list}</ul>
+        ${missed.length ? html`<p class="muted">Still slipping through</p><ul class="misses">${missed}</ul>` : ""}
+        ${passed ? html`<div class="lesson"><strong>Challenge complete.</strong> ${c.lesson}</div>` : ""}`);
+      if (passed) toast(`${c.title} complete`);
     }, 30);
   }
 
@@ -1120,7 +1238,7 @@
   (async function start() {
     const params = new URLSearchParams(location.search);
     try {
-      await loadIndex();
+      await Promise.all([loadIndex(), loadChallenges()]);
     } catch (err) {
       $("pack-title").textContent = "Studio needs a web server";
       $("pack-subtitle").textContent = "Run python3 -m http.server from the repository root, then open /studio/.";

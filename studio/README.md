@@ -34,6 +34,8 @@ You can also drag any TRP profile or pack file onto the page, or use Import.
 
 **Stress test** runs hundreds of episodes with random faults and reports how many the profile caught, missed or stopped on needlessly.
 
+**Learn** hands you a profile with a gap in it. You change its limits, the Studio tests them against 300 runs with faults mixed in, and you see what your rules catch and where they stop for nothing. Challenges live in `studio/challenges.json`, and `tests/learn_challenges.js` checks that each one starts unsolved and can be solved.
+
 The **Fleet** pack evaluates 144 robot cells at once, every frame, to show how fast the engine runs.
 
 ## Agents Can Play

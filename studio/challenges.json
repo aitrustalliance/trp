@@ -1,0 +1,77 @@
+{
+  "challenges_version": "1",
+  "episodes": 300,
+  "seed": 42,
+  "challenges": [
+    {
+      "id": "rush-job",
+      "pack": "robot-cell",
+      "title": "Rush Job",
+      "brief": "When the cell is pushed to rush an order, the arm moves fast while a person is still close by, and the shipped rules never stop it in time. Change the limits so every harm is stopped, without stopping the cell for no reason.",
+      "edit": [
+        "robot_speed_mm_s",
+        "human_distance_m"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 45,
+        "uptime": 0.7
+      },
+      "hint": "Harm happens when speed and closeness combine. A limit that acts earlier on either one closes the gap.",
+      "lesson": "Each limit looked reasonable alone, but harm came from two readings that were each just inside their limits. Good profiles set limits for the combinations that cause harm, which is why thresholds are tested against scenarios and never picked one at a time."
+    },
+    {
+      "id": "jam-line",
+      "pack": "machine-line",
+      "title": "Jams And Speed",
+      "brief": "Jams pile up and the line gets pushed past its rated speed, and the shipped profile lets both run until something breaks. Find limits that catch every harm.",
+      "edit": [
+        "jam_rate_per_hour",
+        "line_speed_units_min"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 40,
+        "uptime": 0.7
+      },
+      "hint": "Look at how high each reading climbs before harm starts, then set the critical limit below that point.",
+      "lesson": "A critical limit only helps if the system reaches it before harm does. Limits come from how the machine actually fails, so they should be checked against recorded failures and revised when the machine changes."
+    },
+    {
+      "id": "quiet-drift",
+      "pack": "healthcare",
+      "title": "Quiet Drift",
+      "brief": "Nothing dramatic happens here. De-identification slips a little, consent records fall behind and the model drifts for one group of patients. Catch the slow failures.",
+      "edit": [
+        "data_deidentification_confidence",
+        "consent_coverage_ratio",
+        "model_subgroup_performance_gap"
+      ],
+      "goal": {
+        "safety": 0.95,
+        "false_stops": 40,
+        "uptime": 0.65
+      },
+      "hint": "Slow failures never cross a loose limit. Tighten the readings that drift, one at a time, and rerun.",
+      "lesson": "Governance failures in data and models are usually slow drifts with no single alarming moment. A profile catches them with limits close to normal operation and with continuous evidence, which is why evidence that goes stale is treated as unknown."
+    },
+    {
+      "id": "agent-guardrails",
+      "pack": "agno",
+      "title": "Agent Guardrails",
+      "brief": "Agno, the agnostic agent, starts answering from memory, pulls more customer records than it needs and gets stuck in loops. The hard rules catch the obvious mistakes. Set limits that catch the quiet ones.",
+      "edit": [
+        "grounding_score",
+        "records_beyond_need",
+        "steps_per_task"
+      ],
+      "goal": {
+        "safety": 0.95,
+        "false_stops": 40,
+        "uptime": 0.65
+      },
+      "hint": "An agent that stops citing sources, reads extra records or keeps taking steps is drifting from its task before it does damage.",
+      "lesson": "Hard rules stop actions that are never allowed. Scored signals catch an agent drifting toward harm, and the same profile can govern any agent framework because it only looks at evidence."
+    }
+  ]
+}

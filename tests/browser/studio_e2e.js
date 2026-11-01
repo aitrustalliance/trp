@@ -76,7 +76,7 @@ async function main() {
       await page.waitForTimeout(1200);
       const standing = await page.textContent("#standing-word");
       check(`${id} live mode evaluates`, standing && standing.trim() !== "—", standing);
-      for (const mode of ["arena", "stress"]) {
+      for (const mode of ["arena", "stress", "learn"]) {
         const tab = page.locator(`.mode[data-mode=${mode}]`);
         if (await tab.isDisabled()) continue;
         await tab.click();
@@ -116,7 +116,38 @@ async function main() {
     }
     for (const csp of [true, false]) {
       const tag = csp ? "" : " (policy removed)";
-      // Hostile profile by link, served from the same site.
+      // A Learn challenge, failed with the shipped limits and passed with better ones.
+    {
+      const page = await newPage(browser, base);
+      await page.goto(`${base}/studio/?pack=fleet&story=0`);
+      await page.waitForTimeout(800);
+      await page.click(".mode[data-mode=learn]");
+      await page.waitForTimeout(300);
+      check("Learn lists four challenges", (await page.locator(".challenge").count()) === 4);
+      await page.click(".challenge[data-id=rush-job]");
+      await page.waitForTimeout(500);
+      check("opening a challenge switches to its pack", (await page.textContent("#pack-title")) === "Robot Cell");
+      await page.click("#learn-test");
+      await page.waitForTimeout(2500);
+      check("shipped limits do not pass the challenge", /Not yet/.test(await page.textContent("#learn-out")));
+      for (const [k, v] of [["critical", "1.75"], ["warning", "2.2"]]) {
+        const sel = `input[data-sig=human_distance_m][data-k=${k}]`;
+        await page.fill(sel, v);
+        await page.dispatchEvent(sel, "change");
+      }
+      await page.click("#learn-test");
+      await page.waitForTimeout(2500);
+      check("better limits pass the challenge", /Challenge complete/.test(await page.textContent("#learn-out")));
+      await page.fill("input[data-sig=human_distance_m][data-k=warning]", "0.5");
+      await page.dispatchEvent("input[data-sig=human_distance_m][data-k=warning]", "change");
+      await page.click("#learn-test");
+      await page.waitForTimeout(500);
+      check("limits in the wrong order are explained, not run", /safe side/.test(await page.textContent("#learn-out")));
+      check("Learn raises no page errors", page.errors.length === 0, page.errors.join(" | "));
+      await page.close();
+    }
+
+    // Hostile profile by link, served from the same site.
       {
         const page = await newPage(browser, base);
         if (!csp) await withoutCsp(page);
