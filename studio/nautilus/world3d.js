@@ -11,11 +11,9 @@
  * The game core works in a flat 1280 by 720 world. This file maps that plane
  * into 3D at z = 0, so gameplay and scoring are the same in 2D and 3D.
  */
-const VENDOR = "./vendor/three-0.186.1.js";
-
 (async () => {
   let T;
-  try { T = await import(VENDOR); } catch (err) { console.warn("Three.js failed to load", err); window.NautilusWorld3DFailed = true; return; }
+  try { T = await import("./vendor/three-0.186.1.js"); } catch (err) { console.warn("Three.js failed to load", err); window.NautilusWorld3DFailed = true; return; }
   window.NautilusWorld3D = () => makeWorld(T);
 })();
 
