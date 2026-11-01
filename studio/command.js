@@ -18,10 +18,10 @@
   };
   const RESPONSE = { full: "Full", restricted: "Half", suspended: "Stop" };
   const BOOKS = {
-    loose: { label: "Loose", shift: 1, note: "Every limit a step past where harm begins. The rules ring late or never, and harm slips through." },
-    published: { label: "Published", shift: 0, note: "The reference profiles as published. Nobody has measured these against faults." },
-    tight: { label: "Tight", shift: -1, note: "Every limit a step toward safe. Harm is caught, and the floor stops for nothing far more often." },
-    tuned: { label: "Tuned", shift: 0, tuned: true, note: "The same profiles with limits set by measurement in three hundred runs with faults mixed in. Harm is caught and the floor keeps running." },
+    loose: { label: "Loose", shift: 1, note: "Every limit moved one step past the harm point. Expect missed harm." },
+    published: { label: "Published", shift: 0, note: "Reference profiles as shipped, before measurement against faults." },
+    tight: { label: "Tight", shift: -1, note: "Every limit moved one step toward safe. Expect false stops." },
+    tuned: { label: "Tuned", shift: 0, tuned: true, note: "Limits set by measurement over 300 fault runs, for zero missed harm and bounded false stops." },
   };
   const WINDOW_S = 300; // the counters cover the last five minutes
 
@@ -224,7 +224,7 @@
     text("cmd-missed", String(c.missed));
     text("cmd-needless", String(c.needless));
     text("cmd-state", `${c.stopped} stopped · ${c.restricted} at half · ${c.systems - c.stopped - c.restricted} running`);
-    text("cmd-sub", `An open standard for the rules and an open engine that enforces them at runtime, running live on ${c.systems} systems below.`);
+    text("cmd-sub", `${c.systems} systems and ${c.parameters.toLocaleString()} live signals, each checked against a published Trust Requirements Profile ${Math.round(1 / tick)} times a second with the response enforced at runtime. The engine and the rules are open, and every number on this page is measured.`);
   }
 
   function renderIncidents() {
@@ -239,11 +239,11 @@
       const who = document.createElement("button"); who.type = "button"; who.className = "who"; who.textContent = `${i.sys.group.label} · ${i.sys.name}`;
       who.addEventListener("click", () => select(i.sys));
       const what = document.createElement("span"); what.className = "what";
-      what.textContent = i.kind === "caught" ? `${i.reaction == null || i.reaction < 0.01 ? "Stopped before harm began" : `Stopped ${i.reaction.toFixed(2)} s after harm began`}. ${i.what}.` : i.kind === "missed" ? `Slipped through. ${i.what}.` : `Stopped for nothing${i.what ? ". " + i.what : ""}.`;
+      what.textContent = i.kind === "caught" ? `Stopped${i.reaction == null || i.reaction < 0.01 ? " at onset" : ` ${i.reaction.toFixed(2)} s after onset`}. ${i.what}.` : i.kind === "missed" ? `Missed. ${i.what}.` : `False stop${i.what ? ". " + i.what : ""}.`;
       li.append(t, who, what);
       list.append(li);
     }
-    if (!recent.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "Nothing yet. Faults arrive on their own."; list.append(li); }
+    if (!recent.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = "No incidents yet."; list.append(li); }
   }
 
   function fmt(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${m}:${String(s).padStart(2, "0")}`; }
@@ -278,7 +278,7 @@
       const c = document.createElement("span"); c.className = "lim"; c.textContent = spec ? `warn ${spec.warningThreshold} · stop ${spec.criticalThreshold}${spec.unit ? " " + spec.unit : ""}` : "hard rule";
       row.append(a, b, c); table.append(row);
     }
-    text("cmd-d-book", `${BOOKS[book].label} book, ${p.trpId} ${p.version}. Caught ${sys.caught}, slipped ${sys.missed}, stopped for nothing ${sys.needless}.`);
+    text("cmd-d-book", `${BOOKS[book].label} book, ${p.trpId} ${p.version}. Caught ${sys.caught}, missed ${sys.missed}, false stops ${sys.needless}.`);
   }
   function labelOf(pack, name) { const s = pack.signals[name]; return (s && s.label) || name.replace(/_/g, " "); }
 

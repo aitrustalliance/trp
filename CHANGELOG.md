@@ -57,7 +57,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   challenge ships the limits that solve it, as `solution`.
 - Studio Command, the first screen: a floor of fifty-six systems from every
   pack, each judged by the engine every tick, with a bar that counts harm caught,
-  harm slipped through and stops for nothing, and a rule book dial (loose,
+  harm missed and false stops, and a rule book dial (loose,
   published, tight, tuned by measurement) that shows the trade-off live.
   Packs carry a `command` block with benign excursions.
 - The Studio header offers Nautilus as coming soon with an early access

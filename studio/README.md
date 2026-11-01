@@ -28,7 +28,14 @@ You can also drag any TRP profile or pack file onto the page, or use Import.
 
 ## Modes
 
-**Command** is the first screen. Every pack with a harm model puts a floor of systems on it, fifty-six in all, each with its own simulator and each judged by the engine every tick against the pack's profile. Faults and benign excursions arrive at random. The bar counts harm caught, harm that slipped through and stops for nothing over the last five minutes, and the rule book dial moves every limit a step toward safe or a step past harm, or applies the limits the Learn challenges settled on by measurement, so the trade-off shows live. Click a system to read its evidence against its limits. A pack joins the floor by carrying a `command` block (`group`, `unit`, `count`, `fault_rate`, and optional `benign` excursions) beside its `arena` harm model.
+**Command** is the first screen.
+
+- 56 systems from the 4 packs that carry a harm model, each with its own simulator, each evaluated by the engine every tick (250 ms) against the pack's profile.
+- Faults are the pack's Arena moves. Benign excursions are new to each pack and push one signal toward a limit with no harm present.
+- The bar counts harm caught, harm missed and false stops over a five minute window. Definitions match `arena.js`: caught means stopped within the reaction window of harm onset, missed means harm ended without a stop, false stop means a stop with no harm present or near.
+- The rule book dial applies one of four profiles per pack. Loose moves every limit one warning-to-critical gap past the harm point. Published is the profile as shipped. Tight moves every limit one gap toward safe. Tuned applies the `solution` limits shipped with the pack's Learn challenge, set by measurement over 300 fault runs.
+- Measured over four minutes on the shipped packs: loose 71 caught, 106 missed, 23 false stops. Published 88, 89, 29. Tight 148, 0, 252. Tuned 177, 0, 54.
+- A system opens to its evidence against its limits, then into Live. A pack joins the floor by carrying a `command` block (`group`, `unit`, `count`, `fault_rate`, `benign`, `benign_rate`) beside its `arena` harm model.
 
 **Live** lets you change conditions and watch the profile respond. Click any event to see exactly which requirement caused it.
 

@@ -38,10 +38,10 @@
     <div class="cmd-bar">
       <div class="cmd-nums">
         <div class="num"><b id="cmd-systems">0</b><span>Systems</span></div>
-        <div class="num"><b id="cmd-readings">0</b><span>Readings a second</span></div>
+        <div class="num"><b id="cmd-readings">0</b><span>Signals a second</span></div>
         <div class="num good"><b id="cmd-caught">0</b><span>Harm caught</span></div>
-        <div class="num bad"><b id="cmd-missed">0</b><span>Slipped through</span></div>
-        <div class="num"><b id="cmd-needless">0</b><span>Stopped for nothing</span></div>
+        <div class="num bad"><b id="cmd-missed">0</b><span>Harm missed</span></div>
+        <div class="num"><b id="cmd-needless">0</b><span>False stops</span></div>
       </div>
       <div class="cmd-books-wrap">
         <div class="cmd-books" id="cmd-books" role="group" aria-label="Rule book">
@@ -149,8 +149,8 @@
   </main>
 
   <footer class="foot">
-    <span>Evaluated in your browser by the open TRP reference engine. Nothing leaves this page.</span>
-    <span class="muted">Drop any TRP profile here to bring it to life. Agents can play too, see <a class="link" href="llms.txt">llms.txt</a>. Try real robot data and your webcam in the <a class="link" href="lab.html">Lab</a>.</span>
+    <span>Runs in the browser on the open TRP reference engine. No data leaves the page.</span>
+    <span class="muted">Drop any TRP profile here to run it. Agents can drive it, see <a class="link" href="llms.txt">llms.txt</a>. Try real robot data and your webcam in the <a class="link" href="lab.html">Lab</a>.</span>
   </footer>
 
   <div class="drop" id="drop" hidden><div>Drop a TRP profile or scenario pack</div></div>
@@ -166,8 +166,8 @@
       <img class="early-art" id="early-art" alt="" hidden>
       <div class="early-eyebrow">Coming soon</div>
       <h2 id="early-h">Nautilus</h2>
-      <p>Twenty thousand leagues under a drowned world, one ship still sails by rules anyone can read. The Leviathan means to rewrite them.</p>
-      <p class="early-sub">A free browser game on the rules in this studio.</p>
+      <p>A browser game on the open TRP engine. Same rules, same runtime enforcement, a vessel in place of a factory floor.</p>
+      <p class="early-sub">Free. Early access opens with Season One.</p>
       <form id="early-form" novalidate>
         <div class="early-row">
           <input type="text" id="early-name" name="name" placeholder="Name (optional)" autocomplete="name" maxlength="60">
