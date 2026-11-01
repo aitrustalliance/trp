@@ -792,7 +792,7 @@
     const medalText = sum.medal ? sum.medal.charAt(0).toUpperCase() + sum.medal.slice(1) + " · " : "";
     const head = sum.tutorial ? "Nautilus · Shakedown cruise" : sum.official ? `Nautilus · Voyage No. ${sum.voyageNo}` : "Nautilus · Practice voyage";
     const diff = sum.difficulty && sum.difficulty !== "normal" ? ` · ${C.DIFFICULTY[sum.difficulty].label}` : "";
-    return `${head}${diff}\n${timelineGlyphs(sum)}\n${sum.score.toLocaleString()} · ${medalText}${sum.caught} saved by the open rules\n${location.origin}${location.pathname}`;
+    return `${head}${diff}\n${timelineGlyphs(sum)}\n${sum.score.toLocaleString()} · ${medalText}${sum.caught + (sum.prevented || 0)} saved by the open rules\n${location.origin}${location.pathname}`;
   }
 
   function renderLog() {
@@ -812,7 +812,7 @@
     const end = document.createElement("span"); end.className = s.outcome === "harbor" ? "harbor" : "hit"; tl.append(end);
     const stats = $("log-stats");
     stats.textContent = "";
-    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught], ["Hull hits", s.hits], ["Salvage", s.relics + s.chests + s.pearls], ["Brass earned", s.brass]]) {
+    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught + (s.prevented || 0)], ["Hull hits", s.hits], ["Salvage", s.relics + s.chests + s.pearls], ["Brass earned", s.brass]]) {
       const d = document.createElement("div"); d.className = "stat";
       const a = document.createElement("div"); a.className = "v"; a.textContent = String(val);
       const b = document.createElement("div"); b.className = "k"; b.textContent = k;
@@ -1051,7 +1051,7 @@
     g.fillStyle = "#f0d9a0"; g.font = `400 96px ${HUD_FONT}`; g.fillText("NAUTILUS", 64, 210);
     g.fillStyle = "#f4f6fb"; g.font = `400 120px ${HUD_FONT}`; g.fillText(s.score.toLocaleString(), 64, 360);
     g.fillStyle = "#aab3c5"; g.font = `600 26px ${HUD_FONT}`;
-    g.fillText(`${s.medal ? s.medal.toUpperCase() + " · " : ""}${s.leagues} LEAGUES · ${s.caught} SAVED BY THE OPEN RULES`, 70, 410);
+    g.fillText(`${s.medal ? s.medal.toUpperCase() + " · " : ""}${s.leagues} LEAGUES · ${s.caught + (s.prevented || 0)} SAVED BY THE OPEN RULES`, 70, 410);
     s.timeline.forEach((x, i) => { g.fillStyle = x === 2 ? "#c8643c" : x === 1 ? "#e6c27a" : "rgba(170,179,197,0.4)"; g.fillRect(70 + i * 52, 450, 44, 14); });
     g.fillStyle = s.outcome === "harbor" ? "#5fb3a0" : "#c8643c"; g.fillRect(70 + 10 * 52, 450, 44, 14);
     g.fillStyle = "#aab3c5"; g.font = `500 22px ${HUD_FONT}`;
