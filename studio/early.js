@@ -57,6 +57,9 @@
   doc.addEventListener("DOMContentLoaded", () => {
     const btn = $("nautilus-btn");
     if (!btn || !$("early")) return;
+    // The picture is optional. Without the file the card has no picture.
+    const art = $("early-art");
+    if (art) { art.addEventListener("error", () => { art.hidden = true; }); if (art.complete && art.naturalWidth === 0) art.hidden = true; }
     btn.addEventListener("click", open);
     $("early-close").addEventListener("click", close);
     $("early").addEventListener("click", (e) => { if (e.target === $("early")) close(); });
