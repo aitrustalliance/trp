@@ -124,6 +124,16 @@ async function main() {
       await page.click(".mode[data-mode=learn]");
       await page.waitForTimeout(300);
       check("Learn lists four challenges", (await page.locator(".challenge").count()) === 4);
+      await page.waitForSelector("#learn-codex .codex-item", { timeout: 5000 });
+      check("Learn carries the glossary with every term open", (await page.locator("#learn-codex .codex-item").count()) === 24 && (await page.locator("#learn-codex .codex-item.locked").count()) === 0);
+      await page.click("#learn-codex .codex-item[data-codex=operating-limits]");
+      await page.waitForTimeout(200);
+      check("a glossary entry opens at full depth with its case, the standard and a self-check", (await page.locator("#learn-codex .codex-section.trp").count()) === 1 && (await page.locator("#learn-codex .codex-basis").count()) === 1 && (await page.locator("#learn-codex .codex-option").count()) === 4);
+      await page.click("#learn-codex .codex-option >> nth=0");
+      check("the self-check grades", /^(Right|Not quite)\./.test(await page.textContent("#learn-codex .codex-result")));
+      await page.click("#learn-codex .codex-back");
+      await page.waitForTimeout(200);
+      check("the glossary returns to its list", (await page.locator("#learn-codex .codex-item").count()) === 24);
       await page.click(".challenge[data-id=rush-job]");
       await page.waitForTimeout(500);
       check("opening a challenge switches to its pack", (await page.textContent("#pack-title")) === "Robot Cell");

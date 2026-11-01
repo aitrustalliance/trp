@@ -884,8 +884,34 @@
     });
     setHTML(panel, html`<div class="panel-row"><h2>Learn</h2><span class="muted">${done} of ${set.challenges.length} complete</span></div>
       <p>Each challenge hands you a profile with a gap in it. Change its limits, test them against ${set.episodes} runs with faults mixed in, and see what your rules catch and what they stop for nothing.</p>
-      <div class="challenges">${cards}</div>`);
+      <div class="challenges">${cards}</div>
+      <div class="panel-row glossary-row"><h2>Glossary</h2><span class="muted">${app.codexEntry ? "" : "Twenty-four terms at three depths"}</span></div>
+      <p>The terms this studio uses, with a definition anyone can read, a documented case, and the section of the specification each one comes from. Shared with the Nautilus game as the Captain's Codex.</p>
+      <div id="learn-codex" class="codex"></div>`);
     for (const b of panel.querySelectorAll(".challenge")) b.addEventListener("click", () => openChallenge(b.dataset.id));
+    renderGlossary();
+  }
+
+  // The glossary is the Captain's Codex, with every entry open.
+  async function renderGlossary() {
+    const box = $("learn-codex");
+    if (!box || !window.TRPCodex) return;
+    if (!window.TRPCodex.get()) {
+      try { await window.TRPCodex.load("codex.json"); } catch (err) { setHTML(box, html`<p class="muted">The glossary could not be loaded.</p>`); return; }
+      if (!$("learn-codex")) return;
+    }
+    const codex = window.TRPCodex;
+    const open = (id) => { app.codexEntry = id; renderGlossary(); const top = $("learn-codex"); if (top) top.scrollIntoView({ block: "start", behavior: "smooth" }); };
+    const e = app.codexEntry && codex.entry(app.codexEntry);
+    if (!e) {
+      app.codexEntry = null;
+      codex.renderList(box, { onOpen: open, subtitles: { deckhand: "Start here.", navigator: "How it goes wrong in the world.", captain: "The standard, and the frameworks around it." } });
+      return;
+    }
+    codex.renderEntry(box, e, { depth: "captain", gameLabel: "In Nautilus", onOpen: open, specBase: "https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md" });
+    const back = document.createElement("button"); back.type = "button"; back.className = "text-btn codex-back"; back.textContent = "All terms";
+    back.addEventListener("click", () => { app.codexEntry = null; renderGlossary(); });
+    box.prepend(back);
   }
 
   function openChallenge(id) {
