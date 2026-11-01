@@ -1,6 +1,6 @@
 # Nautilus Design
 
-The single source of truth for the game. Anything not in this file is not in Version One.
+This file decides what is in the game. Anything not in it is not in Version One.
 
 ## Premise
 
@@ -10,7 +10,7 @@ The Leviathan stands for one centralized mind for every ship. The Free Fleet sta
 
 ## Pillars
 
-1. The rules are real. The vessel runs on a real Trust Requirements Profile, the open engine judges it, and the engine's verdict rings the telegraph. Nothing is faked for drama.
+1. The rules are the game. The vessel runs on a published Trust Requirements Profile, the open engine judges it, and the engine's verdict rings the telegraph. No order is scripted.
 2. Learning is skill and lore, never a lesson. Knowledge the game needs is taught by consequence. Knowledge the player wants is in the library, recovered as salvage, and optional.
 3. Every chapter is a place with a story. Verne supplies the places and the stakes.
 4. Two minutes or two hours. A daily voyage is complete in itself. The campaign rewards return.
@@ -34,7 +34,7 @@ Every threat destroyed or survived drops a relic that sinks and can be recovered
 
 Before a chapter the captain fits the ship in the Chart Room. Three choices, each with a cost in brass.
 
-- Rules. Three published profiles for the Nautilus, Cautious, Standard and Bold, with different thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so the rules never prevent anything and the captain's harpoon is the only defence. The player can read all three. This is the game's strategy layer and the thesis in play, and `tests/nautilus_campaign.js` holds it to its word: a steady captain makes port under Cautious and Standard in every chapter and sinks under Bold in some.
+- Rules. Three published profiles for the Nautilus, Cautious, Standard and Bold, with different thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so the rules never prevent anything and the captain's harpoon is the only defence. The player can read all three. This is the game's strategy layer and the thesis in play, and `tests/nautilus_campaign.js` checks it: a steady captain makes port under Cautious and Standard in every chapter and sinks under Bold in some.
 
 Balance note for playtesting. Measured with the reference captain, Cautious and Standard score within a few percent of each other, and Bold scores about the same when it survives. Whether Cautious needs an upside of its own, and whether Bold needs more leagues for a perfect run, is a question for real players.
 - Systems. One slot. Decoy launcher, ballast pumps, sonar array, reactor shielding, seal verifier. Each changes a signal, a timer or a control.

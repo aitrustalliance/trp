@@ -40,8 +40,8 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   fills the Captain's Codex, the salon hub, a shakedown cruise, a procedural
   score, a prologue, difficulty, reduced motion and text size settings, and
   the captain's own All Stop lever. `studio/nautilus/DESIGN.md` is the
-  design document and `tests/nautilus_campaign.js` holds every chapter and
-  rule book to its word.
+  design document and `tests/nautilus_campaign.js` checks every chapter and
+  rule book against its description.
 - The Captain's Codex (`studio/codex.json`, `studio/codex.js`), twenty-four
   entries on AI trust, safety and governance and the TRP specification at
   three depths, with documented cases and self-checks, checked by

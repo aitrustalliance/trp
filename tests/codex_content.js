@@ -3,6 +3,7 @@
 // section references, quiz integrity and house style.
 "use strict";
 const assert = require("assert");
+const STYLE = require("./house_style.js");
 const fs = require("fs");
 const path = require("path");
 const root = path.join(__dirname, "..");
@@ -44,9 +45,8 @@ for (const e of codex.entries) {
   });
   ok(`${e.id} follows house style`, () => {
     for (const t of prose(e)) {
-      assert.ok(!/—|–/.test(t), `${e.id} contains a dash: ${t.slice(0, 60)}`);
-      assert.ok(!/;/.test(t), `${e.id} contains a semicolon: ${t.slice(0, 60)}`);
-      assert.ok(!/\bplain[- ]language\b/i.test(t), `${e.id} uses a banned phrase`);
+      const bad = STYLE.check(t);
+      assert.ok(!bad, `${e.id} contains ${bad}: ${t.slice(0, 80)}`);
     }
     assert.ok(/^[A-Z]/.test(e.term), `${e.id} term case`);
   });

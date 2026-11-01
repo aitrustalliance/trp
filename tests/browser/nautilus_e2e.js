@@ -215,7 +215,7 @@ async function main() {
       check("fitting a rule book and buying a system are recorded and paid for", ledger.campaign.rules === "bold" && ledger.campaign.system === "ballast-pumps" && ledger.brass === 50, JSON.stringify(ledger.campaign));
       check("a system the captain cannot afford stays locked", !(await page.locator("#fit-systems .fitting:has-text('Sonar array')").isEnabled()));
       // A steady captain sinks under bold rules in the first chapter, which
-      // is the point of them. Sail this one under the standard book.
+      // is what they are for. Sail this one under the standard book.
       await page.click("#fit-rules .fitting:has-text('Standard rules')");
       await page.click("#fit-sail");
       await page.waitForFunction(() => window.TRPNautilus.state === "playing");

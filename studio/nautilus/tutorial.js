@@ -55,7 +55,7 @@
       line: (e) => (e.type === "intercept"
         ? "The Decree is destroyed. It would have replaced our rule book with the Leviathan's, with limits past the point of harm and no seal rule at all. "
         : "The Decree has landed. Our rules are the Leviathan's now. Look at the gauges. Nothing will stop us from sailing into harm until it passes. ") +
-        "This is why the rules must be open and ours. It takes three harpoons." },
+        "The rules have to be open and ours, Captain. Three harpoons will sink it." },
     { id: "clam", when: (e) => e.type === "pearl", who: "Conseil",
       line: () => "A pearl, Captain. The great clams open only for a ship at rest. Your All Stop lever is yours to pull at any time. The rules can stop the ship, and so can you, and nothing can make her go when either says stop." },
     { id: "harbor", when: (e) => e.type === "done", who: "Conseil",

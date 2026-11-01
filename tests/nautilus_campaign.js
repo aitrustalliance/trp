@@ -26,8 +26,10 @@ const SKINS = ["brass", "copper", "verdigris", "silver", "gilded"];
 const LEVELS = codex.levels ? Object.keys(codex.levels) : ["deckhand", "navigator", "captain"];
 
 const ids = (list) => list.map((x) => x.id);
+const STYLE = require("./house_style.js");
 const house = (text, where) => {
-  assert.ok(!/—|–/.test(text), `${where} uses a dash`);
+  const bad = STYLE.check(text);
+  assert.ok(!bad, `${where} contains ${bad}`);
   assert.ok(!/\b(Striv|Trust Academy|ARIA|Trust OS)\b/.test(text), `${where} names a company or product`);
 };
 

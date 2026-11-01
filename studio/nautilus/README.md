@@ -2,7 +2,7 @@
 
 Nautilus is a browser game built on the Trust Requirements Profile (TRP). The player captains a free vessel through a drowned world while the Leviathan's airship tries to blind it, board it and rewrite its rules. The vessel runs on an open TRP profile, `examples/nautilus/trp.json`, and the open TRP engine evaluates its evidence ten times a second. The engine's verdict rings the engine order telegraph, so Full Ahead, Half Ahead and All Stop come from the same rules a real system would use.
 
-The story draws on Jules Verne's public-domain novels *Twenty Thousand Leagues Under the Seas* (1870) and *Robur the Conqueror* (1886). The ship designs follow Verne's text and are original to this project. `DESIGN.md` is the design document and the single source of truth for what is in the game.
+The story draws on Jules Verne's public-domain novels *Twenty Thousand Leagues Under the Seas* (1870) and *Robur the Conqueror* (1886). The ship designs follow Verne's text and are original to this project. `DESIGN.md` is the design document and decides what is in the game.
 
 ## What Is In It
 
@@ -57,7 +57,7 @@ Every threat in the voyage stands for a real failure mode in AI trust, safety an
 
 ## The Rule Books
 
-Three profiles live in `examples/`: `nautilus-cautious`, `nautilus` and `nautilus-bold`. They differ only in their thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so its rules never stop the ship in time and the captain's harpoon is the only defence. `tests/nautilus_campaign.js` sails every chapter under every book with the reference captain and holds each book to what its description says.
+Three profiles live in `examples/`: `nautilus-cautious`, `nautilus` and `nautilus-bold`. They differ only in their thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so its rules never stop the ship in time and the captain's harpoon is the only defence. `tests/nautilus_campaign.js` sails every chapter under every book with the reference captain and checks each book against its description.
 
 ## How Scoring Works
 
