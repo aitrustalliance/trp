@@ -14,12 +14,16 @@
   "use strict";
 
   const CONFIG = {
-    // TO VERIFY: pin an exact version, or vendor the package into studio/vendor/.
-    bundle: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs",
-    wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm",
-    // TO VERIFY: model file location from the MediaPipe Pose Landmarker guide.
-    model: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-    // TO VERIFY: left and right shoulder in the 33-point pose layout.
+    // Pinned to @mediapipe/tasks-vision 1.2.0, the npm latest on 2026-11-01.
+    // The package ships vision_bundle.mjs and a wasm folder, and its types
+    // define FilesetResolver.forVisionTasks, PoseLandmarker.createFromOptions
+    // and detectForVideo(video, timestamp) as used below.
+    bundle: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.0/vision_bundle.mjs",
+    wasm: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.0/wasm",
+    // The model URL as given in the Pose Landmarker guide, 2026-11-01.
+    model: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+    // 11 left shoulder and 12 right shoulder in the 33-point layout, per the
+    // same guide. Width uses both, so the side convention does not matter.
     leftShoulder: 11,
     rightShoulder: 12,
   };

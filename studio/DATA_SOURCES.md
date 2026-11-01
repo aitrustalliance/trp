@@ -6,8 +6,8 @@ TRP Studio runs on simulated data by default. The Lab page (`studio/lab.html`) a
 
 | Input | Code | Verified | Still To Check |
 |---|---|---|---|
-| LeRobot episode replay | `studio/lerobot.js` | API shape and dataset features, from the Hugging Face documentation and dataset page. Parsing tested in `tests/lerobot_parse.js` | Browser access (CORS), rate limits, and whether datasets with video columns return rows |
-| Webcam distance sensor | `studio/webcam.js` | Library name and setup calls, from the MediaPipe Pose Landmarker web guide. Distance math tested in `tests/lerobot_parse.js` | Model file URL, shoulder landmark indices, pinned library version |
+| LeRobot episode replay | `studio/lerobot.js` | Endpoint, parameters, 100-row page limit and response fields (`features`, `rows[].row`, `num_rows_total`) against the Hugging Face dataset viewer quick start, 2026-11-01. Parsing tested in `tests/lerobot_parse.js` | Browser access (CORS), rate limits, and whether the viewer serves `sehajp/so101_pick_place`. The docs do not cover CORS or rate limits, and the build environment cannot reach the API |
+| Webcam distance sensor | `studio/webcam.js` | Library pinned to `@mediapipe/tasks-vision` 1.2.0 (npm latest, 2026-11-01), with the bundle, wasm folder and API signatures confirmed in the package. Model URL and shoulder indices 11 and 12 from the Pose Landmarker guide, 2026-11-01. Distance math tested in `tests/lerobot_parse.js` | Camera permission, model download and tracking in a real browser. The build environment has no camera and cannot reach the model host |
 
 ## LeRobot Episode Replay
 
@@ -35,14 +35,13 @@ TRP Studio runs on simulated data by default. The Lab page (`studio/lab.html`) a
 
 **Verified facts.** The library is `@mediapipe/tasks-vision` on npm. The web guide loads the runtime with `FilesetResolver.forVisionTasks(<wasm folder>)`, creates the model with `PoseLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath }, runningMode: "VIDEO" })`, and calls `detectForVideo(video, timestamp)` on each frame.
 
-**Not yet verified.** The three values marked `TO VERIFY` in `studio/webcam.js`, which are the model file URL, the left and right shoulder indices (11 and 12), and the library version (currently `latest`, which should be pinned).
+**Configuration, verified 2026-11-01.** `CONFIG` in `studio/webcam.js` pins version 1.2.0, uses the model URL from the guide, and reads landmarks 11 and 12. The guide's model URL ends in `latest`, so the model can change under a pinned library. For an offline or frozen demo, download the model once and serve it locally.
 
-**Steps to finish (about 30 minutes).**
+**Steps to finish.**
 
-1. Open the MediaPipe Pose Landmarker guide for web, copy the current model file URL and the pose landmark diagram, and update `CONFIG` in `studio/webcam.js`.
-2. Pin the library to the exact current version in both `bundle` and `wasm`. For an offline demo, run `npm pack @mediapipe/tasks-vision`, copy `vision_bundle.mjs` and the `wasm` folder into `studio/vendor/`, download the model file to the same folder, and point `CONFIG` at those local paths.
-3. Serve over `localhost` or HTTPS, since browsers only allow camera access there. Open the Lab, press Start camera, stand 1.5 m away, press calibrate, and walk toward the camera. The standing should move to Failing inside the exclusion distance.
-4. If tracking is jumpy, average the last five widths before computing distance.
+1. For an offline demo, run `npm pack @mediapipe/tasks-vision@1.2.0`, copy `vision_bundle.mjs` and the `wasm` folder into `studio/vendor/`, download the model file to the same folder, and point `CONFIG` at those local paths. The wasm files total about 42 MB, so keep them out of the repository and serve them from the host.
+2. Serve over `localhost` or HTTPS, since browsers only allow camera access there. Open the Lab, press Start camera, stand 1.5 m away, press calibrate, and walk toward the camera. The standing should move to Failing inside the exclusion distance.
+3. If tracking is jumpy, average the last five widths before computing distance.
 
 ## Privacy
 
