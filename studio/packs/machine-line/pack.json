@@ -5,6 +5,33 @@
   "subtitle": "An automated line of machines and conveyors running in sequence.",
   "scene": "machine-line",
   "profile": "../../../examples/machine-line/trp.json",
+  "command": {
+    "group": "Machine lines",
+    "unit": "Line",
+    "count": 12,
+    "fault_rate": 0.02,
+    "benign": [
+      {
+        "label": "A rush order, 135 units a minute",
+        "effects": {
+          "line_speed_units_min": {
+            "to": 135,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "A new operator, two jams an hour",
+        "effects": {
+          "jam_rate_per_hour": {
+            "to": 2.2,
+            "ramp_s": 2
+          }
+        }
+      }
+    ],
+    "benign_rate": 0.02
+  },
   "tick_ms": 250,
   "cycle_s": 6,
   "signals": {

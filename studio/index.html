@@ -30,6 +30,47 @@
     </div>
   </header>
 
+  <section class="command" id="command" hidden aria-label="Command">
+    <div class="cmd-hero">
+      <h1>Open trust rules, judged live.</h1>
+      <p id="cmd-sub" class="cmd-sub"></p>
+    </div>
+    <div class="cmd-bar">
+      <div class="cmd-nums">
+        <div class="num"><b id="cmd-systems">0</b><span>Systems</span></div>
+        <div class="num"><b id="cmd-readings">0</b><span>Readings a second</span></div>
+        <div class="num good"><b id="cmd-caught">0</b><span>Harm caught</span></div>
+        <div class="num bad"><b id="cmd-missed">0</b><span>Slipped through</span></div>
+        <div class="num"><b id="cmd-needless">0</b><span>Stopped for nothing</span></div>
+      </div>
+      <div class="cmd-books-wrap">
+        <div class="cmd-books" id="cmd-books" role="group" aria-label="Rule book">
+          <button type="button" data-book="loose" aria-pressed="false">Loose</button>
+          <button type="button" data-book="published" aria-pressed="false">Published</button>
+          <button type="button" data-book="tight" aria-pressed="false">Tight</button>
+          <button type="button" data-book="tuned" aria-pressed="true">Tuned</button>
+        </div>
+        <p class="cmd-book-note" id="cmd-book-note"></p>
+      </div>
+    </div>
+    <p class="cmd-state" id="cmd-state"></p>
+    <canvas id="cmd-wall" class="cmd-wall" tabindex="0" role="img" aria-label="The floor of systems. Click one to read its evidence."></canvas>
+    <div class="cmd-lower">
+      <section class="cmd-incidents-wrap" aria-label="Incidents">
+        <h2>Last five minutes</h2>
+        <ol id="cmd-incidents" class="cmd-incidents"></ol>
+      </section>
+      <aside class="cmd-detail" id="cmd-detail" hidden aria-label="System detail">
+        <div class="cmd-d-head"><div><h2 id="cmd-d-name"></h2><p class="muted" id="cmd-d-sub"></p></div><button class="text-btn" id="cmd-d-close" type="button">Close</button></div>
+        <div class="cmd-d-response" id="cmd-d-response"></div>
+        <p class="cmd-d-why" id="cmd-d-why"></p>
+        <div class="cmd-d-signals" id="cmd-d-signals"></div>
+        <p class="muted small" id="cmd-d-book"></p>
+        <button class="primary" id="cmd-d-open" type="button">Open this system in Live</button>
+      </aside>
+    </div>
+  </section>
+
   <main class="stage">
     <section class="scene-wrap" aria-label="Live scene">
       <div class="scene-head">
@@ -39,6 +80,7 @@
         </div>
         <div class="head-right">
           <div class="modes" role="tablist" aria-label="Mode">
+            <button class="mode" type="button" role="tab" data-mode="command" aria-selected="false">Command</button>
             <button class="mode" type="button" role="tab" data-mode="live" aria-selected="true">Live</button>
             <button class="mode" type="button" role="tab" data-mode="arena" aria-selected="false">Arena</button>
             <button class="mode" type="button" role="tab" data-mode="stress" aria-selected="false">Stress test</button>
@@ -139,6 +181,7 @@
   </div>
   <script src="nautilus/config.js"></script>
   <script src="codex.js"></script>
+  <script src="command.js"></script>
   <script src="early.js"></script>
   <script src="app.js"></script>
 </body>

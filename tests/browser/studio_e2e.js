@@ -116,6 +116,41 @@ async function main() {
     }
     for (const csp of [true, false]) {
       const tag = csp ? "" : " (policy removed)";
+    // Command, the first screen: the floor of every pack judged live.
+    {
+      const page = await newPage(browser, base);
+      await page.goto(`${base}/studio/`);
+      await page.waitForTimeout(1000);
+      check("with nothing asked for, the studio opens on Command", await page.isVisible("#command") && !(await page.isVisible(".stage")));
+      check("no pack tab is selected on Command", (await page.locator(".pack-tab[aria-selected=true]").count()) === 0);
+      const t0 = await page.evaluate(() => window.TRPCommand.tallies());
+      check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 4, JSON.stringify(t0));
+      check("the hero states the floor in numbers", /\d+ AI systems across 4 domains/.test(await page.textContent("#cmd-sub")));
+      check("the tuned book is the first one shown", (await page.evaluate(() => window.TRPCommand.book)) === "tuned" && (await page.getAttribute("#cmd-books button[data-book=tuned]", "aria-pressed")) === "true");
+      const tuned = await page.evaluate(() => window.TRPCommand.advance(120));
+      check("under the tuned book the floor catches harm and lets none through", tuned.caught >= 20 && tuned.missed === 0, JSON.stringify(tuned));
+      check("the bar shows the counts", (await page.textContent("#cmd-caught")) === String(tuned.caught) && (await page.textContent("#cmd-missed")) === "0");
+      check("incidents are listed with a time, a system and what happened", (await page.locator("#cmd-incidents li").count()) >= 3 && /before harm began|after harm began/.test(await page.textContent("#cmd-incidents")));
+      await page.click("#cmd-books button[data-book=loose]");
+      const loose = await page.evaluate(() => window.TRPCommand.advance(120));
+      check("under the loose book harm slips through", loose.missed >= 10 && loose.missed > loose.caught / 2, JSON.stringify(loose));
+      await page.click("#cmd-books button[data-book=tight]");
+      const tight = await page.evaluate(() => window.TRPCommand.advance(120));
+      check("under the tight book nothing slips through and the floor stops for nothing far more often", tight.missed === 0 && tight.needless > tuned.needless * 2, JSON.stringify(tight));
+      check("the book note changes with the dial", /step toward safe/.test(await page.textContent("#cmd-book-note")));
+      await page.click("#cmd-incidents .who >> nth=0");
+      check("an incident opens its system", await page.isVisible("#cmd-detail") && /·/.test(await page.textContent("#cmd-d-name")) && (await page.locator("#cmd-d-signals .sig").count()) >= 8);
+      await page.click("#cmd-d-open");
+      await page.waitForTimeout(400);
+      check("a system opens in Live with its pack selected", await page.isVisible(".stage") && !(await page.isVisible("#command")) && (await page.locator(".pack-tab[aria-selected=true]").count()) === 1);
+      await page.click(".mode[data-mode=command]");
+      await page.waitForTimeout(300);
+      check("the Command tab brings the floor back with its state", await page.isVisible("#command") && (await page.evaluate(() => window.TRPCommand.tallies().systems)) === t0.systems);
+      check("a link into a pack still opens Live", await (async () => { await page.goto(`${base}/studio/?pack=fleet&story=0`); await page.waitForTimeout(600); return (await page.isVisible(".stage")) && !(await page.isVisible("#command")); })());
+      check("Command raises no page errors", page.errors.length === 0, page.errors.join(" | "));
+      await page.close();
+    }
+
     // Early access to Nautilus, from the header.
     {
       const page = await newPage(browser, base);
@@ -351,7 +386,7 @@ async function main() {
     let axeSource = null;
     try { axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf-8"); } catch (err) { console.log("SKIP  accessibility audit (npm install --no-save axe-core to run it)"); }
     if (axeSource) {
-      for (const [url, learn] of [["/studio/?pack=robot-cell&story=0", false], ["/studio/?pack=robot-cell&story=0&mode=arena", false], ["/studio/?pack=robot-cell&story=0", true], ["/studio/lab.html", false]]) {
+      for (const [url, learn] of [["/studio/", false], ["/studio/?pack=robot-cell&story=0", false], ["/studio/?pack=robot-cell&story=0&mode=arena", false], ["/studio/?pack=robot-cell&story=0", true], ["/studio/lab.html", false]]) {
         const ctx = await browser.newContext({ bypassCSP: true });
         const page = await ctx.newPage();
         await page.route("https://api.github.com/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));

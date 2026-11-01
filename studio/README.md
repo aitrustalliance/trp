@@ -28,6 +28,8 @@ You can also drag any TRP profile or pack file onto the page, or use Import.
 
 ## Modes
 
+**Command** is the first screen. Every pack with a harm model puts a floor of systems on it, fifty-six in all, each with its own simulator and each judged by the engine every tick against the pack's profile. Faults and benign excursions arrive at random. The bar counts harm caught, harm that slipped through and stops for nothing over the last five minutes, and the rule book dial moves every limit a step toward safe or a step past harm, or applies the limits the Learn challenges settled on by measurement, so the trade-off shows live. Click a system to read its evidence against its limits. A pack joins the floor by carrying a `command` block (`group`, `unit`, `count`, `fault_rate`, and optional `benign` excursions) beside its `arena` harm model.
+
 **Live** lets you change conditions and watch the profile respond. Click any event to see exactly which requirement caused it.
 
 **Arena** is a daily strategy game. A scripted Challenger stages eight rounds of trouble, and you defend the system by spending a fixed budget on guards before the match starts. Each guard shields a signal, tightens a threshold or adds a rule. You score for every incident the system stops within 0.75 seconds and for keeping it running, and you lose points for needless stops. Medals compare your score with par, the best score any affordable set of guards can reach on that day's seed. The seed changes every day, so everyone plays the same match.

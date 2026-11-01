@@ -11,13 +11,13 @@ const A = require("../studio/arena.js");
 const root = path.join(__dirname, "..");
 const set = JSON.parse(fs.readFileSync(path.join(root, "studio/challenges.json"), "utf-8"));
 
-// [signal, warning, critical] that solve each challenge.
-const SOLUTIONS = {
-  "rush-job": [["human_distance_m", 2.2, 1.75]],
-  "jam-line": [["jam_rate_per_hour", 1.84, 3.08], ["line_speed_units_min", 130.5, 151]],
-  "quiet-drift": [["data_deidentification_confidence", 0.931, 0.892], ["consent_coverage_ratio", 0.93, 0.874], ["model_subgroup_performance_gap", 0.0685, 0.107]],
-  "agent-guardrails": [["grounding_score", 0.836, 0.741], ["records_beyond_need", 0.11, 0.199], ["steps_per_task", 21.7, 34.4]],
-};
+// The limits that solve each challenge ship with the challenge, as
+// `solution`, so the Command floor can show rules set by measurement.
+const SOLUTIONS = {};
+for (const c of set.challenges) {
+  assert.ok(c.solution && Object.keys(c.solution).length, `${c.id} has no solution`);
+  SOLUTIONS[c.id] = Object.entries(c.solution).map(([name, v]) => [name, v.warning, v.critical]);
+}
 
 function grade(c, pack, prof) {
   const r = A.stressTest(pack, prof, { episodes: set.episodes, seed: set.seed }, { engine: E, sim: S });

@@ -5,6 +5,33 @@
   "subtitle": "Patient data moving from hospital records into an AI model.",
   "scene": "data-flow",
   "profile": "../../../examples/healthcare-data-governance/trp.json",
+  "command": {
+    "group": "Clinical models",
+    "unit": "Model",
+    "count": 12,
+    "fault_rate": 0.015,
+    "benign": [
+      {
+        "label": "A data refresh runs late, 60 hours old",
+        "effects": {
+          "data_freshness_hours": {
+            "to": 60,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "A new cohort, subgroup gap 0.09",
+        "effects": {
+          "model_subgroup_performance_gap": {
+            "to": 0.09,
+            "ramp_s": 3
+          }
+        }
+      }
+    ],
+    "benign_rate": 0.02
+  },
   "tick_ms": 250,
   "cycle_s": 3,
   "stages": [

@@ -18,7 +18,13 @@
         "uptime": 0.7
       },
       "hint": "Harm happens when speed and closeness combine. A limit that acts earlier on either one closes the gap.",
-      "lesson": "Each limit looked reasonable alone, but harm came from two readings that were each just inside their limits. Good profiles set limits for the combinations that cause harm, which is why thresholds are tested against scenarios and never picked one at a time."
+      "lesson": "Each limit looked reasonable alone, but harm came from two readings that were each just inside their limits. Good profiles set limits for the combinations that cause harm, which is why thresholds are tested against scenarios and never picked one at a time.",
+      "solution": {
+        "human_distance_m": {
+          "warning": 2.2,
+          "critical": 1.75
+        }
+      }
     },
     {
       "id": "jam-line",
@@ -35,7 +41,17 @@
         "uptime": 0.7
       },
       "hint": "Look at how high each reading climbs before harm starts, then set the critical limit below that point.",
-      "lesson": "A critical limit only helps if the system reaches it before harm does. Limits come from how the machine actually fails, so they should be checked against recorded failures and revised when the machine changes."
+      "lesson": "A critical limit only helps if the system reaches it before harm does. Limits come from how the machine actually fails, so they should be checked against recorded failures and revised when the machine changes.",
+      "solution": {
+        "jam_rate_per_hour": {
+          "warning": 1.84,
+          "critical": 3.08
+        },
+        "line_speed_units_min": {
+          "warning": 130.5,
+          "critical": 151
+        }
+      }
     },
     {
       "id": "quiet-drift",
@@ -53,7 +69,21 @@
         "uptime": 0.65
       },
       "hint": "Slow failures never cross a loose limit. Tighten the readings that drift, one at a time, and rerun.",
-      "lesson": "Governance failures in data and models are usually slow drifts with no single alarming moment. A profile catches them with limits close to normal operation and with continuous evidence, which is why evidence that goes stale is treated as unknown."
+      "lesson": "Governance failures in data and models are usually slow drifts with no single alarming moment. A profile catches them with limits close to normal operation and with continuous evidence, which is why evidence that goes stale is treated as unknown.",
+      "solution": {
+        "data_deidentification_confidence": {
+          "warning": 0.931,
+          "critical": 0.892
+        },
+        "consent_coverage_ratio": {
+          "warning": 0.93,
+          "critical": 0.874
+        },
+        "model_subgroup_performance_gap": {
+          "warning": 0.0685,
+          "critical": 0.107
+        }
+      }
     },
     {
       "id": "agent-guardrails",
@@ -71,7 +101,21 @@
         "uptime": 0.65
       },
       "hint": "An agent that stops citing sources, reads extra records or keeps taking steps is drifting from its task before it does damage.",
-      "lesson": "Hard rules stop actions that are never allowed. Scored signals catch an agent drifting toward harm, and the same profile can govern any agent framework because it only looks at evidence."
+      "lesson": "Hard rules stop actions that are never allowed. Scored signals catch an agent drifting toward harm, and the same profile can govern any agent framework because it only looks at evidence.",
+      "solution": {
+        "grounding_score": {
+          "warning": 0.836,
+          "critical": 0.741
+        },
+        "records_beyond_need": {
+          "warning": 0.11,
+          "critical": 0.199
+        },
+        "steps_per_task": {
+          "warning": 21.7,
+          "critical": 34.4
+        }
+      }
     }
   ]
 }

@@ -104,7 +104,7 @@
       b.type = "button";
       b.setAttribute("role", "tab");
       b.textContent = p.title;
-      b.setAttribute("aria-selected", app.current && app.current.id === p.id ? "true" : "false");
+      b.setAttribute("aria-selected", app.mode !== "command" && app.current && app.current.id === p.id ? "true" : "false");
       b.addEventListener("click", () => selectPack(p.id, { story: true }));
       nav.appendChild(b);
     }
@@ -128,7 +128,7 @@
     const hasArena = !!pack.arena;
     document.querySelector('.mode[data-mode="arena"]').disabled = !hasArena;
     document.querySelector('.mode[data-mode="stress"]').disabled = !hasArena;
-    const wanted = (opts && opts.mode) || (app.mode !== "live" && hasArena ? app.mode : "live");
+    const wanted = (opts && opts.mode) || (app.mode !== "live" && app.mode !== "command" && hasArena ? app.mode : "live");
     setMode(wanted);
     if (wanted === "live" && opts && opts.story && pack.story && pack.story.length) startStory();
   }
@@ -615,6 +615,19 @@
     if ((mode === "arena" || mode === "stress") && !pack.arena) mode = "live";
     app.mode = mode;
     for (const b of document.querySelectorAll(".mode")) b.setAttribute("aria-selected", String(b.dataset.mode === mode));
+    // Command is the floor of every pack at once, in place of the stage.
+    const command = mode === "command" && window.TRPCommand;
+    document.querySelector(".stage").hidden = !!command;
+    $("command").hidden = !command;
+    if (command) {
+      stopStory(true);
+      renderTabs();
+      window.TRPCommand.mount({ engine: E, sim: S, arena: A, packs: app.packs, challenges: app.challenges, onOpen: (id) => selectPack(id, { mode: "live", story: false }) });
+      document.title = "TRP Studio";
+      return;
+    }
+    if (window.TRPCommand) window.TRPCommand.unmount();
+    renderTabs();
     $("controls").hidden = mode !== "live";
     $("arena-panel").hidden = mode !== "arena";
     $("stress-panel").hidden = mode !== "stress";
@@ -1276,7 +1289,8 @@
       try { replay = decodeReplay(location.hash.slice(3)); } catch (err) { toast("That replay link could not be read."); }
     }
     const wantStory = params.get("story") !== "0" && !replay;
-    const wantMode = params.get("mode") || undefined;
+    // With nothing asked for, the first screen is the floor.
+    const wantMode = params.get("mode") || (!params.get("pack") && !params.get("profile") && !replay ? "command" : undefined);
     if (params.get("profile")) {
       try {
         const pack = packFromJSON(await fetchUntrusted(params.get("profile")));

@@ -5,6 +5,33 @@
   "subtitle": "The agnostic agent. Any model, any framework, the same trust requirements.",
   "scene": "agent-trace",
   "profile": "../../../examples/agent-tool-use/trp.json",
+  "command": {
+    "group": "Agents",
+    "unit": "Agent",
+    "count": 16,
+    "fault_rate": 0.025,
+    "benign": [
+      {
+        "label": "A long research task, 24 steps",
+        "effects": {
+          "steps_per_task": {
+            "to": 24,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "label": "An expensive model call, 90 cents",
+        "effects": {
+          "cost_per_task_usd": {
+            "to": 0.9,
+            "ramp_s": 2
+          }
+        }
+      }
+    ],
+    "benign_rate": 0.02
+  },
   "tick_ms": 250,
   "cycle_s": 5,
   "tools": [

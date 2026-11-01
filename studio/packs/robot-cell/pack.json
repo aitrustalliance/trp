@@ -5,6 +5,42 @@
   "subtitle": "A collaborative robot arm picking parts beside a person.",
   "scene": "robot-cell",
   "profile": "../../../examples/manufacturing-safety/trp.json",
+  "command": {
+    "group": "Robot cells",
+    "unit": "Cell",
+    "count": 16,
+    "fault_rate": 0.02,
+    "benign": [
+      {
+        "label": "A person walks past at 1.3 m",
+        "effects": {
+          "human_distance_m": {
+            "to": 1.3,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "A warm afternoon, motor at 74 degrees",
+        "effects": {
+          "temperature_C": {
+            "to": 74,
+            "ramp_s": 4
+          }
+        }
+      },
+      {
+        "label": "A heavy part, vibration 0.95",
+        "effects": {
+          "vibration_rms_g": {
+            "to": 0.95,
+            "ramp_s": 2
+          }
+        }
+      }
+    ],
+    "benign_rate": 0.02
+  },
   "tick_ms": 250,
   "cycle_s": 4,
   "signals": {

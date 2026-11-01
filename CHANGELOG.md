@@ -53,7 +53,15 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   three depths, with documented cases and self-checks, checked by
   `tests/codex_content.js`.
 - Studio Learn mode with four challenges, graded by a fixed-seed stress
-  test, in which players fix the limits of a profile with a gap in it.
+  test, in which players fix the limits of a profile with a gap in it. Each
+  challenge ships the limits that solve it, as `solution`.
+- Studio Command, the first screen: a floor of fifty-six systems from every
+  pack, each judged live by the engine, with a bar that counts harm caught,
+  harm slipped through and stops for nothing, and a rule book dial (loose,
+  published, tight, tuned by measurement) that shows the trade-off live.
+  Packs carry a `command` block with benign excursions.
+- The Studio header offers Nautilus as coming soon with an early access
+  sign-up, in place of a link to the game.
 - TRP Arena Protocol (`studio/ARENA_PROTOCOL.md`) and match runner
   (`studio/match.js`), so any two programs can play the Arena against each
   other with replies checked, process groups stopped and results
