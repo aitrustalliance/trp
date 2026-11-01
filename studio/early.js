@@ -57,9 +57,14 @@
   doc.addEventListener("DOMContentLoaded", () => {
     const btn = $("nautilus-btn");
     if (!btn || !$("early")) return;
-    // The picture is optional. Without the file the card has no picture.
-    const art = $("early-art");
-    if (art) { art.addEventListener("error", () => { art.hidden = true; }); if (art.complete && art.naturalWidth === 0) art.hidden = true; }
+    // The picture is optional and named in nautilus/config.js, so no request
+    // is made for a file that is not there.
+    const art = $("early-art"), cfg = root.NAUTILUS_CONFIG || {};
+    if (art && typeof cfg.earlyArt === "string" && /^[\w./-]+\.(png|jpe?g|webp)$/i.test(cfg.earlyArt) && !cfg.earlyArt.includes("..")) {
+      art.addEventListener("error", () => { art.hidden = true; });
+      art.addEventListener("load", () => { art.hidden = false; });
+      art.src = cfg.earlyArt;
+    }
     btn.addEventListener("click", open);
     $("early-close").addEventListener("click", close);
     $("early").addEventListener("click", (e) => { if (e.target === $("early")) close(); });

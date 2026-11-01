@@ -4,4 +4,4 @@ Image files for the game and the early access card. Each file here needs a line 
 
 | File | Used by | Source | License |
 |---|---|---|---|
-| `nautilus.png` | The early access card in TRP Studio, shown at 520 pixels wide | Not yet added | |
+| `nautilus.png` | The early access card in TRP Studio, shown at 520 pixels wide, named by `earlyArt` in `../config.js` | Not yet added | |

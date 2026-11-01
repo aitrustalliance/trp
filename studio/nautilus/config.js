@@ -9,6 +9,9 @@
  * learnMoreUrl   Optional. A link shown under each codex entry for people
  *                who want courses or deeper material. Leave empty to hide.
  * learnMoreLabel Text for that link.
+ * earlyArt       Optional. Path, relative to the studio page, of a picture
+ *                for the early access card, such as "nautilus/art/nautilus.png".
+ *                Leave empty for no picture.
  */
 window.NAUTILUS_CONFIG = {
   web3formsKey: "",
@@ -16,4 +19,5 @@ window.NAUTILUS_CONFIG = {
   repo: "https://github.com/aitrustalliance/trp",
   learnMoreUrl: "",
   learnMoreLabel: "Go further",
+  earlyArt: "",
 };
