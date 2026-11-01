@@ -80,9 +80,31 @@
       tutorialDone: false,
       prologueSeen: false,
       codex: { discovered: [], checked: [], examBest: 0 },
-      settings: { difficulty: "normal", reduceMotion: null, textScale: 1, sound: true },
-      campaign: { next: 1, done: {}, rules: "standard", system: null, crew: null, owned: { systems: [], crew: [] } },
+      settings: { difficulty: "easy", reduceMotion: null, textScale: 1, sound: true },
+      campaign: { next: 1, done: {}, rules: "standard", system: null, crew: null, owned: { systems: [], crew: [] }, custom: null },
+      voyage: { leg: 0, score: 0, seed: 0, bestLegs: 0, bestScore: 0 },
     };
+  }
+  // The gauges a captain may write limits for, with the range each accepts.
+  const CUSTOM = [
+    { signal: "hull_stress", label: "Hull stress", min: 0.3, max: 1.2, step: 0.01, dir: "higher_is_unsafe" },
+    { signal: "reactor_temp_c", label: "Reactor heat", min: 80, max: 160, step: 1, dir: "higher_is_unsafe" },
+    { signal: "sonar_confidence", label: "Sonar confidence", min: 0.2, max: 0.95, step: 0.01, dir: "lower_is_unsafe" },
+    { signal: "crew_goal_drift", label: "Crew drift", min: 0.05, max: 0.95, step: 0.01, dir: "higher_is_unsafe" },
+  ];
+  // Returns a clean copy of custom limits, or null if any value is out of range or on the wrong side.
+  function cleanCustom(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const out = {};
+    for (const g of CUSTOM) {
+      const x = raw[g.signal];
+      if (!x || typeof x !== "object") return null;
+      const w = Number(x.warning), c = Number(x.critical);
+      if (!Number.isFinite(w) || !Number.isFinite(c) || w < g.min || w > g.max || c < g.min || c > g.max) return null;
+      if (g.dir === "higher_is_unsafe" ? w >= c : w <= c) return null;
+      out[g.signal] = { warning: w, critical: c };
+    }
+    return out;
   }
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
   const num = (v, d) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : d);
@@ -125,6 +147,12 @@
       if (idOk(c.system)) L.campaign.system = c.system;
       if (idOk(c.crew)) L.campaign.crew = c.crew;
       if (c.owned && typeof c.owned === "object") { L.campaign.owned.systems = Array.isArray(c.owned.systems) ? [...new Set(c.owned.systems.filter(idOk))] : []; L.campaign.owned.crew = Array.isArray(c.owned.crew) ? [...new Set(c.owned.crew.filter(idOk))] : []; }
+      L.campaign.custom = cleanCustom(c.custom);
+      if (L.campaign.rules === "captain" && !L.campaign.custom) L.campaign.rules = "standard";
+    }
+    if (raw.voyage && typeof raw.voyage === "object") {
+      const v = raw.voyage;
+      L.voyage = { leg: Math.floor(num(v.leg, 0)), score: Math.floor(num(v.score, 0)), seed: Math.floor(num(v.seed, 0)), bestLegs: Math.floor(num(v.bestLegs, 0)), bestScore: Math.floor(num(v.bestScore, 0)) };
     }
     const s = raw.settings && typeof raw.settings === "object" ? raw.settings : {};
     if (own(C.DIFFICULTY, s.difficulty)) L.settings.difficulty = s.difficulty;
@@ -452,6 +480,13 @@
           else caption("Full ahead", "", "#cfe2ff", 1);
           if (codex) discover(codex.unlocks.order, true);
           break;
+        case "condition": {
+          const c = C.CONDITIONS[e.name];
+          if (!c) break;
+          if (e.on) { caption(c.label, c.note, "#9fd0ff", 3.2); if (codex) discover(codex.unlocks.condition, true); }
+          else caption(`${c.label} astern`, "", "#9fd0ff", 1.2);
+          break;
+        }
         case "gear": SND.gear(); float(e.x, e.y - 16, "+1 brass", "#e6c27a", 14); break;
         case "relic": SND.gear(); salvage(codex ? codex.unlocks[e.kind] : null, 2, e.x, e.y, "Recovered"); break;
         case "chest": SND.caught(); salvage(nextPage("navigator"), 15, e.x, e.y, "Sea chest"); break;
@@ -557,7 +592,20 @@
     return { system: cp.system && cp.owned.systems.includes(cp.system) ? cp.system : null, crew: cp.crew && cp.owned.crew.includes(cp.crew) ? cp.crew : null };
   }
   function profileFor(rules) {
+    if (rules === "captain") return customProfile(ledger.campaign.custom) || game.profiles.standard;
     return game.profiles[rules] || game.profiles.standard || game.profileRaw;
+  }
+  // The captain's rule book is the standard one with the captain's limits.
+  function customProfile(custom) {
+    const c = cleanCustom(custom);
+    if (!c || !game.profiles.standard) return null;
+    const p = JSON.parse(JSON.stringify(game.profiles.standard));
+    p.trp_id = "nautilus-captain";
+    p.name = "Nautilus vessel rules, the captain's own";
+    p.notes = ["Fictional profile for a game. Values are chosen for play, not safety.", "Written by the captain in the chart room."];
+    for (const sg of p.scored_signals) if (c[sg.signal]) { sg.warning_threshold = c[sg.signal].warning; sg.critical_threshold = c[sg.signal].critical; }
+    try { E.loadProfile(p); } catch (err) { return null; }
+    return p;
   }
 
   function sail(opts) {
@@ -576,7 +624,7 @@
       game.chapter = ch;
       game.official = false;
       game.tutorial = null;
-      game.voyage = new C.Voyage({ engine: E, profileRaw: profileFor(ledger.campaign.rules), seed: 7000 + ch.id * 13, difficulty: ledger.settings.difficulty, chapter: ch, duration: ch.duration, fit: fitFor() });
+      game.voyage = new C.Voyage({ engine: E, profileRaw: profileFor(ledger.campaign.rules), seed: ch.seed || 7000 + ch.id * 13, difficulty: ledger.settings.difficulty, chapter: ch, duration: ch.duration, fit: fitFor() });
     } else {
       const seed = C.daySeed();
       game.official = !ledger.played[seed];
@@ -590,7 +638,8 @@
     if (game.tutorial) {
       const L = game.tutorial.on({ type: "start" });
       if (L) showHint(L);
-    } else if (game.chapter) caption(`Chapter ${game.chapter.id}, ${game.chapter.title}`, `Make port at ${game.chapter.port}`, "#e6d3a1", 3);
+    } else if (game.chapter && game.chapter.leg) caption(`Leg ${game.chapter.leg}, ${game.chapter.title}`, `Make port at ${game.chapter.port}`, "#e6d3a1", 3);
+    else if (game.chapter) caption(`Chapter ${game.chapter.id}, ${game.chapter.title}`, `Make port at ${game.chapter.port}`, "#e6d3a1", 3);
     else caption(game.official ? `Voyage No. ${C.voyageNumber()}` : "Practice voyage", "Reach Free Harbor", "#e6d3a1", 2.6);
   }
 
@@ -629,7 +678,20 @@
       ledger.streak.last = day;
     }
     if (!tutorial && !chapter) { ledger.best[seed] = Math.max(ledger.best[seed] || 0, sum.score); ledger.bestEver = Math.max(ledger.bestEver, sum.score); }
-    if (chapter && sum.outcome === "harbor") {
+    let run = null;
+    if (chapter && chapter.leg) {
+      // A leg of the Long Voyage. Port means the run goes on. Sinking ends it.
+      const lv = ledger.voyage;
+      if (sum.outcome === "harbor") { lv.leg = chapter.leg; lv.score += sum.score; run = { leg: lv.leg, score: lv.score, over: false }; }
+      else {
+        const total = lv.score + sum.score, legs = chapter.leg - 1;
+        const record = legs > lv.bestLegs || (legs === lv.bestLegs && total > lv.bestScore);
+        if (record) { lv.bestLegs = legs; lv.bestScore = total; rewards.push(`A new record on the Long Voyage, ${legs} leg${legs === 1 ? "" : "s"}`); }
+        run = { leg: legs, score: total, over: true, record };
+        lv.leg = 0; lv.score = 0; lv.seed = 0;
+      }
+      game.madePort = false;
+    } else if (chapter && sum.outcome === "harbor") {
       const prev = ledger.campaign.done[chapter.id];
       if (prev) prev.score = Math.max(prev.score, sum.score);
       game.madePort = !prev;
@@ -637,7 +699,7 @@
     saveLedger();
     if (tutorial) ledger.tutorialDone = true;
     saveLedger();
-    game.lastSummary = Object.assign({ medal, par: parScore, brass, rewards, voyageNo: C.voyageNumber(), official: game.official, tutorial, chapter: chapter ? { id: chapter.id, title: chapter.title, port: chapter.port } : null, discovered: [...game.discoveredThisVoyage] }, sum);
+    game.lastSummary = Object.assign({ medal, par: parScore, brass, rewards, voyageNo: C.voyageNumber(), official: game.official, tutorial, chapter: chapter ? { id: chapter.id, title: chapter.title, port: chapter.port, leg: chapter.leg || 0 } : null, run, discovered: [...game.discoveredThisVoyage] }, sum);
     if (sum.outcome === "harbor") SND.harbor();
     game.tutorial = null;
     game.slow = 1;
@@ -648,8 +710,61 @@
 
   function chapterById(id) { return game.campaign ? game.campaign.chapters.find((c) => c.id === id) : null; }
 
+  // ------------------------------------------------------------ The Long Voyage
+
+  // A leg is a chapter drawn from Verne's places. Each presses harder than
+  // the last, and the same seed always draws the same run.
+  function legFor(n, runSeed) {
+    const places = game.campaign.voyage.places;
+    const r = C.rng((runSeed >>> 0) ^ Math.imul(n, 0x9e3779b1));
+    const prevIndex = n > 1 ? legFor(n - 1, runSeed).placeIndex : -1;
+    let index = Math.floor(r() * places.length);
+    if (index === prevIndex) index = (index + 1) % places.length;
+    const place = places[index];
+    const press = Math.min(2.4, 1 + 0.08 * n);
+    const weights = {};
+    for (const k of Object.keys(C.KINDS)) if (k !== "writ") weights[k] = +(Math.min(2.6, (0.6 + r() * 1.0) * press)).toFixed(2);
+    const duration = 72 + Math.floor(r() * 4) * 6;
+    const hazards = Object.assign({}, place.hazards || {});
+    if (n >= 3 && r() < 0.4) { const b0 = 20 + Math.floor(r() * 30); hazards.barrage = [[b0, b0 + 8]]; }
+    hazards.decrees = Math.min(3, 1 + Math.floor(n / 4));
+    const conditions = {};
+    for (const c of place.conditions || []) {
+      const windows = [];
+      const count = 1 + (r() < 0.5 ? 1 : 0);
+      let t0 = 8 + Math.floor(r() * 10);
+      for (let i = 0; i < count && t0 < duration - 18; i++) { const len = 10 + Math.floor(r() * 9); windows.push([t0, Math.min(duration - 8, t0 + len)]); t0 += len + 10 + Math.floor(r() * 10); }
+      if (windows.length) conditions[c] = windows;
+    }
+    const names = Object.keys(conditions).map((k) => C.CONDITIONS[k].label.toLowerCase());
+    const brief = `${place.verne}. ` + (names.length ? `The waters carry ${names.join(" and ")}. ` : "") + (hazards.barrage ? "The frigate is close and will drop charges in a barrage. " : "") + `Leg ${n} of the Long Voyage, and the Leviathan presses harder with every port.`;
+    const next = places[(index + 1 + Math.floor(r() * (places.length - 1))) % places.length];
+    return { id: 100 + n, leg: n, placeIndex: index, seed: ((runSeed >>> 0) + n * 7919) >>> 0, title: place.name, port: next.name, verne: place.verne, sea: place.sea, weather: place.weather, duration, brief, weights, hazards, conditions };
+  }
+
+  function nextLeg() {
+    const lv = ledger.voyage;
+    if (!lv.seed) { lv.seed = (Date.now() / 1000) >>> 0; lv.leg = 0; lv.score = 0; saveLedger(); }
+    game.leg = legFor(lv.leg + 1, lv.seed);
+    game.chartPick = "voyage";
+    setState("fit");
+  }
+
+  function renderVoyageSection() {
+    const box = $("chart-voyage"), lv = ledger.voyage, cv = game.campaign.voyage;
+    box.hidden = !(cv && ledger.campaign.next > 1);
+    if (box.hidden) return;
+    $("voyage-h").textContent = cv.title;
+    $("voyage-intro").textContent = cv.intro;
+    const best = lv.bestLegs ? `Best run, ${lv.bestLegs} leg${lv.bestLegs === 1 ? "" : "s"} and ${lv.bestScore.toLocaleString()} points.` : "No run on record yet.";
+    $("voyage-status").textContent = lv.leg ? `A run is under way. ${lv.leg} leg${lv.leg === 1 ? "" : "s"} made and ${lv.score.toLocaleString()} points so far. ${best}` : best;
+    $("voyage-btn").textContent = lv.leg ? `Sail leg ${lv.leg + 1}` : "Weigh anchor";
+  }
+
   function renderChart() {
     const camp = game.campaign, cp = ledger.campaign;
+    if (game.chartPick === "voyage") game.chartPick = null;
+    renderVoyageSection();
     $("chart-season").textContent = camp.season;
     const pick = game.chartPick || Math.min(cp.next, camp.chapters.length);
     game.chartPick = pick;
@@ -675,15 +790,30 @@
       const head = document.createElement("div"); const bb = document.createElement("b"); bb.textContent = `${ch.title}, ${ch.port}. `; head.append(bb, `${ch.sea.charAt(0).toUpperCase() + ch.sea.slice(1)} sea, ${ch.weather}. From Verne, ${ch.verne.toLowerCase()}.`);
       const p = document.createElement("p"); p.textContent = ch.brief;
       brief.append(head, p);
+      const waters = watersLine(ch); if (waters) brief.append(waters);
     }
     $("chart-fit").disabled = !ch || !(cp.done[ch.id] || ch.id === cp.next);
     if (cp.next > camp.chapters.length) { const p = document.createElement("p"); p.className = "tip"; p.textContent = "Season One is complete. Every port is yours to sail again, and the daily voyage continues."; brief.append(p); }
   }
 
+  // The chapter or Long Voyage leg the chart room is fitting out for.
+  function currentChapter() { return game.chartPick === "voyage" ? game.leg : chapterById(game.chartPick); }
+
+  // A line naming the sea conditions a chapter carries, for the brief.
+  function watersLine(ch) {
+    const names = Object.keys((ch && ch.conditions) || {}).filter((k) => own(C.CONDITIONS, k));
+    if (!names.length) return null;
+    const p = document.createElement("p"); p.className = "waters";
+    const b = document.createElement("b"); b.textContent = "Waters ahead. "; p.append(b);
+    p.append(names.map((k) => `${C.CONDITIONS[k].label}. ${C.CONDITIONS[k].note}`).join(" "));
+    return p;
+  }
+
   function renderFit() {
-    const camp = game.campaign, cp = ledger.campaign, ch = chapterById(game.chartPick);
-    $("fit-stamp").textContent = ch ? `Chart room · chapter ${ch.id}, ${ch.title}` : "Chart room";
-    $("fit-brief").textContent = ch ? ch.brief : "";
+    const camp = game.campaign, cp = ledger.campaign, ch = currentChapter();
+    $("fit-stamp").textContent = ch ? (ch.leg ? `Chart room · the Long Voyage, leg ${ch.leg}` : `Chart room · chapter ${ch.id}, ${ch.title}`) : "Chart room";
+    const brief = $("fit-brief"); brief.textContent = ch ? ch.brief : "";
+    const waters = watersLine(ch); if (waters) brief.append(waters);
     $("fit-brass").textContent = `${ledger.brass.toLocaleString()} brass`;
     const grid = (el, items, kind) => {
       el.textContent = "";
@@ -699,18 +829,79 @@
         const on = current === it.id;
         const canBuy = !have && ledger.brass >= it.cost;
         const b = fittingButton(it, on, have || canBuy, have ? (on ? "Fitted" : "Owned") : `${it.cost} brass`);
-        if (kind === "rules") { const a = document.createElement("a"); a.href = it.profile; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Read the rule book"; a.addEventListener("click", (e) => e.stopPropagation()); b.append(a); }
+        if (kind === "rules" && it.profile) { const a = document.createElement("a"); a.href = it.profile; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Read the rule book"; a.addEventListener("click", (e) => e.stopPropagation()); b.append(a); }
         b.addEventListener("click", () => {
           if (!have) { if (!canBuy) return; ledger.brass -= it.cost; owned.push(it.id); toast(`${it.label} fitted for ${it.cost} brass`); }
-          if (kind === "rules") cp.rules = it.id; else cp[kind === "systems" ? "system" : "crew"] = it.id;
+          if (kind === "rules") { cp.rules = it.id; if (it.id === "captain" && !cp.custom) cp.custom = limitsOf(game.profiles.standard); }
+          else cp[kind === "systems" ? "system" : "crew"] = it.id;
           saveLedger(); renderFit();
         });
         el.append(b);
       }
     };
     grid($("fit-rules"), camp.fittings.rules, "rules");
+    renderCustom();
     grid($("fit-systems"), camp.fittings.systems, "systems");
     grid($("fit-crew"), camp.fittings.crew, "crew");
+  }
+
+  function limitsOf(profile) {
+    const out = {};
+    for (const g of CUSTOM) { const sg = profile.scored_signals.find((x) => x.signal === g.signal); if (sg) out[g.signal] = { warning: sg.warning_threshold, critical: sg.critical_threshold }; }
+    return out;
+  }
+
+  // The captain writes limits for each gauge. The engine checks the book,
+  // and the sea judges it.
+  function renderCustom() {
+    const box = $("fit-custom"), cp = ledger.campaign;
+    box.hidden = cp.rules !== "captain";
+    box.textContent = "";
+    if (box.hidden) return;
+    const draft = cp.custom || limitsOf(game.profiles.standard);
+    const intro = document.createElement("p"); intro.className = "muted";
+    intro.textContent = "A warning limit rings Half Ahead and a critical limit rings All Stop. Hull, heat and drift are unsafe when high. Sonar is unsafe when low. The standard book is a fair start, and the three published books show where other captains drew their lines.";
+    box.append(intro);
+    const grid = document.createElement("div"); grid.className = "limits";
+    const inputs = {};
+    for (const g of CUSTOM) {
+      const row = document.createElement("div"); row.className = "limit-row";
+      const name = document.createElement("div"); const n = document.createElement("div"); n.className = "limit-name"; n.textContent = g.label;
+      const d = document.createElement("div"); d.className = "muted small"; d.textContent = `${g.dir === "lower_is_unsafe" ? "Lower is unsafe" : "Higher is unsafe"}. From ${g.min} to ${g.max}.`;
+      name.append(n, d); row.append(name);
+      inputs[g.signal] = {};
+      for (const k of ["warning", "critical"]) {
+        const lab = document.createElement("label"); lab.append(k === "warning" ? "Warning " : "Critical ");
+        const inp = document.createElement("input"); inp.type = "number"; inp.min = g.min; inp.max = g.max; inp.step = g.step; inp.value = draft[g.signal][k]; inp.dataset.sig = g.signal; inp.dataset.k = k; inp.setAttribute("aria-label", `${g.label} ${k} limit`);
+        lab.append(inp); row.append(lab); inputs[g.signal][k] = inp;
+      }
+      grid.append(row);
+    }
+    box.append(grid);
+    const msg = document.createElement("p"); msg.className = "fit-msg"; msg.setAttribute("aria-live", "polite"); msg.id = "fit-custom-msg";
+    const row = document.createElement("div"); row.className = "row";
+    const dl = document.createElement("button"); dl.type = "button"; dl.className = "btn iron"; dl.textContent = "Download my rule book";
+    dl.addEventListener("click", () => { const p = customProfile(cp.custom); if (p) download("nautilus-captain-trp.json", JSON.stringify(p, null, 2)); });
+    row.append(dl);
+    box.append(msg, row);
+    const read = () => {
+      const raw = {};
+      for (const g of CUSTOM) raw[g.signal] = { warning: inputs[g.signal].warning.value, critical: inputs[g.signal].critical.value };
+      const clean = cleanCustom(raw);
+      if (!clean) { msg.textContent = "The engine rejects this book. Every limit must sit inside its range, and the warning limit must sit on the safe side of the critical one."; $("fit-sail").disabled = true; return; }
+      cp.custom = clean; saveLedger();
+      msg.textContent = "The engine accepts this book. The sea will judge it.";
+      $("fit-sail").disabled = false;
+    };
+    for (const sig of Object.values(inputs)) for (const inp of Object.values(sig)) inp.addEventListener("change", read);
+    read();
+  }
+
+  function download(name, text) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   function fittingButton(it, on, enabled, cost) {
     const b = document.createElement("button"); b.type = "button"; b.className = "fitting" + (on ? " on" : ""); b.disabled = !enabled; b.setAttribute("aria-pressed", String(on));
@@ -797,9 +988,12 @@
 
   function renderLog() {
     const s = game.lastSummary;
-    $("log-voyage").textContent = s.tutorial ? "Shakedown cruise complete" : s.chapter ? `Chapter ${s.chapter.id} · ${s.chapter.title}` : s.official ? `Voyage No. ${s.voyageNo}` : "Practice voyage";
+    $("log-voyage").textContent = s.tutorial ? "Shakedown cruise complete" : s.chapter && s.chapter.leg ? `The Long Voyage · leg ${s.chapter.leg} · ${s.chapter.title}` : s.chapter ? `Chapter ${s.chapter.id} · ${s.chapter.title}` : s.official ? `Voyage No. ${s.voyageNo}` : "Practice voyage";
     $("log-h").textContent = s.outcome === "harbor" ? (s.chapter ? `${s.chapter.port} Reached` : "Free Harbor Reached") : "The Nautilus Went Down";
-    $("log-port").hidden = !(s.chapter && s.outcome === "harbor" && game.madePort);
+    const leg = s.chapter && s.chapter.leg;
+    $("log-port").hidden = !((s.chapter && s.outcome === "harbor" && game.madePort) || (leg && s.outcome === "harbor"));
+    $("log-port").textContent = leg ? "Next leg" : "Make port";
+    $("again-btn").hidden = !!leg;
     $("again-btn").textContent = s.chapter ? "Sail the chapter again" : "Sail again";
     const medal = $("log-medal");
     medal.className = "medal " + (s.medal || "none");
@@ -812,7 +1006,7 @@
     const end = document.createElement("span"); end.className = s.outcome === "harbor" ? "harbor" : "hit"; tl.append(end);
     const stats = $("log-stats");
     stats.textContent = "";
-    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught + (s.prevented || 0)], ["Hull hits", s.hits], ["Salvage", s.relics + s.chests + s.pearls], ["Brass earned", s.brass]]) {
+    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught + (s.prevented || 0)], ["Stopped for nothing", `${s.needless_s || 0} s`], ["Hull hits", s.hits], ["Salvage", s.relics + s.chests + s.pearls], ["Brass earned", s.brass]]) {
       const d = document.createElement("div"); d.className = "stat";
       const a = document.createElement("div"); a.className = "v"; a.textContent = String(val);
       const b = document.createElement("div"); b.className = "k"; b.textContent = k;
@@ -821,6 +1015,11 @@
     const r = C.rank(ledger.lifetimeLeagues);
     const rank = $("log-rank");
     rank.textContent = "";
+    if (s.run) {
+      const runLine = document.createElement("div"); runLine.className = "run";
+      runLine.textContent = s.run.over ? `The run ends. ${s.run.leg} leg${s.run.leg === 1 ? "" : "s"} and ${s.run.score.toLocaleString()} points on the Long Voyage.` : `Leg ${s.run.leg} made. ${s.run.score.toLocaleString()} points on this run so far.`;
+      rank.append(runLine);
+    }
     const line = document.createElement("div");
     line.textContent = `${r.title} · ${ledger.lifetimeLeagues.toLocaleString()} leagues${r.next ? ` · ${(r.next.at - ledger.lifetimeLeagues).toLocaleString()} to ${r.next.title}` : ""}${s.rewards.length ? " · " + s.rewards.join(" · ") : ""}`;
     const track = document.createElement("div"); track.className = "bar-track";
@@ -1216,8 +1415,9 @@
     $("story-btn").addEventListener("click", () => { game.returnTo = "title"; setState("prologue"); });
     $("chart-story").addEventListener("click", () => { game.returnTo = "chart"; setState("prologue"); });
     $("chart-fit").addEventListener("click", () => setState("fit"));
-    $("fit-sail").addEventListener("click", () => { const ch = chapterById(game.chartPick); if (ch) sail({ chapter: ch }); });
-    $("log-port").addEventListener("click", () => setState("port"));
+    $("fit-sail").addEventListener("click", () => { const ch = currentChapter(); if (ch) sail({ chapter: ch }); });
+    $("log-port").addEventListener("click", () => { const s = game.lastSummary; if (s && s.chapter && s.chapter.leg) nextLeg(); else setState("port"); });
+    $("voyage-btn").addEventListener("click", () => nextLeg());
     $("port-done").addEventListener("click", () => { game.returnTo = null; setState("salon"); });
     $("prologue-continue").addEventListener("click", () => { ledger.prologueSeen = true; saveLedger(); const to = game.returnTo; game.returnTo = null; setState(to === "salon" || to === "chart" ? to : "title"); });
     $("pause-btn").addEventListener("click", togglePause);
@@ -1292,7 +1492,7 @@
       game.profileRaw = profile;
       game.campaign = campaign;
       game.profiles.standard = profile;
-      for (const rb of campaign.fittings.rules) if (rb.id !== "standard") game.profiles[rb.id] = await fetch(rb.profile, { cache: "no-cache" }).then((r) => r.json());
+      for (const rb of campaign.fittings.rules) if (rb.profile && rb.id !== "standard") game.profiles[rb.id] = await fetch(rb.profile, { cache: "no-cache" }).then((r) => r.json());
     } catch (err) {
       toast("The vessel rules could not be loaded.");
       return;

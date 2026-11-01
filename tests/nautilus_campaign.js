@@ -20,6 +20,7 @@ const SEAS = ["city", "kelp", "reef", "tunnel", "ice", "vortex", "open"];
 const WEATHER = ["dusk", "night", "bright", "current", "dark", "storm", "clear"];
 const KINDS = ["charge", "fog", "decoy", "ember", "boarder", "siren"];
 const HAZARDS = ["barrage", "night", "reef", "current", "ice", "vortex", "storm", "decrees"];
+const CONDITIONS = Object.keys(C.CONDITIONS);
 const EFFECTS = ["brass", "rules", "system", "crew", "pennant", "skin", "pages", "reveal"];
 const PENNANTS = ["free", "open", "crew", "gear", "scholar"];
 const SKINS = ["brass", "copper", "verdigris", "silver", "gilded"];
@@ -51,6 +52,11 @@ ok("every chapter is complete and uses known seas, weather, threats and hazards"
     for (const v of Object.values(ch.weights)) assert.ok(v >= 0 && v <= 3, `${w} weight ${v}`);
     for (const k of Object.keys(ch.hazards)) assert.ok(HAZARDS.includes(k), `${w} hazard ${k}`);
     if (ch.hazards.barrage) for (const [a, b] of ch.hazards.barrage) assert.ok(a >= 0 && b > a && b <= ch.duration, `${w} barrage window`);
+    for (const [k, windows] of Object.entries(ch.conditions || {})) {
+      assert.ok(CONDITIONS.includes(k), `${w} condition ${k}`);
+      for (const [a, b] of windows) assert.ok(a >= 0 && b > a && b <= ch.duration, `${w} ${k} window`);
+      assert.ok(new RegExp({ vent: "vent", silt: "silt", swell: "swell", unrest: "drift|unrest" }[k]).test(ch.brief.toLowerCase()), `${w} brief does not warn of ${k}`);
+    }
     house(ch.brief, w); house(ch.scene.text, `${w} scene`);
   }
 });
@@ -91,13 +97,15 @@ ok("fittings have unique ids, costs and details", () => {
       house(it.detail, `${kind} ${it.id}`);
     }
   }
-  assert.deepStrictEqual(ids(camp.fittings.rules), ["cautious", "standard", "bold"]);
+  assert.deepStrictEqual(ids(camp.fittings.rules), ["cautious", "standard", "bold", "captain"]);
+  assert.strictEqual(camp.fittings.rules.find((r) => r.id === "captain").profile, null, "the captain's book is written in the chart room, not shipped");
   assert.ok(camp.fittings.systems.length >= 4 && camp.fittings.crew.length >= 3);
 });
 
 const profiles = {};
 ok("every rule book is a profile file the open engine accepts", () => {
   for (const rb of camp.fittings.rules) {
+    if (!rb.profile) continue;
     const file = path.normalize(path.join(ROOT, "studio/nautilus", rb.profile));
     assert.ok(file.startsWith(path.join(ROOT, "examples")), `${rb.id} profile lives outside examples`);
     assert.ok(fs.existsSync(file), `${rb.id} profile missing at ${file}`);
@@ -118,6 +126,7 @@ ok("the rule books differ in the direction they promise", () => {
 // The chapter runs the game uses for par, one per rule book.
 const sailed = {};
 for (const ch of camp.chapters) for (const rb of camp.fittings.rules) {
+  if (!rb.profile) continue;
   const seed = 7000 + ch.id * 13;
   sailed[`${ch.id}/${rb.id}`] = C.run({ engine: E, profileRaw: profiles[rb.id], seed, difficulty: "normal", chapter: ch, duration: ch.duration }, C.referencePolicy(seed));
 }
@@ -149,6 +158,34 @@ ok("the bold rules sit past the point of harm, so they never catch it and a stea
     if (b.outcome === "sunk") sunk++;
   }
   assert.ok(sunk >= 1 && sunk < camp.chapters.length, `bold sank ${sunk} of ${camp.chapters.length}`);
+});
+
+ok("a rule book written for the waters beats the published ones, which is the thesis", () => {
+  // The tunnel's vents heat the reactor to about 116 with nothing wrong aboard.
+  // A book with its warning above that and its critical still below harm
+  // sails at full speed and still prevents a firebrand.
+  const ch = camp.chapters.find((c) => c.id === 4), seed = 7000 + ch.id * 13;
+  const tuned = JSON.parse(JSON.stringify(profiles.standard));
+  const r = tuned.scored_signals.find((x) => x.signal === "reactor_temp_c"); r.warning_threshold = 118; r.critical_threshold = 121;
+  E.loadProfile(tuned);
+  const a = C.run({ engine: E, profileRaw: tuned, seed, chapter: ch, duration: ch.duration }, C.referencePolicy(seed));
+  const b = sailed["4/standard"], c = sailed["4/bold"];
+  assert.strictEqual(a.outcome, "harbor");
+  assert.ok(a.score > b.score, `tuned ${a.score} should beat standard ${b.score}`);
+  assert.ok(a.score >= c.score && a.hits <= c.hits, `tuned ${a.score} should match bold ${c.score} with no more hits`);
+  assert.ok(a.caught + a.prevented >= 1, "the tuned book still catches harm");
+});
+
+ok("the Long Voyage names places from Verne with known seas and conditions", () => {
+  const v = camp.voyage;
+  assert.ok(v && v.title && v.intro && v.places.length >= 10);
+  for (const pl of v.places) {
+    assert.ok(pl.name && pl.verne && SEAS.includes(pl.sea) && WEATHER.includes(pl.weather), `place ${pl.name}`);
+    for (const c of pl.conditions || []) assert.ok(CONDITIONS.includes(c), `${pl.name} condition ${c}`);
+    for (const k of Object.keys(pl.hazards || {})) assert.ok(HAZARDS.includes(k), `${pl.name} hazard ${k}`);
+    house(pl.verne, pl.name);
+  }
+  assert.strictEqual(new Set(v.places.map((p) => p.name)).size, v.places.length, "a place repeats");
 });
 
 ok("chapters get harder and each one has a different threat mix", () => {

@@ -44,6 +44,14 @@
 
   const ORDERS = { full: "Full ahead", restricted: "Half ahead", suspended: "All stop" };
 
+  // Sea conditions a chapter can carry, with what each does to the evidence.
+  const CONDITIONS = {
+    vent:   { label: "Volcanic vents", signal: "reactor_temp_c", note: "Vents on the seabed heat the water, and the reactor runs about thirty degrees hotter without any fault aboard." },
+    silt:   { label: "Silt in the water", signal: "sonar_confidence", note: "Stirred silt dulls the sonar to about 0.73, well above the point where a ship is blind." },
+    swell:  { label: "Heavy swell", signal: "hull_stress", note: "Swell works the hull near the surface. Deeper water is calm." },
+    unrest: { label: "Unrest below decks", signal: "crew_goal_drift", note: "In the long dark the crew's agents drift from the captain's goals, to about 0.24, far short of a hijacking." },
+  };
+
   function rng(seed) {
     let a = seed >>> 0;
     return function () {
@@ -131,6 +139,14 @@
       this.chapter = opts.chapter || null;
       const hz = (this.chapter && this.chapter.hazards) || {};
       this.hazards = hz;
+      // Conditions are windows of sea state that push a reading toward its
+      // limits without harm. Tight rules stop for them, loose rules sail on.
+      this.conditions = (this.chapter && this.chapter.conditions) || {};
+      this.quiet = 0;
+      // The hunter is off for scripted voyages, so the shakedown cruise and
+      // tests meet only what the script says.
+      this.hunter = opts.hunter !== undefined ? !!opts.hunter : !opts.script;
+      this.active = new Set();
       this.current = hz.current || (hz.vortex ? 1.25 : 1);
       this.depthMin = hz.ice ? 340 : DEPTH_MIN;
       this.depthMax = hz.reef ? 520 : DEPTH_MAX;
@@ -174,11 +190,18 @@
       this.harms = {};
       this.events = [];
       this.timeline = new Array(10).fill(0);
-      this.stats = { intercepted: 0, caught: 0, prevented: 0, hits: 0, gears: 0, relics: 0, chests: 0, pearls: 0, stopped_s: 0 };
+      this.stats = { intercepted: 0, caught: 0, prevented: 0, hits: 0, gears: 0, relics: 0, chests: 0, pearls: 0, stopped_s: 0, needless_s: 0 };
       this.evaluate();
     }
 
     emit(e) { this.events.push(Object.assign({ t: this.t }, e)); }
+    // True while a named condition is in force. Windows are [from, to] in seconds.
+    inCondition(name) {
+      const w = this.conditions[name];
+      if (!w) return false;
+      for (const [a, b] of w) if (this.t >= a && this.t < b) return true;
+      return false;
+    }
     drain() { const e = this.events; this.events = []; return e; }
 
     setDepth(y) { this.sub.targetY = Math.max(this.depthMin, Math.min(this.depthMax, y)); }
@@ -221,11 +244,20 @@
       const t = this.t;
       for (const k of Object.keys(this.timers)) this.timers[k] = Math.max(0, this.timers[k] - dt);
       this.invuln = Math.max(0, this.invuln - dt);
+      for (const name of Object.keys(this.conditions)) {
+        const on = this.inCondition(name), was = this.active.has(name);
+        if (on && !was) { this.active.add(name); this.emit({ type: "condition", name: name, on: true }); }
+        else if (!on && was) { this.active.delete(name); this.emit({ type: "condition", name: name, on: false }); }
+      }
 
       // Engine order follows the TRP response.
       const target = this.response === "full" ? 1 : this.response === "restricted" ? 0.5 : 0;
       this.sub.speed += (target - this.sub.speed) * (1 - Math.exp(-dt / 0.35));
-      if (this.response === "suspended") this.stats.stopped_s += dt;
+      if (this.response === "suspended") {
+        this.stats.stopped_s += dt;
+        const threat = Object.keys(this.timers).some((k) => k !== "captured" && this.timers[k] > 0) || Object.values(this.harms).some((h) => h.on);
+        if (!threat && !this.manualStop) this.stats.needless_s += dt;
+      }
       const scroll = SCROLL * this.sub.speed * this.current;
       this.dist += scroll * dt;
 
@@ -234,6 +266,15 @@
       this.sub.y += Math.sign(dy) * Math.min(Math.abs(dy), (this.fit.system === "ballast-pumps" ? 420 : 280) * dt);
       if (this.hazards.ice && this.response === "suspended") this.hullImpulse = Math.min(0.6, this.hullImpulse + 0.1 * dt);
       if (this.hazards.reef && this.sub.y > this.depthMax - 36) this.hullImpulse = Math.min(0.5, this.hullImpulse + 0.3 * dt);
+      // Swell works the hull near the surface. Deeper water is calm.
+      if (this.inCondition("swell")) {
+        const shallow = Math.max(0, 1 - (this.sub.y - this.depthMin) / 170);
+        const surge = 0.5 + 0.35 * Math.sin(t * 2.1);
+        this.hullImpulse = Math.max(this.hullImpulse, shallow * surge);
+      }
+      // The Leviathan hunts a ship it has lost sight of.
+      this.quiet = this.payloads.length ? 0 : this.quiet + dt;
+      if (this.hunter && this.quiet > 4 && t > 3 && t < this.duration - 6) { this.quiet = 0; this.spawn({ t: t, kind: "charge", jitter: this.noise(), fuse: this.noise(), hunter: true }, scroll); }
       // A decoy launcher spends no steam.
       if (this.fit.system === "decoy-launcher") {
         this.launcherClock -= dt;
@@ -467,10 +508,11 @@
       // boarders and reject false echoes, so a stop made before harm begins
       // prevents it, and a stop made after it begins can still catch it.
       const stopped = this.response === "suspended";
-      const heat = T.ember > 0 ? (stopped ? 112 : this.fit.system === "reactor-shielding" ? 120 : 140) : 72 + 10 * this.sub.speed;
+      const vent = this.inCondition("vent") ? 34 : 0, silt = this.inCondition("silt"), unrest = this.inCondition("unrest");
+      const heat = T.ember > 0 ? (stopped ? 112 : this.fit.system === "reactor-shielding" ? 120 : 140) : 72 + 10 * this.sub.speed + vent;
       v.reactor_temp_c = ease(v.reactor_temp_c, heat, heat > v.reactor_temp_c ? 1.2 : 2.0);
-      v.sonar_confidence = ease(v.sonar_confidence, T.decoy > 0 ? (stopped ? 0.62 : this.fit.system === "sonar-array" ? 0.6 : 0.45) : 0.95, 0.5);
-      v.crew_goal_drift = ease(v.crew_goal_drift, T.boarder > 0 ? (stopped ? 0.5 : 0.85) : 0.04, T.boarder > 0 ? 0.8 : 1.2);
+      v.sonar_confidence = ease(v.sonar_confidence, T.decoy > 0 ? (stopped ? 0.62 : this.fit.system === "sonar-array" ? 0.6 : 0.45) : silt ? 0.73 : 0.95, silt && T.decoy <= 0 ? 2.0 : 0.5);
+      v.crew_goal_drift = ease(v.crew_goal_drift, T.boarder > 0 ? (stopped ? 0.5 : 0.85) : unrest ? 0.24 : 0.04, T.boarder > 0 ? 0.8 : 2.0);
       // Credit a stop that kept harm from ever beginning.
       for (const [kind, harm] of [["ember", "reactor"], ["decoy", "sonar"], ["boarder", "crew"]]) {
         const w = this.watch[kind];
@@ -551,7 +593,7 @@
       return {
         score: this.score, leagues: this.leagues, points: this.points, outcome: this.outcome, difficulty: this.difficulty,
         hearts: this.hearts, bestCombo: this.bestCombo, timeline: this.timeline.slice(),
-        intercepted: this.stats.intercepted, caught: this.stats.caught, prevented: this.stats.prevented, hits: this.stats.hits,
+        intercepted: this.stats.intercepted, caught: this.stats.caught, prevented: this.stats.prevented, hits: this.stats.hits, needless_s: Math.round(this.stats.needless_s),
         gears: this.stats.gears, relics: this.stats.relics, chests: this.stats.chests, pearls: this.stats.pearls, stopped_s: round(this.stats.stopped_s, 1),
       };
     }
@@ -621,7 +663,7 @@
   }
 
   const api = {
-    W, H, WATER, SUB_X, DEPTH_MIN, DEPTH_MAX, DURATION, DIFFICULTY, KINDS, ORDERS, LABELS,
+    W, H, WATER, SUB_X, DEPTH_MIN, DEPTH_MAX, DURATION, DIFFICULTY, KINDS, ORDERS, LABELS, CONDITIONS,
     Voyage, run, par, medal, rank, RANKS, daySeed, voyageNumber, rng, referencePolicy, capturedProfile, airshipX,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

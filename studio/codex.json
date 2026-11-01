@@ -359,6 +359,7 @@
     "order": "graduated-response",
     "explain": "explainability",
     "caught": "reaction-window",
-    "harbor": "trust-from-evidence"
+    "harbor": "trust-from-evidence",
+    "condition": "false-stops"
   }
 }

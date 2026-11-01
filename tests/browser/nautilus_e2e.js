@@ -208,7 +208,7 @@ async function main() {
       check("the chart briefs the chapter from Verne", /From Verne/.test(await page.textContent("#chart-brief")));
       await page.click("#chart-fit");
       await page.waitForFunction(() => window.TRPNautilus.state === "fit");
-      check("the chart room offers three rule books that can be read", (await page.locator("#fit-rules .fitting").count()) === 3 && (await page.locator("#fit-rules a[href$='trp.json']").count()) === 3);
+      check("the chart room offers three rule books that can be read and one to write", (await page.locator("#fit-rules .fitting").count()) === 4 && (await page.locator("#fit-rules a[href$='trp.json']").count()) === 3);
       await page.click("#fit-rules .fitting:has-text('Bold rules')");
       await page.click("#fit-systems .fitting:has-text('Ballast pumps')");
       let ledger = await page.evaluate(() => window.TRPNautilus.ledger);
@@ -220,7 +220,7 @@ async function main() {
       await page.click("#fit-sail");
       await page.waitForFunction(() => window.TRPNautilus.state === "playing");
       const summary = await page.evaluate(() => window.TRPNautilus.advance(120));
-      check("the chapter sails under the chosen rules and ends in harbor", summary && summary.outcome === "harbor" && summary.difficulty === "normal", JSON.stringify(summary).slice(0, 120));
+      check("the chapter sails under the chosen rules and ends in harbor", summary && summary.outcome === "harbor" && summary.difficulty === "easy", JSON.stringify(summary).slice(0, 120));
       await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 10000 });
       check("the log names the chapter port and offers to go ashore", /Free Harbor Reached/.test(await page.textContent("#log-h")) && await page.locator("#log-port").isVisible());
       await page.click("#log-port");
@@ -236,6 +236,53 @@ async function main() {
       await page.waitForFunction(() => window.TRPNautilus.state === "chart");
       check("the second chapter opens on the chart after the first port", await page.locator("#chart-ports .port").nth(1).isEnabled() && /made port/.test(await page.locator("#chart-ports .port").nth(0).textContent()));
       check("no page errors through the campaign", page.errors.length === 0, page.errors.join(" | "));
+      await page.ctx.close();
+    }
+
+    // The captain's own rule book, and the Long Voyage.
+    {
+      const page = await open(browser, base + "?renderer=2d", { init: () => localStorage.setItem("nautilus.v1", JSON.stringify({ prologueSeen: true, tutorialDone: true, brass: 120, campaign: { next: 4, done: { 1: { choice: 0, score: 1 }, 2: { choice: 0, score: 1 }, 3: { choice: 0, score: 1 } } } })) });
+      await page.click("#salon-btn");
+      await page.waitForTimeout(300);
+      await page.click(".salon-tag[data-salon=chart]", { force: true });
+      await page.waitForFunction(() => window.TRPNautilus.state === "chart");
+      check("the chart warns of the waters ahead", /Waters ahead/.test(await page.textContent("#chart-brief")));
+      await page.click("#chart-fit");
+      await page.waitForFunction(() => window.TRPNautilus.state === "fit");
+      await page.click("#fit-rules .fitting:has-text(\"Captain's rules\")");
+      check("the captain's rules open an editor seeded from the standard book", (await page.locator("#fit-custom input").count()) === 8 && (await page.inputValue("input[data-sig=reactor_temp_c][data-k=critical]")) === "120");
+      await page.fill("input[data-sig=reactor_temp_c][data-k=warning]", "130");
+      await page.dispatchEvent("input[data-sig=reactor_temp_c][data-k=warning]", "change");
+      check("a warning limit past the critical one is rejected and the ship cannot sail", /rejects/.test(await page.textContent("#fit-custom-msg")) && await page.locator("#fit-sail").isDisabled());
+      await page.fill("input[data-sig=reactor_temp_c][data-k=warning]", "118");
+      await page.dispatchEvent("input[data-sig=reactor_temp_c][data-k=warning]", "change");
+      await page.fill("input[data-sig=reactor_temp_c][data-k=critical]", "121");
+      await page.dispatchEvent("input[data-sig=reactor_temp_c][data-k=critical]", "change");
+      check("a well formed book is accepted and saved", /accepts/.test(await page.textContent("#fit-custom-msg")) && (await page.evaluate(() => window.TRPNautilus.ledger.campaign.custom.reactor_temp_c.critical)) === 121);
+      await page.click("#fit-sail");
+      await page.waitForFunction(() => window.TRPNautilus.state === "playing");
+      const s4 = await page.evaluate(() => window.TRPNautilus.advance(200));
+      check("the tunnel is sailed under the captain's book without a needless stop", s4.outcome === "harbor" && s4.needless_s === 0, JSON.stringify(s4).slice(0, 100));
+      await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 10000 });
+      check("the log counts time stopped for nothing", /Stopped for nothing/.test(await page.textContent("#log-stats")));
+      await page.click("#log-salon");
+      await page.waitForTimeout(200);
+      await page.click(".salon-tag[data-salon=chart]", { force: true });
+      await page.waitForFunction(() => window.TRPNautilus.state === "chart");
+      check("the Long Voyage opens on the chart once the first port is made", await page.locator("#chart-voyage").isVisible());
+      await page.click("#voyage-btn");
+      await page.waitForFunction(() => window.TRPNautilus.state === "fit");
+      check("a leg is drawn from Verne's places with its own brief", /leg 1/.test(await page.textContent("#fit-stamp")) && /Long Voyage/.test(await page.textContent("#fit-brief")));
+      await page.click("#fit-sail");
+      await page.waitForFunction(() => window.TRPNautilus.state === "playing");
+      const l1 = await page.evaluate(() => window.TRPNautilus.advance(200));
+      await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 10000 });
+      const lv = await page.evaluate(() => window.TRPNautilus.ledger.voyage);
+      check("a leg made port carries the run forward", l1.outcome === "harbor" && lv.leg === 1 && lv.score === l1.score && /Next leg/.test(await page.textContent("#log-port")), JSON.stringify(lv));
+      await page.click("#log-port");
+      await page.waitForFunction(() => window.TRPNautilus.state === "fit");
+      check("the next leg waits in the chart room", /leg 2/.test(await page.textContent("#fit-stamp")));
+      check("no page errors through the captain's rules and the Long Voyage", page.errors.length === 0, page.errors.join(" | "));
       await page.ctx.close();
     }
 
