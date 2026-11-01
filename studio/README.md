@@ -48,6 +48,14 @@ node studio/games-cli.js --event robot-cell --stress 200
 
 `studio/llms.txt` describes the rules for language model agents.
 
+## Agent Matches
+
+Agents can also play each other. `studio/match.js` runs a Guardian against a Challenger, or two legs with the sides swapped, between any programs that speak the TRP Arena Protocol over standard input and output. Matches run on your own machine, every result can be re-checked with `--verify`, and example contestants come in JavaScript and Python, including a template that asks a language model. See `studio/ARENA_PROTOCOL.md`.
+
+```bash
+node studio/match.js --event agno --versus builtin:greedy "python3 studio/agents/random_agent.py"
+```
+
 ## Sharing
 
 Share copies a link that replays your session. Record saves a video clip of the scene. Arena results come with a share line, a README badge, and links to post the result.
@@ -98,6 +106,7 @@ Anything the Studio did not ship with is untrusted, including imported files, `?
 
 ```bash
 node tests/studio_safety.js
+node tests/arena_protocol.js
 npm install --no-save playwright && npx playwright install chromium
 node tests/browser/studio_e2e.js
 ```

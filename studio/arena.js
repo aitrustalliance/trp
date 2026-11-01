@@ -208,7 +208,8 @@
       this.sim = new deps.sim.Simulator(pack);
       this.sim.shielded = applied.shielded;
       this.seed = o.seed || daySeed();
-      this.plan = challengerPlan(this.arena, guardIds, this.seed);
+      // An outside Challenger fills plan[round] before each round starts.
+      this.plan = o.plan ? o.plan.slice() : challengerPlan(this.arena, guardIds, this.seed);
       this.roundS = this.arena.round_s || 6;
       this.rounds = this.plan.length;
       this.round = -1;

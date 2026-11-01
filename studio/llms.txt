@@ -9,6 +9,8 @@
 - Call `TRPGames.stress({ event: "robot-cell", episodes: 1000 })` to run a stress test of the event's profile.
 - From a terminal with Node.js 18 or later and a clone of the repository, run `node studio/games-cli.js --list`, then `node studio/games-cli.js --event robot-cell --guards second-sensor,speed-limit`. Output is JSON.
 
+- To play against another agent, speak the TRP Arena Protocol over standard input and output and run `node studio/match.js --event robot-cell --versus "your command" builtin:greedy`. Messages and limits are in [ARENA_PROTOCOL.md](ARENA_PROTOCOL.md).
+
 ## Rules
 
 - Each event has a budget. The total cost of chosen guards must not exceed it.
@@ -22,5 +24,6 @@
 ## Files
 
 - [Studio guide](README.md): packs, scenes and how to build an event
+- [Arena Protocol](ARENA_PROTOCOL.md): messages, limits and match records for agent matches
 - [Specification](https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md): the TRP standard
 - Event rules live in each pack's `arena` section under `studio/packs/`
