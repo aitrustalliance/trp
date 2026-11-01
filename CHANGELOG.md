@@ -42,6 +42,12 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   the captain's own All Stop lever. `studio/nautilus/DESIGN.md` is the
   design document and `tests/nautilus_campaign.js` checks every chapter and
   rule book against its description.
+- Nautilus sea conditions (vents, silt, swell, unrest) that push a gauge
+  toward its limits without harm, a captain's own rule book written in the
+  chart room and checked by the engine, the hunter, the Long Voyage of
+  generated legs from Verne's places, a headless playtest with five kinds
+  of captain, and an art pass: an opening shot, caustics, hull plating,
+  port vignettes and crew medallions.
 - The Captain's Codex (`studio/codex.json`, `studio/codex.js`), twenty-four
   entries on AI trust, safety and governance and the TRP specification at
   three depths, with documented cases and self-checks, checked by

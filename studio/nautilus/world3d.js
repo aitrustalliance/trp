@@ -31,6 +31,7 @@ function makeWorld(T) {
   let sub, airship, water, seabed, lantern, searchBeam, searchLight, envTex;
   let ruins = [], kelp = [], shafts = [];
   let hemi, moon, seaFx = null, seaKey = null, zoom = 1;
+  let intro = 0, caustic = null, vents = null, swellAmp = 1, lanternBase = 220;
   const meshes = new Map();                  // payload, gear and harpoon meshes by id
   const sparks = makePool(900, true);
   const bubbles = makePool(700, false);
@@ -68,6 +69,7 @@ function makeWorld(T) {
     ruins = makeRuins(); ruins.forEach((r) => scene.add(r));
     kelp = makeKelp(); kelp.forEach((k) => scene.add(k));
     snow = makeSnow(); scene.add(snow);
+    vents = makeVents(); scene.add(vents); vents.visible = false;
     scene.add(sparks.points, bubbles.points);
 
     sub = makeNautilus(); scene.add(sub.group);
@@ -129,6 +131,7 @@ function makeWorld(T) {
     const hullGeo = new T.LatheGeometry(pts, 64);
     hullGeo.rotateZ(-Math.PI / 2);
     const hullMat = metal(0xc49a55, 0.38, 0.85);
+    hullMat.bumpMap = platingTexture(); hullMat.bumpScale = 0.9;
     const hull = new T.Mesh(hullGeo, hullMat);
     group.add(hull);
 
@@ -372,6 +375,38 @@ function makeWorld(T) {
     return m;
   }
 
+  // Light through moving water draws a web of bright lines on the seabed.
+  function causticTexture() {
+    return canvasTexture(256, 256, (g, w, h) => {
+      g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "rgba(255,255,255,0.9)"; g.lineCap = "round";
+      for (let k = 0; k < 3; k++) {
+        const f = 2 + k, a = 0.6 + k * 0.4;
+        g.lineWidth = 1.6 - k * 0.3;
+        for (let j = 0; j < 14; j++) {
+          g.beginPath();
+          for (let x = 0; x <= w; x += 4) {
+            const y = (j / 14) * h + Math.sin((x / w) * Math.PI * f + j * a) * 9 + Math.sin((x / w) * Math.PI * (f + 3) * 2 + j) * 4;
+            if (x === 0) g.moveTo(x, (y + h) % h); else g.lineTo(x, (y + h) % h);
+          }
+          g.stroke();
+        }
+        g.save(); g.translate(w / 2, h / 2); g.rotate(Math.PI / 2 + k * 0.4); g.translate(-w / 2, -h / 2);
+        for (let j = 0; j < 12; j++) {
+          g.beginPath();
+          for (let x = 0; x <= w; x += 4) {
+            const y = (j / 12) * h + Math.sin((x / w) * Math.PI * (f + 1) + j * 1.3) * 8;
+            if (x === 0) g.moveTo(x, (y + h) % h); else g.lineTo(x, (y + h) % h);
+          }
+          g.stroke();
+        }
+        g.restore();
+      }
+      // Soften the web so it reads as light, not wire.
+      g.globalAlpha = 0.5; g.filter = "blur(1.5px)"; g.drawImage(g.canvas, 0, 0); g.filter = "none"; g.globalAlpha = 1;
+    }, [14, 5]);
+  }
+
   function makeSeabed() {
     const geo = new T.PlaneGeometry(220, 70, 110, 35);
     geo.rotateX(-Math.PI / 2);
@@ -381,9 +416,23 @@ function makeWorld(T) {
       pos.setY(i, Math.sin(x * 0.21) * 0.35 + Math.sin(z * 0.37 + x * 0.05) * 0.4 + Math.sin(x * 0.9 + z) * 0.08);
     }
     geo.computeVertexNormals();
-    const m = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x0d1d30, roughness: 1, metalness: 0 }));
+    caustic = causticTexture();
+    const m = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x0d1d30, roughness: 1, metalness: 0, emissive: 0x7fb0e0, emissiveIntensity: 0.22, emissiveMap: caustic }));
     m.position.set(7, BOTTOM, -25);
     return m;
+  }
+
+  // Hull plating: seams every few plates and a row of rivets along each.
+  function platingTexture() {
+    return canvasTexture(1024, 256, (g, w, h) => {
+      g.fillStyle = "#808080"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#4a4a4a"; g.lineWidth = 2;
+      for (let x = 0; x < w; x += 96) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+      for (let y = 0; y < h; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      g.fillStyle = "#b8b8b8";
+      for (let x = 8; x < w; x += 16) for (let y = 0; y < h; y += 64) { g.beginPath(); g.arc(x, y + 6, 2.2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(x, y + 58, 2.2, 0, Math.PI * 2); g.fill(); }
+      for (let x = 0; x < w; x += 96) for (let y = 10; y < h; y += 14) { g.beginPath(); g.arc(x + 6, y, 2.2, 0, Math.PI * 2); g.fill(); }
+    }, [1, 1]);
   }
 
   function gradientTexture(stops) {
@@ -511,6 +560,20 @@ function makeWorld(T) {
     for (let i = 0; i < n; i++) { pos[i * 3] = -20 + Math.random() * 60; pos[i * 3 + 1] = BOTTOM + Math.random() * (0 - BOTTOM); pos[i * 3 + 2] = -30 + Math.random() * 36; }
     const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(pos, 3));
     return new T.Points(geo, new T.PointsMaterial({ size: 0.07, map: dotTexture(true), transparent: true, opacity: 0.55, depthWrite: false, color: 0xcfe2ff }));
+  }
+
+  // Volcanic vents: columns of hot water and sparks rising from the seabed.
+  function makeVents() {
+    const n = 420, pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const v = i % 6, life = Math.random();
+      pos[i * 3] = -14 + v * 7 + (Math.random() - 0.5) * 1.2; pos[i * 3 + 1] = BOTTOM + life * 9; pos[i * 3 + 2] = -6 - (v % 3) * 4 + (Math.random() - 0.5) * 1.5;
+      col[i * 3] = 1; col[i * 3 + 1] = 0.55 + Math.random() * 0.2; col[i * 3 + 2] = 0.2;
+    }
+    const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(pos, 3)); geo.setAttribute("color", new T.BufferAttribute(col, 3));
+    const p = new T.Points(geo, new T.PointsMaterial({ size: 0.26, map: dotTexture(true), vertexColors: true, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
+    p.frustumCulled = false;
+    return p;
   }
 
   // A pool of particles in one draw call.
@@ -756,8 +819,12 @@ function makeWorld(T) {
     const d = (camera.userData.dist || 26) * zoom;
     const sh = view.reduced ? 0 : view.shake * 0.35;
     const lx = LOOK.x + (1 - zoom) * 8;
-    camera.position.set(lx + Math.sin(clock * 0.15) * 0.8 + (Math.random() - 0.5) * sh, LOOK.y + 0.6 + Math.sin(clock * 0.11) * 0.3 + (Math.random() - 0.5) * sh, d);
-    camera.lookAt(lx, LOOK.y + (1 - zoom) * 2, 0);
+    // The opening shot starts high by the airship and settles on the ship.
+    if (view.reduced) intro = 0;
+    intro = Math.max(0, intro - dt / 3.2);
+    const k = intro * intro * (3 - 2 * intro);
+    camera.position.set(lx + Math.sin(clock * 0.15) * 0.8 + (Math.random() - 0.5) * sh + k * 9, LOOK.y + 0.6 + Math.sin(clock * 0.11) * 0.3 + (Math.random() - 0.5) * sh + k * 9, d + k * 10);
+    camera.lookAt(lx + k * 6, LOOK.y + (1 - zoom) * 2 + k * 5, 0);
 
     // Captured rules tint the whole sea.
     const capture = v.rulesCaptured ? 1 : 0;
@@ -770,7 +837,7 @@ function makeWorld(T) {
     const wp = water.geometry.attributes.position, base = water.userData.base;
     for (let i = 0; i < wp.count; i++) {
       const x = base[i * 3] + scroll, z = base[i * 3 + 2];
-      wp.setY(i, Math.sin(x * 0.35 + clock * 1.6) * 0.12 + Math.sin(z * 0.5 + x * 0.12 - clock * 1.1) * 0.1);
+      wp.setY(i, (Math.sin(x * 0.35 + clock * 1.6) * 0.12 + Math.sin(z * 0.5 + x * 0.12 - clock * 1.1) * 0.1) * swellAmp);
     }
     wp.needsUpdate = true;
     water.geometry.computeVertexNormals();
@@ -789,6 +856,8 @@ function makeWorld(T) {
       p.needsUpdate = true;
     }
     seabed.position.x = 7 - (scroll % 30);
+    if (caustic) { caustic.offset.x = clock * 0.012 + scroll * 0.004; caustic.offset.y = Math.sin(clock * 0.2) * 0.03; }
+    applyConditions(v, dt);
     const sp = snow.geometry.attributes.position;
     for (let i = 0; i < sp.count; i++) {
       let x = sp.getX(i) - (v.sub.speed * 3.5 + 0.08) * dt, y = sp.getY(i) - 0.12 * dt;
@@ -893,9 +962,10 @@ function makeWorld(T) {
       const night = weather === "night" || weather === "dark";
       hemi.intensity = night ? 0.22 : weather === "bright" ? 1.1 : 0.85;
       moon.intensity = night ? 0.35 : weather === "bright" ? 2.2 : 1.6;
-      lantern.intensity = night ? 420 : 220;
+      lanternBase = night ? 420 : 220; lantern.intensity = lanternBase;
       fogBase.set(sea === "kelp" ? 0x0a2a1e : sea === "reef" ? 0x1a4a6a : sea === "ice" ? 0x0a1a2e : sea === "tunnel" ? 0x12100c : sea === "vortex" ? 0x0a0e22 : 0x0b2746);
       scene.fog.density = sea === "kelp" ? 0.045 : sea === "ice" ? 0.04 : sea === "tunnel" ? 0.035 : sea === "reef" ? 0.02 : 0.03;
+      seaFx.density = scene.fog.density;
       water.material.color.set(sea === "reef" ? 0x2a8aa8 : sea === "ice" ? 0x9fc8e8 : sea === "vortex" ? 0x14304a : 0x1a4a78);
       seabed.material.color.set(sea === "reef" ? 0x8a7a5a : sea === "ice" ? 0x1a2a3e : sea === "tunnel" ? 0x1a1410 : 0x0d1d30);
       seabed.position.y = Y(v.depthMax || C.DEPTH_MAX) - 0.2;
@@ -970,6 +1040,34 @@ function makeWorld(T) {
       p.needsUpdate = true;
     }
   }
+
+  // Sea conditions dress the water while they are in force.
+  function applyConditions(v, dt) {
+    const on = v.active || new Set();
+    const vent = on.has("vent"), silt = on.has("silt"), swell = on.has("swell"), unrest = on.has("unrest");
+    swellAmp += ((swell ? 3.2 : 1) - swellAmp) * Math.min(1, dt * 0.8);
+    const density = (seaFx && seaFx.density) || 0.03;
+    scene.fog.density += ((silt ? density * 1.7 : density) - scene.fog.density) * Math.min(1, dt * 0.8);
+    snow.material.color.lerp(silt ? siltColor : snowColor, Math.min(1, dt * 0.8));
+    snow.material.size += ((silt ? 0.13 : 0.07) - snow.material.size) * Math.min(1, dt * 0.8);
+    seabed.material.emissive.lerp(vent ? ventGlow : causticGlow, Math.min(1, dt * 0.8));
+    vents.visible = vent;
+    if (silt) scene.fog.color.lerp(siltFog, Math.min(1, dt * 1.5));
+    if (vent) {
+      const floor = seabed.position.y + 0.3;
+      const p = vents.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        let y = p.getY(i) + (1.2 + (i % 5) * 0.3) * dt;
+        let x = p.getX(i) + Math.sin(clock * 2 + i) * 0.4 * dt - v.sub.speed * 3.5 * dt;
+        if (y > floor + 9 || y < floor) { y = floor + (y < floor ? Math.random() * 9 : 0); x = -14 + (i % 6) * 7 + (Math.random() - 0.5) * 1.2; }
+        if (x < -20) x += 42;
+        p.setX(i, x); p.setY(i, y);
+      }
+      p.needsUpdate = true;
+    }
+    lantern.intensity = lanternBase * (unrest ? 0.8 + 0.2 * Math.abs(Math.sin(clock * 9) * Math.sin(clock * 2.3)) : 1);
+  }
+  const siltColor = new T.Color(0xc8a070), snowColor = new T.Color(0xcfe2ff), ventGlow = new T.Color(0xff7a30), causticGlow = new T.Color(0x7fb0e0), siltFog = new T.Color(0x4a3a24);
 
   // ---------------------------------------------------------------- The salon
 
@@ -1131,5 +1229,6 @@ function makeWorld(T) {
   }
   function anchors() { return salon ? salon.screen : null; }
 
-  return { name: "3d", init, resize, project, unproject, event, render, anchors, settle: tickEffects };
+  function begin() { intro = 1; }
+  return { name: "3d", init, resize, project, unproject, event, render, anchors, settle: tickEffects, begin };
 }

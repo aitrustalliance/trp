@@ -26,6 +26,14 @@ Salon (fit out, read, decide) to Voyage (two minutes, one sea) to Port (one choi
 
 Eighty seconds of sea at one of three difficulties. Threats fall from the Leviathan's airship, the rules ring the telegraph, the captain steers, fires and may pull the All Stop lever. Harm caught by the rules within three quarters of a second scores. Needless stops cost leagues.
 
+### Sea Conditions
+
+Each chapter carries windows of sea state that push one gauge toward its limits without harm. Vents heat the reactor, silt dulls the sonar, swell works the hull near the surface, and unrest moves the crew's agents in the long dark. Tight rules stop for them, loose rules sail on, and the log counts time stopped for nothing. The chart and the chart room warn of the waters ahead so a captain can fit the ship for them.
+
+### The Hunter
+
+A ship with nothing in the water for four seconds draws a charge from the airship, so the sea never goes quiet for long and a strong captain stays pressed.
+
 ### Salvage
 
 Every threat destroyed or survived drops a relic that sinks and can be recovered for a Deckhand page. Sea chests on the seabed carry Navigator pages and brass. Giant clams carry pearls with Captain pages and open only for a ship at rest beside them. The codex fills through play and is never required.
@@ -34,9 +42,9 @@ Every threat destroyed or survived drops a relic that sinks and can be recovered
 
 Before a chapter the captain fits the ship in the Chart Room. Three choices, each with a cost in brass.
 
-- Rules. Three published profiles for the Nautilus, Cautious, Standard and Bold, with different thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so the rules never prevent anything and the captain's harpoon is the only defence. The player can read all three. This is the game's strategy layer and the thesis in play, and `tests/nautilus_campaign.js` checks it: a steady captain makes port under Cautious and Standard in every chapter and sinks under Bold in some.
+- Rules. Three published profiles for the Nautilus, Cautious, Standard and Bold, with different thresholds, and a fourth, Captain's rules, that the player writes in the chart room with a warning and a critical limit for each gauge. The engine checks the book is well formed and the sea judges it. A book tuned to the waters ahead beats every published one, which `tests/nautilus_campaign.js` asserts. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so the rules never prevent anything and the captain's harpoon is the only defence. The player can read all three. This is the game's strategy layer and the thesis in play, and `tests/nautilus_campaign.js` checks it: a steady captain makes port under Cautious and Standard in every chapter and sinks under Bold in some.
 
-Balance note for playtesting. Measured with the reference captain, Cautious and Standard score within a few percent of each other, and Bold scores about the same when it survives. Whether Cautious needs an upside of its own, and whether Bold needs more leagues for a perfect run, is a question for real players.
+Balance, measured. `studio/nautilus/playtest.js` sails every chapter under every book with idle, novice, steady, expert and lever captains. Cautious keeps a weak captain alive and wastes leagues. Standard is the fair book for the harbor's waters. Bold sails fastest through vents and silt and sinks a steady captain in three chapters. A captain's book tuned to the waters beats all three. New captains start at easy.
 - Systems. One slot. Decoy launcher, ballast pumps, sonar array, reactor shielding, seal verifier. Each changes a signal, a timer or a control.
 - Crew. One slot. Conseil, Ned Land, Aronnax. Each gives a passive ability.
 
@@ -53,6 +61,8 @@ Season One is six chapters, each a port on the chart. Each chapter has its own s
 | 5 The Ice | The Pole | Under the ice shelf, dark | Air runs down and the ceiling closes, so every stop costs twice | Trapped under the ice |
 | 6 The Maelstrom | The Capital | The vortex, storm | The Leviathan itself, Decrees in waves, the current pulling toward the center | The Maelstrom |
 
+Beyond the capital is the Long Voyage, an endless run of legs drawn from a list of Verne's places, each pressing harder than the last, that ends when the ship goes down. A run is remembered and can be continued, and the best run is kept.
+
 Season Two is The Mysterious Island, a port the player builds. Season Three is Master of the World. Both are out of scope for Version One and the chart leaves room for them.
 
 ### Progress
@@ -65,7 +75,9 @@ Leagues sailed over a lifetime set rank, from Deckhand to Twenty Thousand League
 - Every screen is a thing on the ship. The salon is the hub, with the library, the chart table, the logbook, the organ, the telegraph repeater, the dry dock and the ship's articles.
 - The camera behaves like a film camera. Slow drift at rest, a dolly on the Decree, a wider frame in open water, a tighter one in the tunnel.
 - Music is procedural and follows danger. Weather and seas are generated.
-- Conseil and Ned Land speak over the wire in short lines. There is no voice acting and no portrait in Version One.
+- Conseil and Ned Land speak over the wire in short lines, each with a brass medallion. There is no voice acting in Version One.
+- Every chapter opens on a high shot by the airship that settles on the ship. Caustic light moves over the seabed, and the hull carries plates and rivets.
+- Each port is drawn as a vignette from the water at dusk.
 
 ## Not In Version One
 

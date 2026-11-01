@@ -183,6 +183,8 @@ input:focus, select:focus { outline: none; border-color: var(--brass); }
 .long-voyage { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--brass-edge); }
 .long-voyage h3 { margin: 4px 0 6px; }
 @media (max-width: 560px) { .custom .limit-row { grid-template-columns: 1fr 1fr; } .custom .limit-row > div:first-child { grid-column: 1 / -1; } }
+.port-art { display: block; width: 100%; height: auto; aspect-ratio: 4 / 1; margin: 0 0 18px; border: 1px solid var(--brass-dark); box-shadow: inset 0 0 0 1px var(--brass-edge); }
+.fitting .face { width: 44px; height: 44px; margin-bottom: 2px; }
 .choices { display: grid; gap: 10px; margin-top: 8px; }
 .choice { appearance: none; text-align: left; padding: 14px 16px; background: var(--lacquer-deep); border: 1px solid var(--brass-dark); box-shadow: inset 0 0 0 1px var(--brass-edge); color: var(--ink); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
 .choice .t { color: var(--parchment); font-size: 1.05rem; }

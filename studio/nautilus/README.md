@@ -9,7 +9,9 @@ The story draws on Jules Verne's public-domain novels *Twenty Thousand Leagues U
 - A daily voyage, eighty seconds long, with a par set by a reference captain and medals against it.
 - A shakedown cruise in which Conseil and Ned Land speak over the wire.
 - Season One, six chapters on a chart drawn from Verne, each with its own sea, weather, threat mix, set piece and port scene with one choice that changes the ship.
-- The chart room, where the captain fits one of three rule books, one system and one crew member before a chapter. Each rule book is a published TRP profile the player can read.
+- The chart room, where the captain fits one of three published rule books, or writes a fourth with limits of their own, plus one system and one crew member before a chapter. Each published book is a TRP profile the player can read, and the captain's book is checked by the engine and can be downloaded.
+- Sea conditions in every chapter, vents, silt, swell and unrest, that push a gauge toward its limits without harm, so a book written for open water stops for nothing and the log says so.
+- The Long Voyage, an endless run of legs drawn from Verne's places that ends when the ship goes down.
 - Salvage. What a threat leaves behind sinks and can be recovered, sea chests carry pages and brass, and giant clams open only for a ship at rest.
 - The salon, a hub drawn in 3D with the library, the chart table, the logbook, the organ, the telegraph repeater, the dry dock and the ship's articles.
 - The Captain's Codex, twenty-four entries at three depths, filled by play and never required.
@@ -32,7 +34,8 @@ Open http://localhost:8000/studio/nautilus/. Add `?renderer=2d` to force the 2D 
 | `world3d.js` | 3D renderer on Three.js, with every model built in code |
 | `art.js` | 2D renderer drawing, gauges, telegraph, salvage, the salon and the share card |
 | `tutorial.js` | The shakedown cruise, spoken by Conseil and Ned Land |
-| `campaign.json` | Season One: the chapters, their seas and hazards, the port scenes and the fittings |
+| `campaign.json` | Season One: the chapters, their seas, hazards and conditions, the port scenes, the fittings and the places of the Long Voyage |
+| `playtest.js` | Headless playtest with five kinds of captain, for balance |
 | `DESIGN.md` | The design document |
 | `../codex.js`, `../codex.json` | The Captain's Codex, shared with TRP Studio |
 | `audio.js` | Sound, synthesized in the browser |
@@ -57,7 +60,7 @@ Every threat in the voyage stands for a real failure mode in AI trust, safety an
 
 ## The Rule Books
 
-Three profiles live in `examples/`: `nautilus-cautious`, `nautilus` and `nautilus-bold`. They differ only in their thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so its rules never stop the ship in time and the captain's harpoon is the only defence. `tests/nautilus_campaign.js` sails every chapter under every book with the reference captain and checks each book against its description.
+Three profiles live in `examples/`: `nautilus-cautious`, `nautilus` and `nautilus-bold`. They differ only in their thresholds. Cautious rings earlier and stops longer. Standard rings before harm. Bold's limits sit past the point of harm, so its rules never stop the ship in time and the captain's harpoon is the only defence. The fourth book is written in the chart room, with the standard book as its starting point, and a book tuned to the waters of a chapter beats all three. `tests/nautilus_campaign.js` sails every chapter under every book with the reference captain and checks each book against its description.
 
 ## How Scoring Works
 
@@ -65,7 +68,7 @@ A voyage lasts 80 seconds, or a chapter's own length. Leagues come from speed, w
 
 ## Agents
 
-`window.TRPNautilus.play({ seed, difficulty, policy })` runs a voyage headless and returns the summary. A policy is a function `(voyage, dt)` that calls `voyage.fire(id)`, `voyage.fireAt(x, y)`, `voyage.setDepth(y)` and `voyage.setManualStop(on)`. `TRPNautilus.rules()` returns the vessel's profile, `TRPNautilus.sailChapter(id)` starts a chapter on screen, and `TRPNautilus.advance(seconds)` steps the voyage on screen with the reference captain at the helm.
+`node studio/nautilus/playtest.js` sails every chapter under every book with five kinds of captain and prints a table. `window.TRPNautilus.play({ seed, difficulty, policy })` runs a voyage headless and returns the summary. A policy is a function `(voyage, dt)` that calls `voyage.fire(id)`, `voyage.fireAt(x, y)`, `voyage.setDepth(y)` and `voyage.setManualStop(on)`. `TRPNautilus.rules()` returns the vessel's profile, `TRPNautilus.sailChapter(id)` starts a chapter on screen, and `TRPNautilus.advance(seconds)` steps the voyage on screen with the reference captain at the helm.
 
 ## Tests
 

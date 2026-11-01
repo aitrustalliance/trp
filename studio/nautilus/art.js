@@ -160,6 +160,36 @@
 
   // Sea and weather dressing for a chapter, drawn over the background and
   // under the ship. Night darkens everything outside the lantern.
+  // Sea conditions in force, drawn over the sea and under the ship.
+  function conditions(ctx, v, W, H, WATER, t) {
+    const on = v.active || new Set();
+    if (on.has("silt")) {
+      ctx.fillStyle = "rgba(150, 110, 60, 0.16)"; ctx.fillRect(0, WATER, W, H - WATER);
+      ctx.fillStyle = "rgba(200, 160, 110, 0.35)";
+      for (let i = 0; i < 70; i++) { const x = ((i * 173 + t * 18) % W), y = WATER + ((i * 97 + t * 9) % (H - WATER)); ctx.fillRect(x, y, 3, 2); }
+    }
+    if (on.has("vent")) {
+      const bottom = (v.depthMax || 610) + 100;
+      for (let k = 0; k < 5; k++) {
+        const x0 = ((k * 300 + 120 - v.dist * 0.4) % (W + 200) + (W + 200)) % (W + 200) - 100;
+        const gr = ctx.createLinearGradient(0, bottom, 0, bottom - 160);
+        gr.addColorStop(0, "rgba(255, 140, 50, 0.35)"); gr.addColorStop(1, "rgba(255, 140, 50, 0)");
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.moveTo(x0 - 14, bottom); ctx.quadraticCurveTo(x0 + Math.sin(t * 2 + k) * 18, bottom - 90, x0 + Math.sin(t * 1.3 + k) * 26, bottom - 160); ctx.lineTo(x0 + 14 + Math.sin(t * 1.3 + k) * 26, bottom - 160); ctx.quadraticCurveTo(x0 + 14 + Math.sin(t * 2 + k) * 18, bottom - 90, x0 + 14, bottom); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(255, 190, 90, 0.8)";
+        for (let i = 0; i < 8; i++) { const yy = bottom - ((t * 60 + i * 23 + k * 11) % 150); ctx.beginPath(); ctx.arc(x0 + Math.sin(t * 3 + i) * 10, yy, 1.5, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+    if (on.has("swell")) {
+      ctx.strokeStyle = "rgba(220, 235, 255, 0.35)"; ctx.lineWidth = 2;
+      for (let j = 0; j < 3; j++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 16) { const y = WATER + 8 + j * 14 + Math.sin(x * 0.02 + t * 2.4 + j) * (10 - j * 2); if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
+    }
+  }
+
   function sea(ctx, v, W, H, WATER, t) {
     const name = v.chapter ? v.chapter.sea : "open";
     const weather = v.chapter ? v.chapter.weather : "clear";
@@ -628,6 +658,87 @@
     ctx.restore();
   }
 
-  const api = { SKINS, PENNANTS, SALON_ANCHORS, buildLayers, background, sea, snow, sub, airship, payload, gear, relic, chest, clam, salon, chart, harpoon, gauge, telegraph };
+  // A brass medallion with a silhouette bust of one of Verne's crew.
+  const CREW_FACES = {
+    conseil: { hat: "flat", collar: true, beard: false, glasses: false },
+    ned: { hat: "wool", collar: false, beard: true, glasses: false },
+    aronnax: { hat: "top", collar: true, beard: true, glasses: true },
+  };
+  function medallion(ctx, x, y, r, who) {
+    const f = CREW_FACES[who] || CREW_FACES.conseil;
+    ctx.save();
+    const rim = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.2, x, y, r);
+    rim.addColorStop(0, "#f0d9a0"); rim.addColorStop(0.7, "#c49a55"); rim.addColorStop(1, "#6b4b22");
+    ctx.fillStyle = rim; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#0b1430"; ctx.beginPath(); ctx.arc(x, y, r * 0.84, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * 0.84, 0, Math.PI * 2); ctx.clip();
+    // Bust.
+    ctx.fillStyle = "#c49a55";
+    ctx.beginPath(); ctx.moveTo(x - r * 0.62, y + r * 0.95); ctx.quadraticCurveTo(x - r * 0.55, y + r * 0.35, x - r * 0.2, y + r * 0.3); ctx.lineTo(x + r * 0.2, y + r * 0.3); ctx.quadraticCurveTo(x + r * 0.55, y + r * 0.35, x + r * 0.62, y + r * 0.95); ctx.closePath(); ctx.fill();
+    ctx.fillRect(x - r * 0.12, y + r * 0.05, r * 0.24, r * 0.3);
+    ctx.beginPath(); ctx.ellipse(x, y - r * 0.12, r * 0.27, r * 0.33, 0, 0, Math.PI * 2); ctx.fill();
+    if (f.beard) { ctx.beginPath(); ctx.moveTo(x - r * 0.24, y - r * 0.02); ctx.quadraticCurveTo(x, y + r * 0.5, x + r * 0.24, y - r * 0.02); ctx.closePath(); ctx.fill(); }
+    if (f.collar) { ctx.fillStyle = "#f0d9a0"; ctx.beginPath(); ctx.moveTo(x - r * 0.2, y + r * 0.34); ctx.lineTo(x, y + r * 0.5); ctx.lineTo(x + r * 0.2, y + r * 0.34); ctx.lineTo(x + r * 0.14, y + r * 0.3); ctx.lineTo(x, y + r * 0.4); ctx.lineTo(x - r * 0.14, y + r * 0.3); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = "#c49a55";
+    if (f.hat === "flat") { ctx.fillRect(x - r * 0.32, y - r * 0.44, r * 0.64, r * 0.1); ctx.beginPath(); ctx.ellipse(x, y - r * 0.44, r * 0.3, r * 0.14, 0, Math.PI, 0); ctx.fill(); }
+    if (f.hat === "wool") { ctx.beginPath(); ctx.ellipse(x, y - r * 0.38, r * 0.3, r * 0.2, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(x - r * 0.3, y - r * 0.4, r * 0.6, r * 0.08); }
+    if (f.hat === "top") { ctx.fillRect(x - r * 0.36, y - r * 0.42, r * 0.72, r * 0.07); ctx.fillRect(x - r * 0.24, y - r * 0.78, r * 0.48, r * 0.38); }
+    if (f.glasses) { ctx.strokeStyle = "#0b1430"; ctx.lineWidth = r * 0.04; ctx.beginPath(); ctx.arc(x - r * 0.1, y - r * 0.14, r * 0.08, 0, Math.PI * 2); ctx.arc(x + r * 0.1, y - r * 0.14, r * 0.08, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
+    ctx.save(); ctx.strokeStyle = "#f0d9a0"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r * 0.9, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+
+  // A port seen from the water at dusk, drawn from the chapter's sea.
+  function portScene(ctx, w, h, chapter) {
+    const sea = chapter.sea || "open", night = chapter.weather === "night" || chapter.weather === "dark", storm = chapter.weather === "storm";
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, night ? "#05081a" : storm ? "#1a1f33" : "#2b2a4f"); sky.addColorStop(0.55, night ? "#0a1230" : storm ? "#2a2e44" : "#7a4a3a"); sky.addColorStop(0.62, night ? "#0b1a3a" : "#3a2f3a"); sky.addColorStop(1, "#061022");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+    const horizon = h * 0.6;
+    // Stars.
+    ctx.fillStyle = "rgba(240, 230, 200, 0.7)";
+    for (let i = 0; i < 60; i++) { const x = (i * 131) % w, y = ((i * 71) % Math.floor(horizon * 0.8)); ctx.fillRect(x, y, 1.2, 1.2); }
+    // Skyline by sea.
+    ctx.fillStyle = "#0a1026";
+    const sil = (x0, bw, bh) => { ctx.fillRect(x0, horizon - bh, bw, bh); };
+    if (sea === "city" || sea === "vortex" || sea === "open") {
+      for (let i = 0; i < 22; i++) { const x0 = (i / 22) * w, bw = w / 22 - 4, bh = 20 + ((i * 37) % 60) + (i % 5 === 0 ? 50 : 0); sil(x0, bw, bh); if (i % 5 === 0) sil(x0 + bw * 0.3, bw * 0.3, bh + 24); }
+      if (sea === "vortex") { sil(w * 0.5 - 18, 36, h * 0.5); ctx.fillStyle = "#9fd0ff"; ctx.beginPath(); ctx.ellipse(w * 0.5, h * 0.12, 9, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#0a1026"; }
+    } else if (sea === "kelp") {
+      for (let i = 0; i < 40; i++) { const x0 = (i / 40) * w; ctx.beginPath(); ctx.moveTo(x0, horizon); ctx.quadraticCurveTo(x0 + 8, horizon - 40 - (i % 7) * 10, x0 + 2, horizon - 70 - (i % 5) * 16); ctx.lineTo(x0 + 6, horizon - 70 - (i % 5) * 16); ctx.quadraticCurveTo(x0 + 12, horizon - 40 - (i % 7) * 10, x0 + 5, horizon); ctx.fill(); }
+      sil(w * 0.7, 50, 34); ctx.beginPath(); ctx.moveTo(w * 0.7 - 6, horizon - 34); ctx.lineTo(w * 0.7 + 25, horizon - 56); ctx.lineTo(w * 0.7 + 56, horizon - 34); ctx.fill();
+    } else if (sea === "reef") {
+      for (let i = 0; i < 7; i++) { const x0 = w * 0.1 + i * w * 0.13; ctx.fillRect(x0, horizon - 30, 3, 30); ctx.fillRect(x0 + 14, horizon - 30, 3, 30); sil(x0 - 6, 28, 2); ctx.fillRect(x0 - 8, horizon - 44, 32, 14); ctx.beginPath(); ctx.moveTo(x0 - 10, horizon - 44); ctx.lineTo(x0 + 8, horizon - 58); ctx.lineTo(x0 + 26, horizon - 44); ctx.fill(); }
+      for (let i = 0; i < 5; i++) { const x0 = w * 0.05 + i * w * 0.22; ctx.fillRect(x0, horizon - 70, 3, 70); for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.ellipse(x0 + 1 + Math.cos(k * 1.3) * 16, horizon - 70 + Math.sin(k * 1.3) * 6, 16, 3, k * 1.3, 0, Math.PI * 2); ctx.fill(); } }
+    } else if (sea === "tunnel") {
+      sil(w * 0.4, 110, 60); sil(w * 0.46, 10, 110); sil(w * 0.62, 60, 40);
+      ctx.fillStyle = "rgba(200, 200, 210, 0.25)"; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(w * 0.46 + 5 - i * 6, horizon - 120 - i * 14, 6 + i * 3, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = "#0a1026";
+    } else if (sea === "ice") {
+      ctx.fillStyle = "#dbe8f5"; ctx.beginPath(); ctx.moveTo(0, horizon); for (let x = 0; x <= w; x += 40) ctx.lineTo(x, horizon - 14 - ((x * 7) % 30)); ctx.lineTo(w, horizon); ctx.fill();
+      ctx.fillStyle = "#0a1026"; sil(w * 0.3, 44, 26); ctx.beginPath(); ctx.moveTo(w * 0.3 - 4, horizon - 26); ctx.lineTo(w * 0.3 + 22, horizon - 42); ctx.lineTo(w * 0.3 + 48, horizon - 26); ctx.fill();
+    }
+    // Lamps, and their reflections.
+    const lamps = [];
+    for (let i = 0; i < 9; i++) lamps.push([w * 0.08 + i * w * 0.105, horizon - 8 - (i % 3) * 6]);
+    for (const [lx, ly] of lamps) {
+      const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 16); g.addColorStop(0, "rgba(255, 210, 120, 0.9)"); g.addColorStop(1, "rgba(255, 210, 120, 0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(lx, ly, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255, 210, 120, 0.25)"; for (let k = 0; k < 10; k++) ctx.fillRect(lx - 3 + Math.sin(k * 2.1) * 3, horizon + 4 + k * 7, 6, 2);
+    }
+    // Water.
+    ctx.fillStyle = "rgba(20, 50, 90, 0.5)"; ctx.fillRect(0, horizon, w, h - horizon);
+    ctx.strokeStyle = "rgba(200, 220, 255, 0.18)"; ctx.lineWidth = 1;
+    for (let j = 0; j < 8; j++) { ctx.beginPath(); for (let x = 0; x <= w; x += 20) { const y = horizon + 10 + j * ((h - horizon) / 8) + Math.sin(x * 0.03 + j) * (storm ? 5 : 2); if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.stroke(); }
+    // The Nautilus at anchor, small, with her lantern.
+    const sx = w * 0.78, sy = horizon + (h - horizon) * 0.45;
+    ctx.fillStyle = "#0a1026"; ctx.beginPath(); ctx.ellipse(sx, sy, 46, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(sx - 6, sy - 14, 12, 8);
+    const lg = ctx.createRadialGradient(sx + 30, sy - 2, 0, sx + 30, sy - 2, 22); lg.addColorStop(0, "rgba(255, 226, 176, 0.8)"); lg.addColorStop(1, "rgba(255, 226, 176, 0)");
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(sx + 30, sy - 2, 22, 0, Math.PI * 2); ctx.fill();
+    // Vignette.
+    const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, w * 0.7); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.55)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
+  }
+
+  const api = { SKINS, PENNANTS, SALON_ANCHORS, buildLayers, background, sea, conditions, snow, medallion, portScene, sub, airship, payload, gear, relic, chest, clam, salon, chart, harpoon, gauge, telegraph };
   root.NautilusArt = api;
 })(window);

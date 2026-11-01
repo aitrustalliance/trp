@@ -211,6 +211,7 @@
         const scroll = 140 * v.sub.speed;
         ART.background(g, { W, H, WATER: C.WATER, t: v.t, dist: v.dist, layers, captured: v.rulesCaptured, flash: view.reduced ? 0 : view.flash });
         ART.sea(g, v, W, H, C.WATER, v.t);
+        ART.conditions(g, v, W, H, C.WATER, v.t);
         ART.snow(g, flakes, W, H, C.WATER, dt, scroll);
         ART.airship(g, C.airshipX(v.t), 92, v.t, { captured: v.rulesCaptured });
         for (const p of v.payloads) {
@@ -400,16 +401,19 @@
     const maxW = Math.min(w - 48, 620 * k);
     const lines = wrapText(g, hint.line, maxW - 36 * k);
     const lh = 22 * k, pad = 16 * k;
-    const bw = Math.max(...lines.map((l) => g.measureText(l).width)) + pad * 2;
-    const bh = lines.length * lh + pad * 2 + 18 * k;
+    const face = 56 * k, who = hint.who === "Ned Land" ? "ned" : hint.who === "Conseil" ? "conseil" : hint.who === "Professor Aronnax" ? "aronnax" : null;
+    const inset = who ? face + 14 * k : 0;
+    const bw = Math.max(...lines.map((l) => g.measureText(l).width)) + pad * 2 + inset;
+    const bh = Math.max(lines.length * lh + pad * 2 + 18 * k, who ? face + pad * 2 : 0);
     const bx = Math.max(24, Math.min(w - bw - 24, w * 0.62 - bw / 2)), byy = h - 150 * k - bh;
     g.fillStyle = "rgba(8, 14, 36, 0.86)"; g.fillRect(bx, byy, bw, bh);
     g.strokeStyle = "#c49a55"; g.lineWidth = 1.5; g.strokeRect(bx + 3, byy + 3, bw - 6, bh - 6);
     g.strokeStyle = "#3a2a14"; g.lineWidth = 1; g.strokeRect(bx, byy, bw, bh);
+    if (who) ART.medallion(g, bx + pad + face / 2, byy + bh / 2, face / 2, who);
     g.fillStyle = "#c49a55"; g.font = `600 ${Math.round(10 * k)}px ${HUD_FONT}`; g.textAlign = "left";
-    g.fillText(hint.who.toUpperCase().split("").join("\u200a"), bx + pad, byy + pad);
+    g.fillText(hint.who.toUpperCase().split("").join("\u200a"), bx + pad + inset, byy + pad);
     g.fillStyle = "#f4f6fb"; g.font = `400 ${Math.round(16 * k)}px ${HUD_FONT}`;
-    lines.forEach((l, i) => g.fillText(l, bx + pad, byy + pad + 18 * k + (i + 0.8) * lh));
+    lines.forEach((l, i) => g.fillText(l, bx + pad + inset, byy + pad + 18 * k + (i + 0.8) * lh));
     g.restore();
   }
 
@@ -632,6 +636,7 @@
       game.tutorial = null;
     }
     game.attractPolicy = null;
+    if (game.renderer.begin && !o.tutorial) game.renderer.begin();
     setState("playing");
     SND.ping();
     game.hint = null; game.slow = 1;
@@ -905,6 +910,7 @@
   }
   function fittingButton(it, on, enabled, cost) {
     const b = document.createElement("button"); b.type = "button"; b.className = "fitting" + (on ? " on" : ""); b.disabled = !enabled; b.setAttribute("aria-pressed", String(on));
+    if (ART.medallion && ["conseil", "ned", "aronnax"].includes(it.id)) b.append(faceCanvas(it.id, 44));
     const t = document.createElement("span"); t.className = "t"; t.textContent = it.label;
     const d = document.createElement("span"); d.className = "d"; d.textContent = it.detail;
     b.append(t, d);
@@ -916,6 +922,7 @@
     const ch = chapterById(game.lastSummary && game.lastSummary.chapter ? game.lastSummary.chapter.id : 0);
     if (!ch) { setState("salon"); return; }
     $("port-stamp").textContent = `Chapter ${ch.id} · ${ch.port}`;
+    drawPortArt(ch);
     $("port-h").textContent = ch.port;
     $("port-text").textContent = ch.scene.text;
     $("port-result").textContent = "";
@@ -938,6 +945,23 @@
       });
       box.append(b);
     });
+  }
+
+  function drawPortArt(ch) {
+    const canvas = $("port-art");
+    // Drawn at a fixed size and scaled by the stylesheet, since the screen
+    // may still be hidden when the port is rendered.
+    const w = 760, h = 190, dpr = 2;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    const g = canvas.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ART.portScene(g, w, h, ch);
+  }
+
+  function faceCanvas(who, size) {
+    const c = document.createElement("canvas"); c.className = "face"; c.width = size * 2; c.height = size * 2; c.setAttribute("aria-hidden", "true");
+    const g = c.getContext("2d"); g.setTransform(2, 0, 0, 2, 0, 0);
+    ART.medallion(g, size / 2, size / 2, size / 2 - 1, who);
+    return c;
   }
 
   // Effects a port can have on the ship. Each returns a line for the log.
@@ -1355,6 +1379,12 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - (game.last || now)) / 1000);
     game.last = now;
+    tick(dt);
+    requestAnimationFrame(frame);
+  }
+
+  // One frame of simulation and drawing. The loop calls it, and so do tests.
+  function tick(dt) {
     const v = game.voyage;
     if (v) {
       const running = game.state === "playing" || (game.attractPolicy && game.state !== "codex" && game.state !== "exam");
@@ -1382,7 +1412,6 @@
       drawHud(v, paused ? 0 : dt);
       if (game.state === "salon") placeSalonTags();
     }
-    requestAnimationFrame(frame);
   }
 
   // ------------------------------------------------------------ Wiring
@@ -1477,6 +1506,10 @@
     },
     get state() { return game.state; },
     get order() { return game.voyage ? game.voyage.order : null; },
+    get conditions() { return game.voyage ? [...game.voyage.active] : []; },
+    // Draws n frames at a fixed step, so a slow machine can still settle a
+    // camera move or a fade for a screenshot.
+    frames(n, dt) { for (let i = 0; i < (n || 1); i++) tick(dt || 1 / 30); },
     get campaign() { return game.campaign; },
     sailChapter(id) { game.chartPick = id; const ch = chapterById(id); if (ch) sail({ chapter: ch }); return !!ch; },
     get ledger() { return JSON.parse(JSON.stringify(ledger)); },
