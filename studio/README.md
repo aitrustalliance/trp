@@ -109,7 +109,7 @@ Anything the Studio did not ship with is untrusted, including imported files, `?
 ```bash
 node tests/studio_safety.js
 node tests/arena_protocol.js
-npm install --no-save playwright && npx playwright install chromium
+npm install --no-save playwright axe-core && npx playwright install chromium
 node tests/browser/studio_e2e.js
 ```
 

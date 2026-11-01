@@ -179,7 +179,7 @@ jobs:
 
       - name: Install Playwright and Chromium
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright axe-core
           npx playwright install --with-deps chromium
 
       - name: Run browser tests

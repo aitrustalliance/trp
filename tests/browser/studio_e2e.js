@@ -293,6 +293,24 @@ async function main() {
       await page.close();
     }
 
+    // Automated accessibility audit with axe-core, when it is installed.
+    let axeSource = null;
+    try { axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf-8"); } catch (err) { console.log("SKIP  accessibility audit (npm install --no-save axe-core to run it)"); }
+    if (axeSource) {
+      for (const [url, learn] of [["/studio/?pack=robot-cell&story=0", false], ["/studio/?pack=robot-cell&story=0&mode=arena", false], ["/studio/?pack=robot-cell&story=0", true], ["/studio/lab.html", false]]) {
+        const ctx = await browser.newContext({ bypassCSP: true });
+        const page = await ctx.newPage();
+        await page.route("https://api.github.com/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+        await page.goto(base + url);
+        await page.waitForTimeout(1000);
+        if (learn) { await page.click(".mode[data-mode=learn]"); await page.click(".challenge[data-id=rush-job]"); await page.waitForTimeout(300); }
+        await page.addScriptTag({ content: axeSource });
+        const v = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ["violations"] })).violations.filter((x) => x.impact === "serious" || x.impact === "critical").map((x) => `${x.id} (${x.nodes.length})`));
+        check(`no serious accessibility issues on ${url}${learn ? " in Learn" : ""}`, v.length === 0, v.join(", "));
+        await ctx.close();
+      }
+    }
+
     // Lab page with the dataset API stubbed.
     {
       const page = await newPage(browser, base);
