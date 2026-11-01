@@ -59,6 +59,7 @@
   }
   // Storage is shared with other pages on the same site, so every field is
   // checked and anything unexpected falls back to the default.
+  const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
   function loadLedger() {
     const L = freshLedger();
     let raw = null;
@@ -70,12 +71,12 @@
     L.bestEver = num(raw.bestEver, 0);
     if (raw.streak) L.streak = { last: num(raw.streak.last, 0), count: num(raw.streak.count, 0) };
     if (raw.medals) for (const k of ["gold", "silver", "bronze"]) L.medals[k] = num(raw.medals[k], 0);
-    if (Array.isArray(raw.skins)) L.skins = raw.skins.filter((s) => s in ART.SKINS);
+    if (Array.isArray(raw.skins)) L.skins = [...new Set(raw.skins.filter((s) => own(ART.SKINS, s)))];
     if (!L.skins.includes("brass")) L.skins.unshift("brass");
-    if (raw.skin in ART.SKINS && L.skins.includes(raw.skin)) L.skin = raw.skin;
-    if (Array.isArray(raw.pennants)) L.pennants = raw.pennants.filter((p) => p in ART.PENNANTS);
+    if (own(ART.SKINS, raw.skin) && L.skins.includes(raw.skin)) L.skin = raw.skin;
+    if (Array.isArray(raw.pennants)) L.pennants = [...new Set(raw.pennants.filter((p) => own(ART.PENNANTS, p)))];
     if (!L.pennants.includes("none")) L.pennants.unshift("none");
-    if (raw.pennant in ART.PENNANTS && L.pennants.includes(raw.pennant)) L.pennant = raw.pennant;
+    if (own(ART.PENNANTS, raw.pennant) && L.pennants.includes(raw.pennant)) L.pennant = raw.pennant;
     if (typeof raw.captain === "string") L.captain = raw.captain.slice(0, 40);
     L.joined = raw.joined === true;
     L.sound = raw.sound !== false;
@@ -681,6 +682,14 @@
       return C.run({ engine: E, profileRaw: game.profileRaw, seed: o.seed || C.daySeed() }, o.policy);
     },
     par(seed) { return C.par({ engine: E, profileRaw: game.profileRaw, seed: seed || C.daySeed() }); },
+    // Steps the voyage on screen forward, with a fair captain at the helm.
+    // Used by tests and screenshots.
+    advance(seconds) {
+      if (game.state !== "playing") return false;
+      const v = game.voyage, pilot = C.referencePolicy(v.seed);
+      for (let s = 0; s < seconds && !v.done; s += STEP) { pilot(v, STEP); v.step(STEP); handle(v.drain(), v); }
+      return v.summary();
+    },
     get state() { return game.state; },
   };
 

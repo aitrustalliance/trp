@@ -417,7 +417,7 @@
     }
     const a = Math.PI + Math.PI * (0.15 + 0.7 * pos);
     ctx.strokeStyle = "#f4f6fb"; ctx.lineWidth = 3; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (r - 34), cy + Math.sin(a) * (r - 34)); ctx.stroke();
     ctx.fillStyle = "#c49a55"; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#f4f6fb"; ctx.font = "600 13px Georgia, serif";
     ctx.fillText(label.toUpperCase(), cx, cy + 20);

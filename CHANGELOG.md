@@ -27,6 +27,11 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Experimental Studio Lab (`studio/lab.html`) with a LeRobot episode replay and
   a webcam distance sensor, documented in `studio/DATA_SOURCES.md`, and the
   reference profile `examples/arm-motion/trp.json`.
+- Nautilus (`studio/nautilus/`), a 3D browser game in which a vessel runs on
+  an open TRP profile and the engine's verdict rings the engine order
+  telegraph. Daily voyage, medals against par, ranks, shipyard, shareable
+  log card, opt-in crew sign-up, and a 2D fallback. Tested by
+  `tests/nautilus_core.js` and `tests/browser/nautilus_e2e.js`.
 - Studio Learn mode with four challenges, graded by a fixed-seed stress
   test, in which players fix the limits of a profile with a gap in it.
 - TRP Arena Protocol (`studio/ARENA_PROTOCOL.md`) and match runner

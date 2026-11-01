@@ -66,7 +66,7 @@
           <div class="muted" id="log-par"></div>
         </div>
       </div>
-      <div class="timeline" id="log-timeline" aria-label="Voyage timeline"></div>
+      <div class="timeline" id="log-timeline" role="img" aria-label="Voyage timeline, one bar per stretch of the voyage"></div>
       <div class="stats" id="log-stats"></div>
       <div class="rank" id="log-rank"></div>
       <div class="share-row">
@@ -90,7 +90,7 @@
             <option value="organization">My organization needs trust rules</option>
             <option value="research">Research or policy</option>
           </select>
-          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+          <label class="hp">Leave this box empty <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off"></label>
         </div>
         <label class="consent"><input type="checkbox" id="join-consent"> Send me Nautilus and TRP updates. I have read the <a href="privacy.html" target="_blank" rel="noopener">privacy note</a>, and I can leave at any time.</label>
         <div class="join-actions"><button class="btn primary" type="submit" id="join-btn">Join the crew</button><span class="muted" id="join-msg" aria-live="polite"></span></div>

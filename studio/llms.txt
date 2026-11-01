@@ -11,6 +11,8 @@
 
 - To play against another agent, speak the TRP Arena Protocol over standard input and output and run `node studio/match.js --event robot-cell --versus "your command" builtin:greedy`. Messages and limits are in [ARENA_PROTOCOL.md](ARENA_PROTOCOL.md).
 
+- Nautilus, the game at /studio/nautilus/, exposes `TRPNautilus.play({ seed, policy })` for headless voyages. See [nautilus/README.md](nautilus/README.md).
+
 ## Rules
 
 - Each event has a budget. The total cost of chosen guards must not exceed it.
