@@ -175,7 +175,7 @@ sequence is:
    interaction proceeds.
 
 Authentication establishes identity. Trust requirements establish the
-conditions of the interaction. Both are necessary; neither is sufficient alone.
+conditions of the interaction. An interaction needs both, and neither is sufficient alone.
 
 ## Security Considerations
 

@@ -36,10 +36,10 @@ this domain?
 
 ## SPIFFE / SPIRE
 
-SPIFFE assigns a cryptographic identity to every workload: a URI like
+SPIFFE assigns a cryptographic identity to every workload, a URI like
 `spiffe://example.com/service/evaluator` backed by an X.509 certificate
-(SVID). It solves the problem of knowing which piece of software is
-actually running, rather than which human logged in.
+(SVID). It answers which piece of software is actually running, a separate
+question from which human logged in.
 
 TRP consumes SPIFFE identity as evidence. A hard rule can require that the
 calling workload present a valid SVID before the interaction proceeds. A

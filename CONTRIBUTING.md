@@ -47,7 +47,7 @@ No output means the profile is valid.
 
 ## Code of Conduct
 
-Be constructive, specific, and respectful. This is a standards project; disagreement on technical choices is expected and welcome. Personal attacks are not.
+Be specific and respectful. Disagreement on technical choices is expected and welcome in a standards project, and personal attacks are not.
 
 ## License
 

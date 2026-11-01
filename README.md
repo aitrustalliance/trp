@@ -10,7 +10,7 @@ Remarkable research and transformational capabilities are sitting on the sidelin
 
 Trust infrastructure is the foundation of the AI economy. TRP is the standard that lets every part of the AI ecosystem operate with openly shared and enforced trust requirements, opening the door to more participants and to inference that is more specialized, more efficient, and closer to the value creators. We are building and recruiting into an open ecosystem to put the promise of AI within everyone's reach, starting with the foundational Trust Requirements Profile (TRP) standard.
 
-Trust requirements for AI will be defined with or without an open standard. Without open trust, authority defaults according to resources rather than utility. TRP exists to prevent that outcome.
+Trust requirements for AI will be defined with or without an open standard. Without an open standard, authority over those requirements follows resources and utility comes second. TRP exists to prevent that outcome.
 
 Specification version 0.5, public working draft. Field names and normative requirements may still change before 1.0.
 
@@ -22,11 +22,11 @@ Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 
 A Trust Requirements Profile (TRP) is a universal trust taxonomy and machine-readable contract that specifies the operating requirements, trust boundaries, and standing criteria for any subject, system, agent, model, workflow, or data source in a given domain. A domain expert authors the profile. Any qualified evaluation source reads that contract, assesses a subject against it, and produces a standing.
 
-The standard defines the profile, the requirements it carries, and the vocabulary of outcomes. Assessment against a profile is open to any qualified evaluation source, which is what gives the standard its reach: one source can serve any domain by loading a different profile; independent implementations interoperate because they share the format. Practitioners who understand a domain are best positioned to define what trustworthy behavior means in it.
+The standard defines the profile and the requirements it carries, along with the vocabulary of outcomes. Any qualified evaluation source can assess against a profile, so one source can serve any domain by loading a different profile, and independent implementations interoperate because they share the format. Practitioners who understand a domain are best positioned to define what trustworthy behavior means in it.
 
 TRP follows a document-based governance model: simple, declarative, machine-readable documents that carry trust requirements across organizational boundaries, the same pattern that has proven most durable for coordination at scale.
 
-A TRP is declarative and precise: it states what trust requires and how outcomes are expressed, in a form any machine can read and verify. Defined tightly enough that any conforming evaluation source acting on the same profile reaches the same result, it makes trust checkable and portable across the ecosystem rather than locked to one vendor's tooling. The standard is open, and the implementations built on it, the engines, tools, and services that act on a profile are what evolve into an ecosystem.
+A TRP states what trust requires and how outcomes are expressed, in a form any machine can read and verify. It is defined tightly enough that any conforming evaluation source acting on the same profile reaches the same result, which makes trust checkable and portable across the ecosystem with no dependence on one vendor's tooling. The standard is open, and the engines and services built on it to act on a profile form the ecosystem.
 
 ## The Trust Requirements Layer
 
@@ -34,7 +34,7 @@ Trust is not a property of any single part of the stack. It lives in the interac
 
 A trust requirement is that missing piece: a portable contract of interaction requirements that any two parties can read, describing how they are allowed to interact and holding the evidence of whether they did. It is not limited to behavior, and it is not limited to agents. A profile can specify what may pass between parties (payload), where it may go (region), how long it may run (dwell time), the ceilings it must stay under (limits such as token counts), and how far conditions may drift before the interaction is no longer trusted (drift tolerance), along with whatever else a domain demands. The requirements run both ways, so each side knows what it is agreeing to and is measured against the same terms. That is what makes trust portable across the whole stack instead of something argued over at every boundary.
 
-A trust requirement cannot belong to any single platform. When the definition of a trusted interaction lives inside one company's system, every other participant is trusting that company rather than the system, and the record is theirs to shape. That holds regardless of how well-intentioned the company is, which makes it a structural problem rather than a question of conduct. This is a big part of the trust gap in AI: trust is compartmentalized inside individual platforms and fragmented into private formats and protocols that cannot agree across parties. An open standard confronts fragmentation and breaks platform lock-in. Trust orchestration is the problem: ensuring every party in an interaction can prove it met the requirements. TRP is built to solve it. TRP integrates with identity, authorization, and enforcement. It must be open, because it requires shared agreement across the ecosystem.
+A trust requirement cannot belong to any single platform. When the definition of a trusted interaction lives inside one company's system, every other participant has to trust that company, and the record is the company's to shape. Good intentions do not change this, so the problem is structural. A large part of the trust gap in AI comes from trust being compartmentalized inside individual platforms and fragmented into private formats and protocols that cannot agree across parties. An open standard confronts that fragmentation and breaks platform lock-in. The core problem is trust orchestration, ensuring every party in an interaction can prove it met the requirements, and TRP is built to solve it. TRP integrates with identity, authorization and enforcement systems, and it must be open because it depends on shared agreement across the ecosystem.
 
 ## Repository Contents
 
@@ -100,7 +100,7 @@ The evaluator loads the profile, checks hard rules, scores signals against thres
 
 ## Conformance Testing
 
-Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic; whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body, not for a validator. See the specification for the full definitions.
+Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic, and whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body. A validator does not make that call. See the specification for the full definitions.
 
 The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs:
 
@@ -117,7 +117,7 @@ Striv AI authored TRP and stewards the core, including the decision to promote e
 
 ## Your Contribution
 
-The defining technology of our time is being shaped, designed, and distributed right now. The standards that determine access, interoperability, and success will set the boundaries and the battlegrounds, and ultimately the impact, across the entire AI economy. Trust is the frontier. Between every participant and every layer, trust is the most critical challenge and the greatest opportunity facing the AI industry.
+The defining technology of our time is being designed and distributed now, and the standards that decide access and interoperability will set the boundaries of the AI economy and shape its impact. Trust between every participant and every layer of that economy is the most critical challenge facing the AI industry and its greatest opportunity.
 
 Join a growing consortium of leaders, industry practitioners, academic and technical researchers, and those driven to bring the power of autonomy to novel challenges. Bring your technical depth, your industry expertise, or the perspective only your vantage point can offer. What you help build stays open to everyone, and your work remains your own.
 

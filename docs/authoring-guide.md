@@ -348,8 +348,8 @@ band:
 
 The `response` values are: `full`, `restricted`, `suspended`, `revoked`.
 These tell enforcement systems how to react at each standing level. The
-profile declares the responses; enforcement is handled by the systems that
-consume the evaluation result.
+profile declares the responses, and the systems that consume the evaluation
+result carry out the enforcement.
 
 ## Step 8: Validate and Test
 
@@ -528,7 +528,7 @@ profile that tried to measure everything at once.
 
 Test adversarially. Push every signal to its boundaries. Trigger every hard
 rule. If a threshold produces a surprising result, fix the threshold. The
-evaluator is deterministic; surprises come from the profile, not the engine.
+evaluator is deterministic, so a surprise comes from the profile.
 
 Version deliberately. Changing a threshold is a MINOR bump. Adding or
 removing a signal is a MAJOR bump. Consumers of your profile depend on

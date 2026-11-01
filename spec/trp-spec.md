@@ -47,7 +47,7 @@ Relying party: Any party that reads a profile, or a standing produced against it
 
 Required standing: The minimum standing a profile requires of a subject (Section 3.7).
 
-Scored signal: Something measurable a profile watches, with the points at which it becomes a concern or a problem. Scored signals feed into the standing. The profile lists them; the evaluation source measures them (Section 3.3).
+Scored signal: Something measurable a profile watches, with the points at which it becomes a concern or a problem. Scored signals feed into the standing. The profile lists them, and the evaluation source measures them (Section 3.3).
 
 Severity: The rank of a standing band, where lower is better. It lets any reader order the bands without relying on their names (Section 3.6).
 
@@ -63,7 +63,7 @@ A Trust Requirements Profile specifies the behavior expected of a subject, the s
 
 A TRP is a data document. It contains no executable logic. It does not define how signals are combined into a standing. The profile is the open, portable requirements contract. Assessment against it can come from any source.
 
-This specification is a developing framework that defines a profile's structure. Each industry, and each organization within it, writes its own profiles to its own requirements. Think of it as a machine-readable language for stating trust requirements rather than a template.
+This specification is a developing framework that defines a profile's structure. Each industry, and each organization within it, writes its own profiles to its own requirements. Think of it as a machine-readable language for stating trust requirements.
 
 ## 2. Document format
 
@@ -98,7 +98,7 @@ Every document SHOULD declare `$schema`, the URI of the JSON Schema it validates
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
-| intended_use | string | 1 | MUST | What the profile is for, in plain language. |
+| intended_use | string | 1 | MUST | What the profile is for, written for a general reader. |
 | boundary | string | 1 | SHOULD | The system or operational boundary the profile governs. |
 | jurisdiction | array of string | 0..1 | MAY | Applicable jurisdictions or regulatory contexts. |
 | out_of_scope | array of string | 1 | SHOULD | What the profile does not cover. |
@@ -134,7 +134,7 @@ When a declared signal is absent, its `on_missing` value governs. `ignore` drops
 
 When more than one hard rule is met in the same assessment, the most restrictive action applies. The actions are ordered, from most to least restrictive: halt, block_startup, require_review. The resulting action is the most restrictive among all met rules. All met rules SHOULD be recorded even though one action governs, so the full basis of the outcome is visible to a relying party.
 
-A condition is valid only for the operand type it applies to. A scalar value is a boolean, number, or string. is_true and is_false apply only to a boolean field and take no value. less_than and greater_than apply only to a numeric field and a numeric value. equals and not_equals apply to a boolean, number, or string and compare by exact match. A profile MUST NOT pair a condition with an incompatible operand type, for example greater_than with a string. A document that does so is malformed and MUST be rejected. An evaluation source that encounters a type mismatch at assessment time, for example a field expected to be numeric that arrives as a string, MUST treat the rule as inconclusive rather than passed, consistent with the three-valued treatment in Section 3.3. The expected type of a field is the type its condition requires. For equals and not_equals it is the type of the rule's value, and a boolean is never treated as a number.
+A condition is valid only for the operand type it applies to. A scalar value is a boolean, number, or string. is_true and is_false apply only to a boolean field and take no value. less_than and greater_than apply only to a numeric field and a numeric value. equals and not_equals apply to a boolean, number, or string and compare by exact match. A profile MUST NOT pair a condition with an incompatible operand type, for example greater_than with a string. A document that does so is malformed and MUST be rejected. An evaluation source that encounters a type mismatch at assessment time, for example a field expected to be numeric that arrives as a string, MUST treat the rule as inconclusive and MUST NOT treat it as passed, consistent with the three-valued treatment in Section 3.3. The expected type of a field is the type its condition requires. For equals and not_equals it is the type of the rule's value, and a boolean is never treated as a number.
 
 When the field a hard rule inspects is absent from an assessment, the evaluation source MUST treat the rule as inconclusive. A missing input never counts as a passed rule.
 
@@ -142,7 +142,7 @@ An inconclusive hard rule marks the assessment incomplete, the same outcome as a
 
 ### 3.5 Drift definition
 
-Drift describes a sustained trend toward an unsafe state across successive assessments. It is independent of the thresholds and does not require a crossing: a signal may drift while its values remain within an acceptable range. Thresholds evaluate a signal's current value; drift evaluates its trend over the window. A signal may show one, both, or neither.
+Drift describes a sustained trend toward an unsafe state across successive assessments. It is independent of the thresholds and does not require a crossing, so a signal may drift while its values remain within an acceptable range. Thresholds evaluate a signal's current value, and drift evaluates its trend over the window. A signal may show one, both, or neither.
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
@@ -179,7 +179,7 @@ Any artifact that reports a standing for a subject MUST use a band declared here
 
 Any artifact that references a TRP does so by trp_id and version. A valid TRP document MUST satisfy:
 
-Every signal named in drift is defined in scored_signals. Every band in required_standing, including response_bands, is defined in standing_bands. standing_bands severities are unique. Any standing reported against the profile is a declared band. Timestamp ordering holds (Section 3.1).
+Every signal named in drift is defined in scored_signals. Every band in required_standing, including response_bands, is defined in standing_bands. standing_bands severities are unique. Any standing reported against the profile is a declared band. Timestamps satisfy the ordering in Section 3.1.
 
 A document that violates any of these is malformed and MUST be rejected.
 
@@ -195,7 +195,7 @@ Authoring a sound profile is domain work. The author block records who wrote a p
 
 A TRP does not specify how scored signals are combined into a standing, how drift is judged, how any action is enforced, or how profiles and outcomes are exchanged between parties.
 
-A TRP does not provide identity or credentials for a subject, nor is it a governance, risk, or security management platform. It states the requirements a subject is assessed against, and it is designed to interoperate with existing identity, credential, and governance systems.
+A TRP states the requirements a subject is assessed against and works alongside existing identity, credential and governance systems. Identity and credentials for a subject, and governance, risk or security management, come from those systems.
 
 Assessment, enforcement, and transport are left to the evaluation source and the implementation.
 
@@ -210,7 +210,7 @@ Two key forms are recognized, and both are accepted by the schema.
 
 A module that changes how a subject is assessed does so through an evidence adapter. The adapter reads the module's configuration from the profile and writes ordinary evidence values that the profile's scored signals and hard rules consume. The core evaluation semantics stay unchanged, and a consumer that does not know the module still reads the profile.
 
-A profile MAY declare inheritance from a base profile via `extends`, giving a trp_id and version. A domain template can serve as a base for a specific profile to refine. A consumer that does not support extends MUST reject a profile that uses it rather than ignore the base.
+A profile MAY declare inheritance from a base profile via `extends`, giving a trp_id and version. A domain template can serve as a base for a specific profile to refine. A consumer that does not support extends MUST reject a profile that uses it and MUST NOT ignore the base.
 
 Inheritance resolves as follows:
 
@@ -222,7 +222,7 @@ Inheritance resolves as follows:
 
 ## 8. Integrity and signing (optional)
 
-A profile MAY be signed by its authoring authority so a relying party can confirm it is unaltered and attributed. When signing is used, the signed content MUST be a canonical serialization of the profile, for example JSON Canonicalization Scheme (RFC 8785). Canonical serialization means writing the JSON in a single agreed-upon, byte-for-byte form, so two systems produce identical bytes for the same content, and a signature verifies on both. Without it, a trivial reformat would break the signature. The signature SHOULD use an established signed-document format rather than a bespoke one, and the profile SHOULD record the verification key's algorithm and location.
+A profile MAY be signed by its authoring authority so a relying party can confirm it is unaltered and attributed. When signing is used, the signed content MUST be a canonical serialization of the profile, for example JSON Canonicalization Scheme (RFC 8785). Canonical serialization means writing the JSON in a single agreed-upon, byte-for-byte form, so two systems produce identical bytes for the same content, and a signature verifies on both. Without it, a trivial reformat would break the signature. The signature SHOULD use an established signed-document format, and the profile SHOULD record the verification key's algorithm and location.
 
 This draft leaves the exact canonicalization and envelope to the implementation and expects to fix them in a later version.
 
@@ -238,7 +238,7 @@ A profile MAY carry an `assurance_mapping` array that relates its requirements t
 
 ## 11. Threat model (non-normative)
 
-The format is designed to reduce specific failure modes. A profile can be versioned and signed, so changes are visible and attributable. The on_missing policy makes a missing signal explicit rather than an accident. Severity ordering lets any consumer compare bands without shared names. Optional signing binds a profile to its author.
+The format is designed to reduce specific failure modes. A profile can be versioned and signed, so changes are visible and attributable. The on_missing policy makes the handling of a missing signal an explicit decision by the author. Severity ordering lets any consumer compare bands without shared names. Optional signing binds a profile to its author.
 
 Out of scope for the format: how a subject is scored, how enforcement is carried out, and how artifacts are moved between parties.
 
@@ -248,9 +248,9 @@ This section states how the standard changes over time without fragmenting. It i
 
 Stable core: The fields and rules in Sections 2 through 4 are the core. Every TRP everywhere has them, and they interoperate regardless of domain. The core changes rarely and only through a MAJOR version.
 
-Profiles specialize the core: A domain template, and any profile that extends it, adds domain-specific signals, rules, and constraints on top of the core. A profile may require fields the core leaves optional and may tighten thresholds. A profile MUST NOT break the core or redefine a core field. This is how one standard serves manufacturing, healthcare, and finance without a separate standard for each. The domain-specific complexity lives in profiles, not in the core.
+Profiles specialize the core: A domain template, and any profile that extends it, adds domain-specific signals, rules, and constraints on top of the core. A profile may require fields the core leaves optional and may tighten thresholds. A profile MUST NOT break the core or redefine a core field. This is how one standard serves manufacturing, healthcare, and finance without a separate standard for each. The domain-specific complexity lives in profiles, and the core stays general.
 
-Extension points: New ideas enter at the declared extension points (Section 7), not by changing the core. An industry can innovate in its own profiles and extensions without changing the standard and without permission. A generic consumer still reads the document because it ignores unknown extensions rather than rejecting them.
+Extension points: New ideas enter at the declared extension points (Section 7), and the core stays unchanged. An industry can innovate in its own profiles and extensions without changing the standard and without permission. A generic consumer still reads the document because it ignores unknown extensions.
 
 Promotion: When an extension proves broadly useful across many domains, the standard's governing body MAY promote it into the core in a later version. This lets the core learn from the edges instead of trying to anticipate every domain at the start.
 
@@ -276,6 +276,6 @@ Example Fields:
 - Hard rules: an emergency stop, a person in the exclusion zone, an expired safety certification, or critically poor data each stop the system on their own, regardless of any score.
 - Drift: vibration and temperature are watched over five consecutive samples for a sustained trend toward an unsafe state.
 - Standing bands: the system's overall standing is good, review, or failing, ordered by severity.
-- Required standing: the system must hold at least review standing; the evaluation source should be independent for audit or insurance use; and each band maps to a response from full down to suspended.
+- Required standing: the system must maintain at least review standing, the evaluation source should be independent for audit or insurance use, and each band maps to a response from full down to suspended.
 
 The goal of this specification is to establish a single, open way to communicate trust requirements that any domain can use and any evaluator can read. Trust and transparency across autonomous systems can then live outside of proprietary, closed systems.

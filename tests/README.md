@@ -21,8 +21,8 @@ Files in `profiles/valid/` must pass JSON Schema validation against
 
 | File | What it exercises |
 |------|-------------------|
-| `minimal.json` | Only required fields; proves the schema accepts a bare profile. |
-| `full-featured.json` | Every optional field populated; proves the full grammar works. |
+| `minimal.json` | Only required fields. Proves the schema accepts a bare profile. |
+| `full-featured.json` | Every optional field populated. Proves the full grammar works. |
 | `with-extension.json` | Profile inheritance via the `extends` field. The schema accepts it, and the reference evaluators must reject it (group 5). |
 | `uri-extension-keys.json` | Extension keys in both forms, `x_` and URI-namespaced (`https://` and `urn:`). |
 
