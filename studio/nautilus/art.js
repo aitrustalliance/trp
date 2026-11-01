@@ -18,6 +18,7 @@
     open:  { name: "Open Rules", a: "#9fd0ff", b: "#0d1a33", cost: 60 },
     crew:  { name: "Crew Roll", a: "#f4f6fb", b: "#6e522a", cost: 0, join: true },
     gear:  { name: "Jolly Gear", a: "#f0d9a0", b: "#14181f", cost: 120 },
+    scholar: { name: "Scholar", a: "#5fb3a0", b: "#0d1a33", cost: 0, exam: true },
   };
 
   function rng(seed) {

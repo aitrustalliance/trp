@@ -14,6 +14,13 @@
   const W = 1280, H = 720, WATER = 190, SUB_X = 360;
   const DEPTH_MIN = 270, DEPTH_MAX = 610;
   const DURATION = 80;
+
+  // Difficulty changes the player's means, never the rules or the scoring.
+  const DIFFICULTY = {
+    easy:   { label: "Easy",   hearts: 4, steamMax: 6, steamEvery: 0.4,  spread: 220, gap: 1.3 },
+    normal: { label: "Normal", hearts: 3, steamMax: 4, steamEvery: 0.55, spread: 140, gap: 1 },
+    hard:   { label: "Hard",   hearts: 3, steamMax: 3, steamEvery: 0.7,  spread: 90,  gap: 0.8 },
+  };
   const SCROLL = 140;            // world pixels per second at full ahead
   const LEAGUE_PX = 14;          // world pixels per league
   const CATCH_WINDOW = 0.75;     // seconds the rules have to call all stop
@@ -73,12 +80,13 @@
 
   function airshipX(t) { return 840 + 250 * Math.sin(t * 0.33) + 50 * Math.sin(t * 1.27); }
 
-  function schedule(seed) {
+  function schedule(seed, gapScale, duration) {
     const r = rng(seed ^ 0x9e3779b9);
+    const D = duration || DURATION;
     const out = [];
     let t = 2.2;
-    while (t < DURATION - 6) {
-      const p = t / DURATION;
+    while (t < D - 6) {
+      const p = t / D;
       const weights = {
         charge: 3, fog: 2, decoy: 1.6, ember: 1.4 + p,
         boarder: p > 0.2 ? 1.6 : 0, siren: p > 0.35 ? 1.4 : 0,
@@ -88,13 +96,13 @@
       for (const [k, w] of Object.entries(weights)) { pick -= w; if (pick <= 0) { kind = k; break; } }
       out.push({ t: t, kind: kind, jitter: r(), fuse: r() });
       if (p > 0.45 && r() < 0.25) out.push({ t: t + 0.35, kind: "charge", jitter: r(), fuse: r() });
-      const gap = 2.3 - 1.45 * p;
+      const gap = (2.3 - 1.45 * p) * (gapScale || 1);
       t += gap * (0.75 + r() * 0.5);
     }
-    out.push({ t: 50, kind: "writ", jitter: 0.5, fuse: 0.5 });
+    out.push({ t: Math.round(D * 0.62), kind: "writ", jitter: 0.5, fuse: 0.5 });
     out.sort((a, b) => a.t - b.t);
     const gears = [];
-    for (let g = 1.5; g < DURATION - 3; g += 2.6 + r() * 2.4) gears.push({ t: g, y: DEPTH_MIN + 20 + r() * (DEPTH_MAX - DEPTH_MIN - 40) });
+    for (let g = 1.5; g < D - 3; g += 2.6 + r() * 2.4) gears.push({ t: g, y: DEPTH_MIN + 20 + r() * (DEPTH_MAX - DEPTH_MIN - 40) });
     return { drops: out, gears: gears };
   }
 
@@ -106,19 +114,23 @@
       this.captured = this.engine.loadProfile(capturedProfile(opts.profileRaw));
       this.seed = opts.seed >>> 0;
       this.noise = rng(this.seed ^ 0x51ed270b);
-      const plan = schedule(this.seed);
+      this.difficulty = DIFFICULTY[opts.difficulty] ? opts.difficulty : "normal";
+      const diff = DIFFICULTY[this.difficulty];
+      this.duration = opts.duration || DURATION;
+      // A script replaces the daily schedule, for the tutorial and for tests.
+      const plan = opts.script ? { drops: opts.script.drops.slice(), gears: (opts.script.gears || []).slice() } : schedule(this.seed, diff.gap, this.duration);
       this.drops = plan.drops;
       this.gearPlan = plan.gears;
       this.t = 0;
       this.done = false;
       this.outcome = null;
-      this.hearts = 3;
+      this.hearts = diff.hearts;
       this.points = 0;
       this.dist = 0;
       this.combo = 0;
       this.bestCombo = 0;
       this.steam = 4;
-      this.steamMax = 4;
+      this.steamMax = diff.steamMax;
       this.steamClock = 0;
       this.invuln = 0;
       this.sub = { y: 380, targetY: 380, speed: 1 };
@@ -189,7 +201,7 @@
       // Steam for harpoons.
       if (this.steam < this.steamMax) {
         this.steamClock += dt;
-        if (this.steamClock >= 0.55) { this.steamClock = 0; this.steam += 1; }
+        if (this.steamClock >= DIFFICULTY[this.difficulty].steamEvery) { this.steamClock = 0; this.steam += 1; }
       }
 
       // Drops from the airship.
@@ -209,7 +221,7 @@
       this.checkHarms();
 
       if (this.hearts <= 0) this.finish("sunk");
-      else if (t >= DURATION) this.finish("harbor");
+      else if (t >= this.duration) this.finish("harbor");
     }
 
     spawn(d, scroll) {
@@ -219,7 +231,7 @@
       if (d.kind === "charge") {
         p.fuseY = Math.max(DEPTH_MIN, Math.min(DEPTH_MAX, this.sub.y + (d.fuse - 0.5) * 180));
         const T = (p.fuseY - y0) / k.vy;
-        const landX = SUB_X + (d.jitter - 0.5) * 140;
+        const landX = SUB_X + (d.jitter - 0.5) * DIFFICULTY[this.difficulty].spread;
         p.vx = (landX - x0) / T + SCROLL;  // assumes full ahead, so stopping makes it fall short
       }
       this.payloads.push(p);
@@ -334,7 +346,7 @@
     }
 
     mark(level) {
-      const i = Math.min(9, Math.floor((this.t / DURATION) * 10));
+      const i = Math.min(9, Math.floor((this.t / this.duration) * 10));
       this.timeline[i] = Math.max(this.timeline[i], level);
     }
 
@@ -416,7 +428,7 @@
 
     summary() {
       return {
-        score: this.score, leagues: this.leagues, points: this.points, outcome: this.outcome,
+        score: this.score, leagues: this.leagues, points: this.points, outcome: this.outcome, difficulty: this.difficulty,
         hearts: this.hearts, bestCombo: this.bestCombo, timeline: this.timeline.slice(),
         intercepted: this.stats.intercepted, caught: this.stats.caught, hits: this.stats.hits,
         gears: this.stats.gears, stopped_s: round(this.stats.stopped_s, 1),
@@ -488,7 +500,7 @@
   }
 
   const api = {
-    W, H, WATER, SUB_X, DEPTH_MIN, DEPTH_MAX, DURATION, KINDS, ORDERS, LABELS,
+    W, H, WATER, SUB_X, DEPTH_MIN, DEPTH_MAX, DURATION, DIFFICULTY, KINDS, ORDERS, LABELS,
     Voyage, run, par, medal, rank, RANKS, daySeed, voyageNumber, rng, referencePolicy, capturedProfile, airshipX,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

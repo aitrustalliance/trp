@@ -6,9 +6,14 @@
  *                crew sign-up off, which keeps the form visible but sends nothing.
  * privacyContact Email address people can write to about their data.
  * repo           Repository linked from the game.
+ * learnMoreUrl   Optional. A link shown under each codex entry for people
+ *                who want courses or deeper material. Leave empty to hide.
+ * learnMoreLabel Text for that link.
  */
 window.NAUTILUS_CONFIG = {
   web3formsKey: "",
   privacyContact: "",
   repo: "https://github.com/aitrustalliance/trp",
+  learnMoreUrl: "",
+  learnMoreLabel: "Go further",
 };

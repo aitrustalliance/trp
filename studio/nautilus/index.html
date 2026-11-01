@@ -16,48 +16,66 @@
 <body>
   <canvas id="world" class="layer" aria-hidden="true"></canvas>
   <canvas id="hud" class="layer" aria-label="The Nautilus voyage. Tap threats to fire, drag to change depth." role="img"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
 
   <header class="bar">
-    <a class="brand" href="../">TRP Studio</a>
+    <a class="nameplate" href="../">TRP Studio</a>
     <div class="bar-actions">
-      <button class="icon-btn" id="pause-btn" type="button" hidden>Pause</button>
-      <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true">Sound on</button>
-      <a class="icon-btn" id="star-btn" href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star TRP</a>
+      <button class="nameplate" id="pause-btn" type="button" hidden>Pause</button>
+      <button class="nameplate" id="codex-btn" type="button">Codex</button>
+      <button class="nameplate" id="settings-btn" type="button">Settings</button>
+      <a class="nameplate" id="star-btn" href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star TRP</a>
     </div>
   </header>
 
   <section class="screen" id="title-screen" aria-labelledby="title-h">
-    <div class="card hero">
-      <div class="eyebrow" id="voyage-label">Voyage No. 1</div>
-      <h1 id="title-h">Nautilus</h1>
+    <div class="plaque hero">
+      <div class="stamp" id="voyage-label">Voyage No. 1</div>
+      <h1 id="title-h" class="masthead">Nautilus</h1>
       <p class="lede">The world drowned, and one power built the last great machine mind. Its airship, the Leviathan, hunts every vessel that still sails free. Your Nautilus runs on open rules that anyone can read, and those rules are all that keep it alive.</p>
       <div class="cta">
-        <button class="btn primary" id="sail-btn" type="button">Set sail</button>
-        <button class="btn" id="how-btn" type="button">How to play</button>
-        <button class="btn" id="yard-btn" type="button">Shipyard</button>
+        <button class="btn brass" id="shakedown-btn" type="button">Shakedown cruise</button>
+        <button class="btn brass" id="sail-btn" type="button">Set sail</button>
+        <button class="btn iron" id="how-btn" type="button">How to play</button>
+        <button class="btn iron" id="yard-btn" type="button">Shipyard</button>
       </div>
       <div class="captain-row" id="captain-row"></div>
+      <p class="muted small" id="first-note" hidden>New aboard? The shakedown cruise takes one minute and teaches the helm.</p>
     </div>
   </section>
 
   <section class="screen" id="how-screen" hidden aria-labelledby="how-h">
-    <div class="card">
+    <div class="plaque">
+      <div class="stamp">Standing orders</div>
       <h2 id="how-h">How To Play</h2>
-      <ul class="how">
+      <ul class="orders">
         <li><b>Tap a threat</b> to fire a harpoon at it. Harpoons run on steam, so pick your shots.</li>
         <li><b>Drag up or down</b> to change depth and slip past depth charges. Deeper water strains the hull.</li>
-        <li><b>Watch the gauges.</b> They read your vessel's evidence, and the open TRP engine checks it ten times a second. When a reading crosses a rule, the telegraph rings Half Ahead or All Stop on its own.</li>
-        <li><b>Stopping keeps you alive</b> but costs leagues. Shoot down fog, decoys, firebrands, boarding drones and forged commands before they reach you.</li>
+        <li><b>Watch the gauges.</b> They read your vessel's evidence, and the open rules check it ten times a second. When a reading crosses a limit, the telegraph rings Half Ahead or All Stop on its own.</li>
+        <li><b>Stopping keeps you alive</b> and costs leagues. Shoot down fog, decoys, firebrands, boarding drones and forged commands before they reach you.</li>
         <li><b>The Writ</b> is the Leviathan's real weapon. If it lands, your rules are overwritten for a while and nothing will stop you from sailing into harm. It takes three harpoons.</li>
       </ul>
       <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, E to see why the telegraph rang, P to pause. Tap the telegraph for the same explanation.</p>
-      <div class="cta"><button class="btn primary" id="how-sail" type="button">Set sail</button><button class="btn" data-back type="button">Back</button></div>
+      <div class="cta"><button class="btn brass" id="how-sail" type="button">Set sail</button><button class="btn iron" data-back type="button">Back</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="lesson-screen" hidden aria-labelledby="lesson-h">
+    <div class="plaque lesson">
+      <div class="stamp" id="lesson-stamp">Shakedown cruise</div>
+      <h2 id="lesson-h">Lesson</h2>
+      <p class="lesson-text" id="lesson-text"></p>
+      <p class="tip" id="lesson-tip" hidden></p>
+      <div class="cta">
+        <button class="btn brass" id="lesson-continue" type="button">Carry on</button>
+        <button class="btn iron" id="lesson-codex" type="button" hidden>Read the codex entry</button>
+      </div>
     </div>
   </section>
 
   <section class="screen" id="log-screen" hidden aria-labelledby="log-h">
-    <div class="card log">
-      <div class="eyebrow" id="log-voyage"></div>
+    <div class="plaque log">
+      <div class="stamp" id="log-voyage"></div>
       <h2 id="log-h">Captain's Log</h2>
       <div class="log-top">
         <div class="medal" id="log-medal"></div>
@@ -67,16 +85,21 @@
         </div>
       </div>
       <div class="timeline" id="log-timeline" role="img" aria-label="Voyage timeline, one bar per stretch of the voyage"></div>
-      <div class="stats" id="log-stats"></div>
+      <div class="ledger" id="log-stats"></div>
       <div class="rank" id="log-rank"></div>
+      <div class="discovered" id="log-discovered" hidden>
+        <div class="stamp">Entered in the codex</div>
+        <div class="chips" id="log-discovered-chips"></div>
+      </div>
       <div class="share-row">
-        <button class="btn primary" id="share-btn" type="button">Share voyage</button>
-        <a class="btn" id="x-btn" target="_blank" rel="noopener">Post on X</a>
-        <button class="btn" id="copy-btn" type="button">Copy</button>
-        <button class="btn" id="again-btn" type="button">Sail again</button>
+        <button class="btn brass" id="share-btn" type="button">Share voyage</button>
+        <a class="btn iron" id="x-btn" target="_blank" rel="noopener">Post on X</a>
+        <button class="btn iron" id="copy-btn" type="button">Copy</button>
+        <button class="btn iron" id="again-btn" type="button">Sail again</button>
       </div>
       <form class="join" id="join-form" novalidate>
         <div class="join-head">
+          <div class="stamp">Crew roll</div>
           <h3>Join The Crew</h3>
           <p class="muted">Put your captain's name on the crew roll and keep your brass and leagues for future seasons. Joining also unlocks the Crew Roll pennant.</p>
         </div>
@@ -85,6 +108,7 @@
           <input name="email" id="join-email" type="email" placeholder="Email" autocomplete="email" required>
           <select name="role" id="join-role" aria-label="What brings you aboard">
             <option value="curious">Just playing</option>
+            <option value="learner">Learning about AI trust and governance</option>
             <option value="builder">I build AI or robots</option>
             <option value="contributor">I want to contribute to TRP</option>
             <option value="organization">My organization needs trust rules</option>
@@ -93,19 +117,21 @@
           <label class="hp">Leave this box empty <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off"></label>
         </div>
         <label class="consent"><input type="checkbox" id="join-consent"> Send me Nautilus and TRP updates. I have read the <a href="privacy.html" target="_blank" rel="noopener">privacy note</a>, and I can leave at any time.</label>
-        <div class="join-actions"><button class="btn primary" type="submit" id="join-btn">Join the crew</button><span class="muted" id="join-msg" aria-live="polite"></span></div>
+        <div class="join-actions"><button class="btn brass" type="submit" id="join-btn">Join the crew</button><span class="muted" id="join-msg" aria-live="polite"></span></div>
       </form>
       <div class="foot-links">
         <a href="../../examples/nautilus/trp.json" target="_blank" rel="noopener">Read the rules your vessel ran on</a>
         <a href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star TRP on GitHub</a>
         <a href="https://github.com/aitrustalliance/trp/subscription" target="_blank" rel="noopener">Watch for Season 2</a>
         <button class="linkish" id="log-yard" type="button">Shipyard</button>
+        <button class="linkish" id="log-codex" type="button">Codex</button>
       </div>
     </div>
   </section>
 
   <section class="screen" id="yard-screen" hidden aria-labelledby="yard-h">
-    <div class="card">
+    <div class="plaque">
+      <div class="stamp">Dry dock</div>
       <h2 id="yard-h">Shipyard</h2>
       <p class="muted" id="yard-brass"></p>
       <h3>Hulls</h3>
@@ -113,31 +139,101 @@
       <h3>Pennants</h3>
       <div class="yard-grid" id="yard-pennants"></div>
       <p class="muted small">Brass, medals and unlocks are game rewards with no cash value.</p>
-      <div class="cta"><button class="btn primary" id="yard-sail" type="button">Set sail</button><button class="btn" data-back type="button">Back</button></div>
+      <div class="cta"><button class="btn brass" id="yard-sail" type="button">Set sail</button><button class="btn iron" data-back type="button">Back</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="codex-screen" hidden aria-labelledby="codex-h">
+    <div class="plaque codex">
+      <div class="codex-nav">
+        <div>
+          <div class="stamp">Ship's library</div>
+          <h2 id="codex-h">The Captain's Codex</h2>
+        </div>
+        <div class="codex-tools">
+          <button class="btn iron small" id="codex-back" type="button" hidden>All entries</button>
+          <button class="btn brass small" id="exam-btn" type="button">Sit the examination</button>
+          <button class="btn iron small" data-back type="button">Close</button>
+        </div>
+      </div>
+      <p class="muted" id="codex-intro"></p>
+      <div class="principles" id="codex-principles"></div>
+      <div id="codex-list"></div>
+      <div id="codex-entry" hidden></div>
+    </div>
+  </section>
+
+  <section class="screen" id="exam-screen" hidden aria-labelledby="exam-h">
+    <div class="plaque">
+      <div class="stamp">Examination for the rank of Navigator</div>
+      <h2 id="exam-h">Ten Questions</h2>
+      <p class="muted" id="exam-intro">Ten questions drawn from the codex entries you have discovered. Seven right earns the Scholar pennant. There is no penalty for trying again.</p>
+      <div id="exam-body"></div>
+      <div class="cta"><button class="btn brass" id="exam-start" type="button">Begin</button><button class="btn iron" id="exam-close" type="button">Back to the codex</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="settings-screen" hidden aria-labelledby="settings-h">
+    <div class="plaque">
+      <div class="stamp">Engine room</div>
+      <h2 id="settings-h">Settings</h2>
+      <div class="settings">
+        <fieldset class="setting">
+          <legend>Difficulty</legend>
+          <div class="segmented" id="set-difficulty"></div>
+          <p class="muted small">Difficulty changes your steam, hull plates and the Leviathan's aim. The rules and the scoring never change, and par is set at the same difficulty.</p>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Motion</legend>
+          <label class="switch"><input type="checkbox" id="set-motion"> Reduce motion. No screen shake, no flashes, fewer particles.</label>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Text</legend>
+          <div class="segmented" id="set-text"></div>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Sound</legend>
+          <label class="switch"><input type="checkbox" id="set-sound"> Sound on. Every sound is synthesized on your device.</label>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Graphics</legend>
+          <div class="segmented" id="set-renderer"></div>
+          <p class="muted small">The game falls back to 2D on its own when your device cannot draw in 3D. Changing this reloads the page.</p>
+        </fieldset>
+        <fieldset class="setting">
+          <legend>Progress</legend>
+          <button class="btn iron small" id="set-reset" type="button">Forget my progress on this device</button>
+        </fieldset>
+      </div>
+      <div class="cta"><button class="btn brass" data-back type="button">Done</button></div>
     </div>
   </section>
 
   <section class="screen" id="pause-screen" hidden aria-labelledby="pause-h">
-    <div class="card hero">
+    <div class="plaque hero">
+      <div class="stamp">All hands stand easy</div>
       <h2 id="pause-h">Paused</h2>
-      <div class="cta"><button class="btn primary" id="resume-btn" type="button">Resume</button><button class="btn" id="quit-btn" type="button">Leave voyage</button></div>
+      <div class="cta"><button class="btn brass" id="resume-btn" type="button">Resume</button><button class="btn iron" id="pause-codex" type="button">Codex</button><button class="btn iron" id="quit-btn" type="button">Leave voyage</button></div>
     </div>
   </section>
 
   <section class="screen" id="explain-screen" hidden aria-labelledby="explain-h">
-    <div class="card">
-      <div class="eyebrow">Why the telegraph rang</div>
+    <div class="plaque">
+      <div class="stamp">Why the telegraph rang</div>
       <h2 id="explain-h">The Rules In Force</h2>
       <div class="explain-body" id="explain-body"></div>
-      <div class="cta"><button class="btn primary" id="explain-close" type="button">Back to the helm</button><a class="btn" id="explain-rules" target="_blank" rel="noopener">Read the full rules</a></div>
+      <p class="muted small">Underlined words open the codex.</p>
+      <div class="cta"><button class="btn brass" id="explain-close" type="button">Back to the helm</button><a class="btn iron" id="explain-rules" target="_blank" rel="noopener">Read the full rules</a></div>
     </div>
   </section>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="../engine.js"></script>
+  <script src="../codex.js"></script>
   <script src="config.js"></script>
   <script src="core.js"></script>
+  <script src="tutorial.js"></script>
   <script src="art.js"></script>
   <script src="audio.js"></script>
   <script src="crew.js"></script>
