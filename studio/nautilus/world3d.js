@@ -27,6 +27,7 @@ function makeWorld(T) {
   const LOOK = new T.Vector3(7.2, -4.2, 0);
 
   let renderer, scene, camera, composer, bloom, clock = 0, cw = 1, ch = 1;
+  let salon = null;
   let sub, airship, water, seabed, lantern, searchBeam, searchLight, envTex;
   let ruins = [], kelp = [], shafts = [];
   const meshes = new Map();                  // payload, gear and harpoon meshes by id
@@ -629,6 +630,49 @@ function makeWorld(T) {
     return grp;
   }
 
+  // Salvage.
+  function makeRelic() {
+    const grp = new T.Group();
+    const body = new T.Mesh(g("relicBody", () => new T.CylinderGeometry(0.16, 0.16, 0.5, 12)), metal(0xc49a55, 0.35, 1));
+    const b1 = new T.Mesh(g("relicBand", () => new T.TorusGeometry(0.165, 0.03, 6, 16)), metal(0x3d2b14, 0.5, 0.8)); b1.rotation.x = Math.PI / 2; b1.position.y = 0.2;
+    const b2 = b1.clone(); b2.position.y = -0.2;
+    const gem = new T.Mesh(g("dot", () => new T.SphereGeometry(0.06, 10, 10)), glow(0xf0d9a0, 3)); gem.position.z = 0.17;
+    grp.add(body, b1, b2, gem);
+    scene.add(grp);
+    return grp;
+  }
+  function makeChest() {
+    const grp = new T.Group();
+    const wood = new T.MeshStandardMaterial({ color: 0x4a3418, roughness: 0.85, metalness: 0.1 });
+    const box = new T.Mesh(g("chestBox", () => new T.BoxGeometry(1.1, 0.55, 0.7)), wood); box.position.y = 0.28;
+    const lid = new T.Mesh(g("chestLid", () => new T.CylinderGeometry(0.36, 0.36, 1.1, 12, 1, false, 0, Math.PI)), wood);
+    lid.rotation.z = Math.PI / 2; lid.rotation.y = Math.PI; lid.position.set(0, 0.56, 0);
+    const bandMat = metal(0xc49a55, 0.3, 1);
+    for (const x of [-0.35, 0.35]) { const band = new T.Mesh(g("chestBand", () => new T.BoxGeometry(0.1, 0.95, 0.74)), bandMat); band.position.set(x, 0.47, 0); grp.add(band); }
+    const lock = new T.Mesh(g("chestLock", () => new T.BoxGeometry(0.2, 0.2, 0.06)), bandMat); lock.position.set(0, 0.4, 0.37);
+    const light = new T.PointLight(0xf0d9a0, 6, 4, 1.8); light.position.set(0, 0.9, 0.5);
+    grp.add(box, lid, lock, light);
+    grp.userData.light = light;
+    scene.add(grp);
+    return grp;
+  }
+  function makeClam() {
+    const grp = new T.Group();
+    const shellMat = new T.MeshStandardMaterial({ color: 0x6f94b0, roughness: 0.45, metalness: 0.15 });
+    const half = () => new T.Mesh(g("clamShell", () => { const ge = new T.SphereGeometry(0.9, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2); ge.scale(1, 0.45, 0.8); return ge; }), shellMat);
+    const lower = half(); lower.rotation.x = Math.PI; lower.position.y = 0.4;
+    const hinge = new T.Group(); hinge.position.set(0, 0.4, -0.7);
+    const upper = half(); upper.position.set(0, 0, 0.7);
+    hinge.add(upper);
+    const pearl = new T.Mesh(g("pearl", () => new T.SphereGeometry(0.16, 16, 16)), new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.15, metalness: 0.1, emissive: 0xdde8ff, emissiveIntensity: 0.8 }));
+    pearl.position.set(0, 0.52, 0);
+    const light = new T.PointLight(0xdde8ff, 0, 4, 1.8); light.position.set(0, 1, 0);
+    grp.add(lower, hinge, pearl, light);
+    grp.userData = { hinge, pearl, light };
+    scene.add(grp);
+    return grp;
+  }
+
   function sync(list, prefix, make, place) {
     const seen = new Set();
     for (const o of list) {
@@ -662,6 +706,9 @@ function makeWorld(T) {
       burst(ex, ey, 0.3, 80, col, 5, 1.1); ring(X(C.SUB_X), Y(v.sub.y), col, 3, 0.7);
       if (e.kind === "writ") flashAt(X(C.SUB_X), Y(v.sub.y), 0xb9a6ff, 120, 0.8);
     } else if (e.type === "gear") { burst(ex, ey, 0.3, 20, 0xe6c27a, 3, 0.5); }
+    else if (e.type === "relic") { burst(ex, ey, 0.3, 24, 0xf0d9a0, 3, 0.6); }
+    else if (e.type === "chest") { burst(ex, ey + 0.5, 0.3, 60, 0xf0d9a0, 4, 0.9); flashAt(ex, ey + 0.5, 0xf0d9a0, 50, 0.5); }
+    else if (e.type === "pearl") { burst(ex, ey, 0.3, 80, 0xdde8ff, 4, 1.1); ring(ex, ey, 0xdde8ff, 3, 0.9); flashAt(ex, ey, 0xdde8ff, 80, 0.7); }
     else if (e.type === "caught") { ring(X(C.SUB_X), Y(v.sub.y), 0xe6d3a1, 3.6, 0.9); }
     else if (e.type === "hit") { flashAt(X(C.SUB_X), Y(v.sub.y), 0xf2b48a, 90, 0.4); bubbleBurst(X(C.SUB_X), Y(v.sub.y), 0, 40, 2); }
   }
@@ -677,7 +724,7 @@ function makeWorld(T) {
 
     // Camera: chase framing with a slow sway and a shake on hits.
     const d = camera.userData.dist || 26;
-    const sh = view.shake * 0.35;
+    const sh = view.reduced ? 0 : view.shake * 0.35;
     camera.position.set(LOOK.x + Math.sin(clock * 0.15) * 0.8 + (Math.random() - 0.5) * sh, LOOK.y + 0.6 + Math.sin(clock * 0.11) * 0.3 + (Math.random() - 0.5) * sh, d);
     camera.lookAt(LOOK);
 
@@ -686,7 +733,7 @@ function makeWorld(T) {
     scene.fog.color.lerp(capture ? fogCaptured : fogBase, Math.min(1, dt * 2));
     const bd = scene.children.find((c) => c.userData.mat);
     if (bd) { bd.userData.mat.uniforms.uCaptured.value += (capture - bd.userData.mat.uniforms.uCaptured.value) * Math.min(1, dt * 2); bd.userData.mat.uniforms.uTime.value = clock; }
-    bloom.strength = 0.75 + view.flash * 0.8;
+    bloom.strength = 0.75 + (view.reduced ? 0 : view.flash * 0.8);
 
     // Water surface.
     const wp = water.geometry.attributes.position, base = water.userData.base;
@@ -758,6 +805,15 @@ function makeWorld(T) {
       else if (m.userData.puff && dt > 0 && Math.random() < 0.5) bubbles.add({ x: X(p.x) + (Math.random() - 0.5) * 0.3, y: Y(p.y) + 0.2, z: 0, vx: (Math.random() - 0.5) * 0.4, vy: 0.4, vz: 0, life: 1.2, max: 1.2, r: 0.55, g: 0.52, b: 0.75, drag: 0.98 });
     });
     sync(v.gears, "g", makeGearMesh, (m, gr) => { m.position.set(X(gr.x), Y(gr.y), 0); m.rotation.z = clock * 2 + gr.phase; m.rotation.y = Math.sin(clock + gr.phase) * 0.6; });
+    sync(v.relics, "r", makeRelic, (m, rl) => { m.position.set(X(rl.x), Y(rl.y), 0); m.rotation.z = Math.sin(clock * 2 + rl.id) * 0.4; m.rotation.y = clock * 1.5; });
+    sync(v.chests, "c", makeChest, (m, c) => { m.position.set(X(c.x), Y(c.y) - 0.1, 0); m.userData.light.intensity = 4 + Math.sin(clock * 3) * 2; });
+    sync(v.clams, "k", makeClam, (m, cl) => {
+      m.position.set(X(cl.x), Y(cl.y) - 0.3, 0);
+      const open = cl.done ? 0.95 : cl.open * 0.95;
+      m.userData.hinge.rotation.x = -open * 1.2;
+      m.userData.pearl.visible = !cl.done;
+      m.userData.light.intensity = cl.done ? 0 : open * 10;
+    });
     sync(v.harpoons, "h", makeHarpoon, (m, h) => {
       m.position.set(X(h.x), Y(h.y), 0.1);
       m.rotation.z = -(h.angle || -Math.PI / 2);
@@ -779,8 +835,166 @@ function makeWorld(T) {
       const k = f.life / f.max; f.l.intensity = f.intensity * k; f.s.scale.setScalar(1 + (1 - k) * 2.5); f.s.material.opacity = k * 0.7;
     }
 
+    if (view.scene === "salon") { renderSalon(dt); return; }
     composer.render(dt);
   }
 
-  return { name: "3d", init, resize, project, unproject, event, render };
+  // ---------------------------------------------------------------- The salon
+
+  // Nemo's salon, built from Verne's description: a long room with a library,
+  // an organ, and two great oval windows onto the sea. The sea scene is drawn
+  // first, and the salon is drawn over it with holes where the windows are.
+  function canvasTexture(w, h, draw, repeat) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    draw(c.getContext("2d"), w, h);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
+    if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+    return t;
+  }
+  function woodTexture() {
+    return canvasTexture(512, 512, (g, w, h) => {
+      g.fillStyle = "#3b2614"; g.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 64) {
+        const tone = 40 + Math.random() * 20;
+        g.fillStyle = `rgb(${tone + 25}, ${tone}, ${tone * 0.55})`; g.fillRect(0, y + 2, w, 60);
+        for (let i = 0; i < 26; i++) { g.strokeStyle = `rgba(20, 10, 4, ${0.15 + Math.random() * 0.25})`; g.lineWidth = 1 + Math.random(); g.beginPath(); const yy = y + 4 + Math.random() * 56; g.moveTo(0, yy); for (let x = 0; x <= w; x += 32) g.lineTo(x, yy + Math.sin(x * 0.02 + i) * 3); g.stroke(); }
+        g.fillStyle = "rgba(0,0,0,0.5)"; g.fillRect(0, y, w, 2);
+      }
+    }, [3, 3]);
+  }
+  function makeSalon() {
+    const S = new T.Scene();
+    const wood = new T.MeshStandardMaterial({ map: woodTexture(), roughness: 0.7, metalness: 0.05 });
+    const panel = new T.MeshStandardMaterial({ color: 0x2a1a0e, roughness: 0.75, metalness: 0.05 });
+    const brass = metal(0xc49a55, 0.35, 1);
+    const dark = metal(0x3d2b14, 0.5, 0.8);
+    const anchors = {};
+
+    // Room shell. The camera sits at z = 7 looking toward the back wall at z = -6.
+    const floor = new T.Mesh(new T.PlaneGeometry(22, 16), wood); floor.rotation.x = -Math.PI / 2; floor.position.set(0, -3, 0); S.add(floor);
+    const ceiling = new T.Mesh(new T.PlaneGeometry(22, 16), panel); ceiling.rotation.x = Math.PI / 2; ceiling.position.set(0, 4.2, 0); S.add(ceiling);
+    for (const sx of [-1, 1]) { const wall = new T.Mesh(new T.PlaneGeometry(16, 7.2), panel); wall.rotation.y = sx * Math.PI / 2 * -1; wall.position.set(sx * 11, 0.6, 0); S.add(wall); }
+    // Back wall with two oval windows.
+    const shape = new T.Shape(); shape.moveTo(-11, -3); shape.lineTo(11, -3); shape.lineTo(11, 4.2); shape.lineTo(-11, 4.2); shape.closePath();
+    for (const wx of [-4.6, 4.6]) { const hole = new T.Path(); hole.absellipse(wx, 0.5, 2.6, 1.7, 0, Math.PI * 2, false); shape.holes.push(hole); }
+    const back = new T.Mesh(new T.ShapeGeometry(shape, 48), panel); back.position.z = -6; S.add(back);
+    for (const wx of [-4.6, 4.6]) {
+      const frame = new T.Mesh(new T.TorusGeometry(1, 0.09, 10, 64), brass); frame.scale.set(2.65, 1.75, 1); frame.position.set(wx, 0.5, -5.95); S.add(frame);
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; const riv = new T.Mesh(new T.SphereGeometry(0.05, 8, 8), metal(0xf0d9a0, 0.25, 1)); riv.position.set(wx + Math.cos(a) * 2.75, 0.5 + Math.sin(a) * 1.85, -5.9); S.add(riv); }
+    }
+    // Ribs along the ceiling.
+    for (let x = -9; x <= 9; x += 3) { const rib = new T.Mesh(new T.BoxGeometry(0.25, 0.25, 16), dark); rib.position.set(x, 4.05, 0); S.add(rib); }
+
+    // The library, left wall. Shelves with books.
+    const lib = new T.Group();
+    const spines = [0x5a2b1a, 0x2f4a3a, 0x3b3a6a, 0x6a4a1a, 0x4a2a4a, 0x2a3a5a, 0x7a5a2a];
+    for (let shelf = 0; shelf < 4; shelf++) {
+      const y = -2.2 + shelf * 1.35;
+      const board = new T.Mesh(new T.BoxGeometry(0.5, 0.08, 6.5), wood); board.position.set(0, y, 0); lib.add(board);
+      let z = -3.1;
+      while (z < 3.1) {
+        const h = 0.7 + Math.random() * 0.45, w = 0.12 + Math.random() * 0.14;
+        const book = new T.Mesh(new T.BoxGeometry(0.42, h, w), new T.MeshStandardMaterial({ color: spines[Math.floor(Math.random() * spines.length)], roughness: 0.8 }));
+        book.position.set(0, y + h / 2 + 0.04, z + w / 2); lib.add(book);
+        const gilt = new T.Mesh(new T.BoxGeometry(0.02, h * 0.3, w * 0.6), brass); gilt.position.set(0.22, y + h / 2 + 0.04, z + w / 2); lib.add(gilt);
+        z += w + 0.015;
+      }
+    }
+    const libFrame = new T.Mesh(new T.BoxGeometry(0.55, 5.6, 6.8), wood); libFrame.position.set(-0.3, 0.4, 0); lib.add(libFrame);
+    lib.position.set(-8.6, 0, -2.2); S.add(lib);
+    anchors.library = new T.Vector3(-7.9, 1.6, -2.2);
+
+    // The organ, right wall.
+    const organ = new T.Group();
+    const console_ = new T.Mesh(new T.BoxGeometry(1.6, 1.4, 3.2), wood); console_.position.set(0, -2.3, 0); organ.add(console_);
+    const keys = new T.Mesh(new T.BoxGeometry(0.5, 0.08, 2.6), new T.MeshStandardMaterial({ color: 0xe8dfc8, roughness: 0.4 })); keys.position.set(-0.85, -1.62, 0); organ.add(keys);
+    for (let i = 0; i < 11; i++) { const hgt = 1.6 + Math.abs(5 - i) * 0.32; const pipe = new T.Mesh(new T.CylinderGeometry(0.11, 0.13, hgt, 12), metal(0xb9c3d6, 0.25, 1)); pipe.position.set(0.2, -1.6 + hgt / 2, -1.5 + i * 0.3); organ.add(pipe); const cap = new T.Mesh(new T.ConeGeometry(0.12, 0.25, 12), brass); cap.position.set(0.2, -1.6 + hgt + 0.12, -1.5 + i * 0.3); organ.add(cap); }
+    organ.position.set(8.3, 0, -1.6); S.add(organ);
+    anchors.organ = new T.Vector3(7.8, 1.3, -1.6);
+
+    // The chart table, center, under a lamp.
+    const table = new T.Group();
+    const top = new T.Mesh(new T.BoxGeometry(3.6, 0.12, 2.2), wood); top.position.y = -1.3; table.add(top);
+    for (const [x, z] of [[-1.6, -0.9], [1.6, -0.9], [-1.6, 0.9], [1.6, 0.9]]) { const leg = new T.Mesh(new T.CylinderGeometry(0.08, 0.1, 1.7, 8), dark); leg.position.set(x, -2.15, z); table.add(leg); }
+    const chart = new T.Mesh(new T.PlaneGeometry(2.6, 1.6), new T.MeshStandardMaterial({ map: chartTexture(), roughness: 0.9 })); chart.rotation.x = -Math.PI / 2; chart.position.set(-0.2, -1.23, 0); table.add(chart);
+    const log = new T.Mesh(new T.BoxGeometry(0.7, 0.12, 0.95), new T.MeshStandardMaterial({ color: 0x4a1f1a, roughness: 0.6 })); log.position.set(1.3, -1.18, 0.4); log.rotation.y = -0.25; table.add(log);
+    const logClasp = new T.Mesh(new T.BoxGeometry(0.1, 0.14, 0.3), brass); logClasp.position.set(1.62, -1.18, 0.33); logClasp.rotation.y = -0.25; table.add(logClasp);
+    const lampArm = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 1.6, 8), brass); lampArm.position.set(0, 3.3, 0); table.add(lampArm);
+    const shade = new T.Mesh(new T.ConeGeometry(0.7, 0.5, 24, 1, true), new T.MeshStandardMaterial({ color: 0x2a4a3a, roughness: 0.6, side: T.DoubleSide })); shade.position.set(0, 2.5, 0); table.add(shade);
+    const bulb = new T.Mesh(new T.SphereGeometry(0.1, 10, 10), glow(0xffe2b0, 4)); bulb.position.set(0, 2.35, 0); table.add(bulb);
+    const lamp = new T.PointLight(0xffd9a0, 40, 14, 1.6); lamp.position.set(0, 2.2, 0); table.add(lamp);
+    table.position.set(0, 0, -1); S.add(table);
+    anchors.chart = new T.Vector3(-0.6, -1.1, -1);
+    anchors.logbook = new T.Vector3(1.4, -1.0, -0.6);
+
+    // Telegraph repeater on a pedestal.
+    const ped = new T.Group();
+    const column = new T.Mesh(new T.CylinderGeometry(0.22, 0.3, 1.9, 12), dark); column.position.y = -2.05; ped.add(column);
+    const dial = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 0.12, 24), brass); dial.rotation.x = Math.PI / 2 - 0.5; dial.position.y = -1.0; ped.add(dial);
+    const face = new T.Mesh(new T.CircleGeometry(0.42, 24), new T.MeshStandardMaterial({ color: 0x0b1224, roughness: 0.5 })); face.rotation.x = -0.5; face.position.set(0, -0.98, 0.07); ped.add(face);
+    ped.position.set(3.9, 0, 0.6); S.add(ped);
+    anchors.repeater = new T.Vector3(3.9, -0.6, 0.6);
+
+    // A sea chest for the dry dock, and a glass case with a pearl for the articles.
+    const chest = makeChestMesh(wood, brass); chest.scale.setScalar(1.6); chest.position.set(5.4, -3, 1.0); S.add(chest);
+    anchors.drydock = new T.Vector3(5.4, -1.9, 1.0);
+    const caseBase = new T.Mesh(new T.CylinderGeometry(0.45, 0.5, 1.6, 12), dark); caseBase.position.set(-4.8, -2.2, 1.4); S.add(caseBase);
+    const glass = new T.Mesh(new T.CylinderGeometry(0.42, 0.42, 0.9, 16), new T.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, roughness: 0.05, metalness: 0, transmission: 0.6 })); glass.position.set(-4.8, -0.95, 1.4); S.add(glass);
+    const pearl = new T.Mesh(new T.SphereGeometry(0.18, 16, 16), new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.15, emissive: 0xdde8ff, emissiveIntensity: 0.6 })); pearl.position.set(-4.8, -1.1, 1.4); S.add(pearl);
+    anchors.articles = new T.Vector3(-4.8, -0.4, 1.4);
+    anchors.sea = new T.Vector3(0, 1.5, -6);
+
+    // Lights.
+    S.add(new T.AmbientLight(0x3a4a70, 0.5));
+    for (const x of [-7, 7]) { const l = new T.PointLight(0xffd9a0, 18, 12, 1.7); l.position.set(x, 3.0, -3.5); S.add(l); const sconce = new T.Mesh(new T.SphereGeometry(0.07, 10, 10), glow(0xffe2b0, 3)); sconce.position.copy(l.position); S.add(sconce); }
+    const seaLight = new T.DirectionalLight(0x6f9fd8, 0.9); seaLight.position.set(0, 2, -5); seaLight.target.position.set(0, -1, 4); S.add(seaLight, seaLight.target);
+    const cam = new T.PerspectiveCamera(56, 16 / 9, 0.1, 60);
+    cam.position.set(0, 0.2, 9);
+    return { scene: S, camera: cam, anchors, screen: {} };
+  }
+  function makeChestMesh(wood, brass) {
+    const grp = new T.Group();
+    const box = new T.Mesh(new T.BoxGeometry(1.1, 0.55, 0.7), wood); box.position.y = 0.28;
+    const lid = new T.Mesh(new T.CylinderGeometry(0.36, 0.36, 1.1, 12, 1, false, 0, Math.PI), wood); lid.rotation.z = Math.PI / 2; lid.rotation.y = Math.PI; lid.position.set(0, 0.56, 0);
+    for (const x of [-0.35, 0.35]) { const band = new T.Mesh(new T.BoxGeometry(0.1, 0.95, 0.74), brass); band.position.set(x, 0.47, 0); grp.add(band); }
+    grp.add(box, lid);
+    return grp;
+  }
+  function chartTexture() {
+    return canvasTexture(512, 320, (g, w, h) => {
+      g.fillStyle = "#d9c7a0"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "rgba(90, 60, 30, 0.35)"; g.lineWidth = 1;
+      for (let x = 0; x < w; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+      for (let y = 0; y < h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      g.strokeStyle = "#5a3a1a"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(40, 250); g.bezierCurveTo(140, 120, 260, 280, 360, 150); g.bezierCurveTo(400, 100, 440, 120, 470, 70); g.stroke();
+      g.fillStyle = "#5a3a1a"; for (const [x, y] of [[40, 250], [200, 200], [360, 150], [470, 70]]) { g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill(); }
+      g.font = "italic 18px Georgia"; g.fillText("Free Harbor", 50, 240); g.fillText("The Ice", 380, 60);
+      g.strokeStyle = "rgba(90,60,30,0.6)"; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
+    });
+  }
+  function renderSalon(dt) {
+    if (!salon) salon = makeSalon();
+    const cam = salon.camera;
+    cam.aspect = cw / ch;
+    // Narrow screens see the whole room by standing further back.
+    cam.position.z = 9 + Math.max(0, (1.6 - cam.aspect)) * 6;
+    cam.updateProjectionMatrix();
+    cam.position.x = Math.sin(clock * 0.12) * 0.35;
+    cam.position.y = 0.2 + Math.sin(clock * 0.09) * 0.12;
+    cam.lookAt(0, -0.2, -6);
+    // The sea through the windows.
+    renderer.autoClear = true;
+    composer.render(dt);
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(salon.scene, cam);
+    renderer.autoClear = true;
+    for (const [id, v3] of Object.entries(salon.anchors)) {
+      const p = v3.clone().project(cam);
+      salon.screen[id] = { x: (p.x + 1) / 2 * cw, y: (1 - p.y) / 2 * ch, visible: p.z < 1 };
+    }
+  }
+  function anchors() { return salon ? salon.screen : null; }
+
+  return { name: "3d", init, resize, project, unproject, event, render, anchors };
 }

@@ -357,6 +357,113 @@
     ctx.restore();
   }
 
+  // Salvage. A relic is what is left of a threat, a chest lies on the seabed,
+  // and a clam opens only for a ship at rest.
+  function relic(ctx, r, t) {
+    ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(Math.sin(t * 2 + r.id) * 0.3);
+    ctx.globalAlpha = Math.min(1, r.life / 2);
+    ctx.fillStyle = "#c49a55"; ctx.fillRect(-7, -11, 14, 22);
+    ctx.fillStyle = "#3d2b14"; ctx.fillRect(-8, -12, 16, 3); ctx.fillRect(-8, 9, 16, 3);
+    ctx.fillStyle = "#f0d9a0"; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  function chest(ctx, c, t) {
+    ctx.save(); ctx.translate(c.x, c.y);
+    ctx.fillStyle = "#4a3418"; ctx.fillRect(-22, -14, 44, 26);
+    ctx.fillStyle = "#6e522a"; ctx.beginPath(); ctx.moveTo(-22, -14); ctx.quadraticCurveTo(0, -30, 22, -14); ctx.lineTo(22, -8); ctx.lineTo(-22, -8); ctx.fill();
+    ctx.fillStyle = "#c49a55"; ctx.fillRect(-14, -26, 4, 38); ctx.fillRect(10, -26, 4, 38); ctx.fillRect(-4, -10, 8, 8);
+    const g = (Math.sin(t * 3) + 1) * 0.5;
+    ctx.strokeStyle = `rgba(240, 217, 160, ${0.25 + g * 0.5})`; ctx.lineWidth = 2; ctx.strokeRect(-23, -15, 46, 28);
+    ctx.restore();
+  }
+  function clam(ctx, cl, t) {
+    ctx.save(); ctx.translate(cl.x, cl.y);
+    const open = cl.done ? 0.9 : cl.open * 0.9;
+    const shell = (flip) => {
+      ctx.save(); ctx.scale(1, flip ? -1 : 1);
+      const grad = ctx.createLinearGradient(0, -26, 0, 0); grad.addColorStop(0, "#8fb0c8"); grad.addColorStop(1, "#3f5f78");
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(-36, 0);
+      for (let i = 0; i <= 12; i++) { const a = Math.PI + (i / 12) * Math.PI; const rr = 36 - (i % 2) * 3; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * 26 * (rr / 36)); }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(20, 40, 60, 0.6)"; ctx.lineWidth = 1.5;
+      for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(Math.PI + (i / 6) * Math.PI) * 34, Math.sin(Math.PI + (i / 6) * Math.PI) * 24); ctx.stroke(); }
+      ctx.restore();
+    };
+    shell(true);
+    if (!cl.done) {
+      ctx.save(); ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createRadialGradient(0, -6, 2, 0, -6, 18); g.addColorStop(0, `rgba(255,255,255,${0.6 * open + 0.1})`); g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, -6, 18, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.fillStyle = "#f4f6fb"; ctx.beginPath(); ctx.arc(0, -6, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.save(); ctx.translate(-36, 0); ctx.rotate(-open * 1.1); ctx.translate(36, 0); shell(false); ctx.restore();
+    if (!cl.done && open > 0.02) { ctx.fillStyle = "#c9d0dc"; ctx.font = "600 10px sans-serif"; ctx.textAlign = "center"; ctx.fillText("HOLD STILL", 0, 44); }
+    ctx.restore();
+  }
+
+  // The salon in two dimensions. Drawn over the sea, with two oval windows
+  // cut from the back wall so the sea shows through. Anchors are in world
+  // coordinates for the hub tags.
+  const SALON_ANCHORS = { sea: [640, 250], library: [120, 300], organ: [1160, 300], chart: [560, 560], logbook: [760, 540], repeater: [940, 470], drydock: [1180, 600], articles: [250, 600] };
+  function salon(ctx, W, H, t) {
+    // Back wall with windows.
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, H);
+    for (const wx of [380, 900]) ctx.ellipse(wx, 250, 190, 125, 0, 0, Math.PI * 2, true);
+    const wall = ctx.createLinearGradient(0, 0, 0, H); wall.addColorStop(0, "#1a1109"); wall.addColorStop(0.55, "#2a1a0e"); wall.addColorStop(1, "#140c06");
+    ctx.fillStyle = wall; ctx.fill("evenodd");
+    ctx.restore();
+    // Panel lines and ribs.
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 3;
+    for (let x = 60; x < W; x += 160) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 400); ctx.stroke(); }
+    ctx.fillStyle = "#3b2614"; ctx.fillRect(0, 0, W, 18);
+    // Window frames with rivets.
+    for (const wx of [380, 900]) {
+      ctx.strokeStyle = "#c49a55"; ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(wx, 250, 196, 131, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "#3d2b14"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(wx, 250, 202, 137, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#f0d9a0";
+      for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; ctx.beginPath(); ctx.arc(wx + Math.cos(a) * 199, 250 + Math.sin(a) * 134, 3, 0, Math.PI * 2); ctx.fill(); }
+    }
+    // Floor.
+    const floor = ctx.createLinearGradient(0, 420, 0, H); floor.addColorStop(0, "#4a3418"); floor.addColorStop(1, "#1f1408");
+    ctx.fillStyle = floor; ctx.fillRect(0, 420, W, H - 420);
+    ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) { const y = 420 + i * i * 2.2; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    // Library, left.
+    ctx.fillStyle = "#2a1a0e"; ctx.fillRect(20, 120, 210, 330);
+    const spines = ["#5a2b1a", "#2f4a3a", "#3b3a6a", "#6a4a1a", "#4a2a4a", "#2a3a5a", "#7a5a2a"];
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let shelf = 0; shelf < 4; shelf++) {
+      const y = 200 + shelf * 78;
+      ctx.fillStyle = "#6e522a"; ctx.fillRect(28, y, 194, 6);
+      let x = 32;
+      while (x < 214) { const w = 10 + rnd() * 14, h = 40 + rnd() * 26; ctx.fillStyle = spines[Math.floor(rnd() * spines.length)]; ctx.fillRect(x, y - h, w, h); ctx.fillStyle = "#c49a55"; ctx.fillRect(x + w / 2 - 1, y - h * 0.7, 2, h * 0.3); x += w + 2; }
+    }
+    // Chart table, center.
+    ctx.fillStyle = "#3b2614"; ctx.fillRect(420, 500, 420, 18);
+    ctx.fillStyle = "#2a1a0e"; for (const lx of [440, 820]) ctx.fillRect(lx, 518, 12, 120);
+    ctx.fillStyle = "#d9c7a0"; ctx.fillRect(470, 470, 260, 40);
+    ctx.strokeStyle = "#5a3a1a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(490, 500); ctx.bezierCurveTo(560, 470, 640, 505, 710, 478); ctx.stroke();
+    ctx.fillStyle = "#4a1f1a"; ctx.fillRect(740, 478, 70, 26); ctx.fillStyle = "#c49a55"; ctx.fillRect(800, 480, 6, 22);
+    // Lamp.
+    ctx.fillStyle = "#2a4a3a"; ctx.beginPath(); ctx.moveTo(600, 380); ctx.lineTo(660, 380); ctx.lineTo(690, 420); ctx.lineTo(570, 420); ctx.fill();
+    ctx.save(); ctx.globalCompositeOperation = "lighter"; const lg = ctx.createRadialGradient(630, 425, 5, 630, 425, 160); lg.addColorStop(0, "rgba(255,220,160,0.35)"); lg.addColorStop(1, "rgba(255,220,160,0)"); ctx.fillStyle = lg; ctx.fillRect(430, 380, 400, 260); ctx.restore();
+    // Organ, right.
+    ctx.fillStyle = "#2a1a0e"; ctx.fillRect(1060, 330, 200, 130);
+    for (let i = 0; i < 9; i++) { const h = 120 + Math.abs(4 - i) * 22; ctx.fillStyle = "#b9c3d6"; ctx.fillRect(1075 + i * 20, 330 - h, 12, h); ctx.fillStyle = "#c49a55"; ctx.fillRect(1073 + i * 20, 330 - h - 6, 16, 6); }
+    ctx.fillStyle = "#e8dfc8"; ctx.fillRect(1070, 340, 180, 10);
+    // Repeater pedestal.
+    ctx.fillStyle = "#3d2b14"; ctx.fillRect(925, 480, 30, 150);
+    ctx.fillStyle = "#c49a55"; ctx.beginPath(); ctx.arc(940, 470, 34, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#0b1224"; ctx.beginPath(); ctx.arc(940, 470, 26, 0, Math.PI * 2); ctx.fill();
+    // Dry dock chest and the pearl case.
+    chest(ctx, { x: 1180, y: 610 }, t);
+    ctx.fillStyle = "#3d2b14"; ctx.fillRect(235, 560, 30, 110);
+    ctx.fillStyle = "rgba(200, 220, 255, 0.18)"; ctx.fillRect(228, 500, 44, 60); ctx.strokeStyle = "rgba(200,220,255,0.4)"; ctx.strokeRect(228, 500, 44, 60);
+    ctx.fillStyle = "#f4f6fb"; ctx.beginPath(); ctx.arc(250, 535, 8, 0, Math.PI * 2); ctx.fill();
+    void SALON_ANCHORS;
+  }
+
   function harpoon(ctx, h, fromX, fromY) {
     ctx.strokeStyle = "rgba(200, 180, 140, 0.55)"; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
     ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(h.x, h.y); ctx.stroke(); ctx.setLineDash([]);
@@ -425,6 +532,6 @@
     ctx.restore();
   }
 
-  const api = { SKINS, PENNANTS, buildLayers, background, snow, sub, airship, payload, gear, harpoon, gauge, telegraph };
+  const api = { SKINS, PENNANTS, SALON_ANCHORS, buildLayers, background, snow, sub, airship, payload, gear, relic, chest, clam, salon, harpoon, gauge, telegraph };
   root.NautilusArt = api;
 })(window);

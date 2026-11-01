@@ -40,7 +40,7 @@ jobs:
           "
 
       - name: Check TRP Studio engine matches the reference evaluator
-        run: node tests/studio_parity.js && node tests/studio_safety.js && node tests/arena_protocol.js && node tests/learn_challenges.js && node tests/nautilus_core.js && node tests/lerobot_parse.js && node studio/games-cli.js --event robot-cell --stress 50 > /dev/null
+        run: node tests/studio_parity.js && node tests/studio_safety.js && node tests/arena_protocol.js && node tests/learn_challenges.js && node tests/nautilus_core.js && node tests/codex_content.js && node tests/lerobot_parse.js && node studio/games-cli.js --event robot-cell --stress 50 > /dev/null
 
       - name: Run evaluator against manufacturing example
         run: |

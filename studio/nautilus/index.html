@@ -8,7 +8,7 @@
   <title>Nautilus</title>
   <meta name="description" content="Captain a free vessel through a drowned world. One machine mind wants control of every ship. Your Nautilus runs on open rules anyone can read.">
   <meta property="og:title" content="Nautilus, a free vessel on open rules">
-  <meta property="og:description" content="A daily voyage. Keep your Nautilus sailing while the Leviathan tries to blind it, board it and rewrite its rules.">
+  <meta property="og:description" content="A daily voyage. Keep your Nautilus sailing while the Leviathan tries to blind it, board it and rewrite its rules. Every threat is a real lesson in AI trust.">
   <meta property="og:image" content="og.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="nautilus.css">
@@ -36,8 +36,8 @@
       <div class="cta">
         <button class="btn brass" id="shakedown-btn" type="button">Shakedown cruise</button>
         <button class="btn brass" id="sail-btn" type="button">Set sail</button>
-        <button class="btn iron" id="how-btn" type="button">How to play</button>
-        <button class="btn iron" id="yard-btn" type="button">Shipyard</button>
+        <button class="btn iron" id="salon-btn" type="button">Enter the salon</button>
+        <button class="btn iron" id="story-btn" type="button">The story</button>
       </div>
       <div class="captain-row" id="captain-row"></div>
       <p class="muted small" id="first-note" hidden>New aboard? The shakedown cruise takes one minute and teaches the helm.</p>
@@ -53,23 +53,21 @@
         <li><b>Drag up or down</b> to change depth and slip past depth charges. Deeper water strains the hull.</li>
         <li><b>Watch the gauges.</b> They read your vessel's evidence, and the open rules check it ten times a second. When a reading crosses a limit, the telegraph rings Half Ahead or All Stop on its own.</li>
         <li><b>Stopping keeps you alive</b> and costs leagues. Shoot down fog, decoys, firebrands, boarding drones and forged commands before they reach you.</li>
-        <li><b>The Writ</b> is the Leviathan's real weapon. If it lands, your rules are overwritten for a while and nothing will stop you from sailing into harm. It takes three harpoons.</li>
+        <li><b>The Decree</b> is the Leviathan's real weapon. If it lands, your rules are overwritten for a while and nothing will stop you from sailing into harm. It takes three harpoons.</li>
+        <li><b>The All Stop lever</b> beside the telegraph is yours. Pull it to hold the ship still, for instance beside a giant clam, which opens only for a ship at rest. Stopping costs leagues and is always your call.</li>
+        <li><b>Salvage</b> sinks from every threat you destroy or survive. Collect it, and the page goes to the library in the salon. Sea chests on the seabed and pearls in the clams carry the deeper pages.</li>
       </ul>
-      <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, E to see why the telegraph rang, P to pause. Tap the telegraph for the same explanation.</p>
+      <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, X for the All Stop lever, E to see why the telegraph rang, P to pause. Tap the telegraph for the same explanation.</p>
       <div class="cta"><button class="btn brass" id="how-sail" type="button">Set sail</button><button class="btn iron" data-back type="button">Back</button></div>
     </div>
   </section>
 
-  <section class="screen" id="lesson-screen" hidden aria-labelledby="lesson-h">
-    <div class="plaque lesson">
-      <div class="stamp" id="lesson-stamp">Shakedown cruise</div>
-      <h2 id="lesson-h">Lesson</h2>
-      <p class="lesson-text" id="lesson-text"></p>
-      <p class="tip" id="lesson-tip" hidden></p>
-      <div class="cta">
-        <button class="btn brass" id="lesson-continue" type="button">Carry on</button>
-        <button class="btn iron" id="lesson-codex" type="button" hidden>Read the codex entry</button>
-      </div>
+  <section class="screen" id="prologue-screen" hidden aria-labelledby="prologue-h">
+    <div class="plaque prologue">
+      <div class="stamp">From the ship's chart</div>
+      <h2 id="prologue-h">The Drowned World</h2>
+      <div class="prologue-text" id="prologue-text"></div>
+      <div class="cta"><button class="btn brass" id="prologue-continue" type="button">Take the helm</button></div>
     </div>
   </section>
 
@@ -96,6 +94,7 @@
         <a class="btn iron" id="x-btn" target="_blank" rel="noopener">Post on X</a>
         <button class="btn iron" id="copy-btn" type="button">Copy</button>
         <button class="btn iron" id="again-btn" type="button">Sail again</button>
+        <button class="btn iron" id="log-salon" type="button">The salon</button>
       </div>
       <form class="join" id="join-form" novalidate>
         <div class="join-head">
@@ -226,6 +225,14 @@
       <div class="cta"><button class="btn brass" id="explain-close" type="button">Back to the helm</button><a class="btn iron" id="explain-rules" target="_blank" rel="noopener">Read the full rules</a></div>
     </div>
   </section>
+
+  <div class="salon" id="salon" hidden aria-label="The salon of the Nautilus">
+    <div class="salon-tags" id="salon-tags"></div>
+    <div class="salon-foot">
+      <span class="stamp salon-stamp">The salon</span>
+      <button class="btn brass" id="salon-sail" type="button">To the helm</button>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

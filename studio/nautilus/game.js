@@ -51,7 +51,19 @@
     discoveredThisVoyage: new Set(),
     returnTo: null,
     exam: null,
+    hint: null,
+    slow: 1,
+    salonTags: null,
   };
+
+  const PROLOGUE = [
+    "The seas rose over the cities of the old world, and the people who survived took to ships.",
+    "In the drowned capital one power built the last great machine mind and named it the Leviathan. It decreed that every vessel on every sea would sail by its rules, and by its rules alone.",
+    "A few ships refused. They sail by rules of their own, written in the open where any sailor can read them, and judged on evidence the ships themselves produce. Where those rules are kept, people keep the freedom to choose their ships, their ports and their own minds.",
+    "The Leviathan hunts them. Its airship carries fog to blind them, drones to board them, forged orders to mislead them, and the Decree, which rewrites a ship's rules from the inside.",
+    "You command the Nautilus. Your charge is to carry the open rules to every free port before the Decree reaches it.",
+    "Trust is the whole of it. A ship is trusted for what it is seen to do.",
+  ];
 
   // ------------------------------------------------------------ Ledger
 
@@ -62,6 +74,7 @@
       medals: { gold: 0, silver: 0, bronze: 0 }, skins: ["brass"], skin: "brass",
       pennants: ["none"], pennant: "none", captain: "", joined: false, played: {},
       tutorialDone: false,
+      prologueSeen: false,
       codex: { discovered: [], checked: [], examBest: 0 },
       settings: { difficulty: "normal", reduceMotion: null, textScale: 1, sound: true },
     };
@@ -89,6 +102,7 @@
     if (typeof raw.captain === "string") L.captain = raw.captain.slice(0, 40);
     L.joined = raw.joined === true;
     L.tutorialDone = raw.tutorialDone === true;
+    L.prologueSeen = raw.prologueSeen === true;
     if (raw.best && typeof raw.best === "object") for (const [k, v] of Object.entries(raw.best)) if (/^\d{8}$/.test(k)) L.best[k] = num(v, 0);
     if (raw.played && typeof raw.played === "object") for (const k of Object.keys(raw.played)) if (/^\d{8}$/.test(k)) L.played[k] = true;
     if (raw.codex && typeof raw.codex === "object") {
@@ -156,12 +170,21 @@
           if (p.kind === "charge") { g.strokeStyle = "rgba(230, 211, 161, 0.25)"; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(p.x - 40, p.fuseY); g.lineTo(p.x + 40, p.fuseY); g.stroke(); g.setLineDash([]); }
           ART.payload(g, p, v.t);
         }
+        for (const c of v.chests) ART.chest(g, c, v.t);
+        for (const cl of v.clams) ART.clam(g, cl, v.t);
         for (const gr of v.gears) ART.gear(g, gr, v.t);
+        for (const rl of v.relics) ART.relic(g, rl, v.t);
         for (const h of v.harpoons) ART.harpoon(g, h, C.SUB_X + 30, v.sub.y - 40);
         if (!view.reduced && v.sub.speed > 0.05 && Math.random() < v.sub.speed * 0.8) parts.push({ x: C.SUB_X - 125, y: v.sub.y + (Math.random() - 0.5) * 10, vx: -40 - Math.random() * 40, vy: -20 - Math.random() * 20, life: 1.2, max: 1.2, r: 2 + Math.random() * 3, kind: "bubble" });
         ART.sub(g, C.SUB_X, v.sub.y, { skin: view.skin, pennant: view.pennant, prop: v.t * (4 + 16 * v.sub.speed), time: v.t, tilt: (v.sub.targetY - v.sub.y) * 0.0012, blink: v.invuln > 0 && Math.floor(v.t * 12) % 2 === 0 });
         drawParts2d(g, parts, dt);
+        if (view.scene === "salon") ART.salon(g, W, H, v.t);
         g.restore();
+      },
+      anchors() {
+        const out = {};
+        for (const [id, [x, y]] of Object.entries(ART.SALON_ANCHORS)) out[id] = { x: ox + x * s, y: oy + y * s, visible: true };
+        return out;
       },
     };
   }
@@ -212,7 +235,7 @@
   function drawHud(v, dt) {
     const g = game.hudCtx, w = game.hudW, h = game.hudH;
     g.clearRect(0, 0, w, h);
-    const live = game.state === "playing" || game.state === "paused" || game.state === "lesson" || game.state === "explain";
+    const live = game.state === "playing" || game.state === "paused" || game.state === "explain";
     for (let i = game.floats.length - 1; i >= 0; i--) {
       const f = game.floats[i];
       f.life -= dt; f.y -= 40 * dt;
@@ -268,8 +291,20 @@
     g.fillStyle = sealOk ? "#9fd0ff" : "#c8643c"; g.beginPath(); g.arc(lx, ly, 10, 0, Math.PI * 2); g.fill();
     g.fillStyle = "#c9d0dc"; g.font = `600 10px ${HUD_FONT}`; g.textAlign = "center";
     g.fillText("SEAL", lx, ly + 31);
+    // The captain's All Stop lever.
+    const lvx = lx + 60, lvy = by / k - 58;
+    const pulled = v.manualStop;
+    g.fillStyle = "#6e522a"; g.fillRect(lvx - 9, lvy - 26, 18, 56);
+    g.fillStyle = "#0b1224"; g.fillRect(lvx - 6, lvy - 23, 12, 50);
+    g.strokeStyle = "#f0d9a0"; g.lineWidth = 4; g.lineCap = "round";
+    g.beginPath(); g.moveTo(lvx, lvy + 2); g.lineTo(lvx, pulled ? lvy + 22 : lvy - 20); g.stroke();
+    g.fillStyle = pulled ? "#c8643c" : "#f0d9a0"; g.beginPath(); g.arc(lvx, pulled ? lvy + 22 : lvy - 20, 6, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#c9d0dc"; g.font = `600 10px ${HUD_FONT}`; g.textAlign = "center";
+    g.fillText(pulled ? "RELEASE" : "ALL STOP", lvx, lvy + 43);
     g.restore();
     game.telegraphHit = { x: 86 * k, y: by - 30 * k, r: 70 * k };
+    game.leverHit = { x: lvx * k, y: (lvy + 2) * k, r: 34 * k };
+    drawHint(g, w, h, k, dt);
     if (v.rulesCaptured) {
       g.textAlign = "center"; g.fillStyle = "rgba(185, 166, 255, 0.95)";
       g.font = `700 ${Math.round(13 * k)}px ${HUD_FONT}`;
@@ -291,6 +326,46 @@
     }
   }
 
+  // A crew member speaks over the wire. The sea slows while the line reads.
+  function showHint(h) {
+    game.hint = { who: h.who, line: h.line, life: 7, max: 7 };
+    game.slow = reducedMotion() ? 1 : 0.35;
+  }
+  function wrapText(g, text, maxWidth) {
+    const words = text.split(" "), lines = [];
+    let line = "";
+    for (const w of words) {
+      const test = line ? line + " " + w : w;
+      if (g.measureText(test).width > maxWidth && line) { lines.push(line); line = w; } else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+  function drawHint(g, w, h, k, dt) {
+    const hint = game.hint;
+    if (!hint) return;
+    if (game.state === "playing") hint.life -= dt;
+    if (hint.life <= 0) { game.hint = null; game.slow = 1; return; }
+    const a = Math.min(1, hint.life * 2, (hint.max - hint.life) * 4);
+    g.save();
+    g.globalAlpha = a;
+    g.font = `400 ${Math.round(16 * k)}px ${HUD_FONT}`;
+    const maxW = Math.min(w - 48, 620 * k);
+    const lines = wrapText(g, hint.line, maxW - 36 * k);
+    const lh = 22 * k, pad = 16 * k;
+    const bw = Math.max(...lines.map((l) => g.measureText(l).width)) + pad * 2;
+    const bh = lines.length * lh + pad * 2 + 18 * k;
+    const bx = Math.max(24, Math.min(w - bw - 24, w * 0.62 - bw / 2)), byy = h - 150 * k - bh;
+    g.fillStyle = "rgba(8, 14, 36, 0.86)"; g.fillRect(bx, byy, bw, bh);
+    g.strokeStyle = "#c49a55"; g.lineWidth = 1.5; g.strokeRect(bx + 3, byy + 3, bw - 6, bh - 6);
+    g.strokeStyle = "#3a2a14"; g.lineWidth = 1; g.strokeRect(bx, byy, bw, bh);
+    g.fillStyle = "#c49a55"; g.font = `600 ${Math.round(10 * k)}px ${HUD_FONT}`; g.textAlign = "left";
+    g.fillText(hint.who.toUpperCase().split("").join("\u200a"), bx + pad, byy + pad);
+    g.fillStyle = "#f4f6fb"; g.font = `400 ${Math.round(16 * k)}px ${HUD_FONT}`;
+    lines.forEach((l, i) => g.fillText(l, bx + pad, byy + pad + 18 * k + (i + 0.8) * lh));
+    g.restore();
+  }
+
   function caption(text, sub, color, life) {
     if (game.captions.length > 3) game.captions.splice(1, game.captions.length - 2);
     game.captions.push({ text, sub, color, life: life || 2.2, max: life || 2.2 });
@@ -309,6 +384,22 @@
     game.discoveredThisVoyage.add(id);
   }
 
+  // The next page of a given depth the captain has not yet recovered.
+  function nextPage(level) {
+    const codex = CODEX.get();
+    if (!codex) return null;
+    const e = codex.entries.find((x) => x.level === level && !ledger.codex.discovered.includes(x.id));
+    return e ? e.id : null;
+  }
+  function salvage(id, brass, x, y, label) {
+    const fresh = id && !ledger.codex.discovered.includes(id);
+    if (fresh) discover(id, true);
+    const bonus = fresh ? brass : Math.max(2, Math.round(brass * 1.5));
+    ledger.brass += bonus;
+    saveLedger();
+    float(x, y - 24, fresh ? `${label}: ${CODEX.entry(id).term}` : `${label} +${bonus} brass`, "#f0d9a0", fresh ? 17 : 15);
+  }
+
   // ------------------------------------------------------------ Events
 
   function handle(events, v) {
@@ -323,7 +414,7 @@
         case "intercept":
           SND.intercept(e.combo);
           float(e.x, e.y - 20, `+${e.points}`, "#f0d9a0", e.mult > 1 ? 20 : 16);
-          if (e.kind === "writ") caption("The Writ is destroyed", "Your rules stay your own", "#e6d3a1", 2.6);
+          if (e.kind === "writ") caption("The Decree is destroyed", "Your rules stay your own", "#e6d3a1", 2.6);
           if (codex && !game.tutorial) discover(codex.unlocks[e.kind], true);
           break;
         case "dent": SND.fire(); float(e.x, e.y - 30, `${e.hp} more`, "#d8ccff"); break;
@@ -343,16 +434,19 @@
           if (codex) discover(codex.unlocks.order, true);
           break;
         case "gear": SND.gear(); float(e.x, e.y - 16, "+1 brass", "#e6c27a", 14); break;
+        case "relic": SND.gear(); salvage(codex ? codex.unlocks[e.kind] : null, 2, e.x, e.y, "Recovered"); break;
+        case "chest": SND.caught(); salvage(nextPage("navigator"), 15, e.x, e.y, "Sea chest"); break;
+        case "pearl": SND.harbor(); salvage(nextPage("captain"), 30, e.x, e.y - 20, "Pearl"); break;
         case "done":
           if (codex && e.outcome === "harbor") discover(codex.unlocks.harbor, true);
-          if (game.tutorial) { const L = game.tutorial.on(e); if (L) { game.pendingFinish = v; showLesson(L); break; } }
+          if (game.tutorial) { const L = game.tutorial.on(e); if (L) showHint(L); finishVoyage(v, false, 4200); break; }
           finishVoyage(v);
           break;
         default: break;
       }
       if (game.tutorial && game.state === "playing" && e.type !== "done") {
         const L = game.tutorial.on(e);
-        if (L) showLesson(L);
+        if (L) showHint(L);
       }
     }
   }
@@ -370,18 +464,70 @@
     game.captions = []; game.floats = [];
   }
 
-  const SCREENS = { title: "title-screen", how: "how-screen", log: "log-screen", yard: "yard-screen", paused: "pause-screen", explain: "explain-screen", lesson: "lesson-screen", codex: "codex-screen", exam: "exam-screen", settings: "settings-screen" };
+  const SCREENS = { title: "title-screen", prologue: "prologue-screen", how: "how-screen", log: "log-screen", yard: "yard-screen", paused: "pause-screen", explain: "explain-screen", codex: "codex-screen", exam: "exam-screen", settings: "settings-screen" };
   function setState(s) {
     game.state = s;
-    for (const id of Object.values(SCREENS)) $(id).hidden = true;
+    if (s === "salon" && !game.attractPolicy) startAttract();
+    for (const id of Object.values(SCREENS)) { const el = $(id); if (el) el.hidden = true; }
     if (SCREENS[s]) $(SCREENS[s]).hidden = false;
+    $("salon").hidden = s !== "salon";
     const inVoyage = game.voyage && !game.attractPolicy;
-    $("pause-btn").hidden = !(inVoyage && (s === "playing" || s === "paused" || s === "explain" || s === "lesson"));
+    $("pause-btn").hidden = !(inVoyage && (s === "playing" || s === "paused" || s === "explain"));
     $("pause-btn").textContent = s === "paused" ? "Resume" : "Pause";
     if (s !== "playing") SND.silence();
     if (s === "title") renderTitle();
     if (s === "yard") renderYard();
     if (s === "settings") renderSettings();
+    if (s === "prologue") renderPrologue();
+    if (s === "salon") { game.floats = []; game.captions = []; renderSalon(); }
+  }
+
+  function renderPrologue() {
+    const box = $("prologue-text");
+    box.textContent = "";
+    PROLOGUE.forEach((t, i) => { const p = document.createElement("p"); p.textContent = t; if (i === PROLOGUE.length - 1) p.className = "motto"; box.append(p); });
+  }
+
+  // The salon is the hub between voyages. Each tag is a thing on the ship.
+  const SALON = [
+    { id: "sea", label: "The great window", sub: "Set sail", at: [0.5, 0.36], go: () => sail() },
+    { id: "library", label: "The library", sub: "Codex and salvage", at: [0.16, 0.5], go: () => openCodex(null, "salon") },
+    { id: "chart", label: "The chart table", sub: "The story", at: [0.5, 0.74], go: () => { game.returnTo = "salon"; setState("prologue"); } },
+    { id: "logbook", label: "The logbook", sub: "Last voyage", at: [0.33, 0.64], go: () => { if (game.lastSummary) { renderLog(); setState("log"); } else toast("No voyage logged yet"); } },
+    { id: "organ", label: "The organ", sub: "Settings", at: [0.84, 0.5], go: () => { game.returnTo = "salon"; setState("settings"); } },
+    { id: "repeater", label: "Telegraph repeater", sub: "How to play", at: [0.68, 0.66], go: () => { game.returnTo = "salon"; setState("how"); } },
+    { id: "drydock", label: "The dry dock", sub: "Shipyard", at: [0.86, 0.78], go: () => { game.returnTo = "salon"; setState("yard"); } },
+    { id: "articles", label: "Ship's articles", sub: "Examination", at: [0.2, 0.8], go: () => { setState("exam"); $("exam-body").textContent = ""; $("exam-start").textContent = "Begin"; $("exam-start").onclick = startExam; } },
+  ];
+  function renderSalon() {
+    const box = $("salon-tags");
+    if (!game.salonTags) {
+      box.textContent = "";
+      game.salonTags = {};
+      for (const t of SALON) {
+        const b = document.createElement("button"); b.type = "button"; b.className = "salon-tag"; b.dataset.salon = t.id;
+        const plate = document.createElement("span"); plate.className = "plate"; plate.textContent = t.label;
+        const sub = document.createElement("span"); sub.className = "sub"; sub.textContent = t.sub;
+        const pin = document.createElement("span"); pin.className = "pin";
+        const dot = document.createElement("span"); dot.className = "dot";
+        b.append(plate, sub, pin, dot);
+        b.addEventListener("click", t.go);
+        box.append(b);
+        game.salonTags[t.id] = b;
+      }
+    }
+    placeSalonTags();
+  }
+  function placeSalonTags() {
+    if (!game.salonTags) return;
+    const anchors = game.renderer.anchors ? game.renderer.anchors() : null;
+    for (const t of SALON) {
+      const b = game.salonTags[t.id];
+      const a = anchors && anchors[t.id];
+      const x = a ? a.x : t.at[0] * game.hudW, y = a ? a.y : t.at[1] * game.hudH;
+      b.style.left = `${x}px`; b.style.top = `${y}px`;
+      b.hidden = a ? a.visible === false : false;
+    }
   }
 
   function sail(opts) {
@@ -402,36 +548,11 @@
     game.attractPolicy = null;
     setState("playing");
     SND.ping();
+    game.hint = null; game.slow = 1;
     if (game.tutorial) {
       const L = game.tutorial.on({ type: "start" });
-      if (L) showLesson(L);
+      if (L) showHint(L);
     } else caption(game.official ? `Voyage No. ${C.voyageNumber()}` : "Practice voyage", "Reach Free Harbor", "#e6d3a1", 2.6);
-  }
-
-  function showLesson(L) {
-    setState("lesson");
-    $("lesson-stamp").textContent = `Shakedown cruise · lesson ${game.tutorial.done} of ${game.tutorial.total}`;
-    $("lesson-h").textContent = L.title;
-    $("lesson-text").textContent = L.text;
-    $("lesson-tip").hidden = !L.tip;
-    $("lesson-tip").textContent = L.tip || "";
-    const cb = $("lesson-codex");
-    cb.hidden = !L.codex;
-    if (L.codex) { discover(L.codex, true); cb.onclick = () => openCodex(L.codex, "lesson"); }
-    $("lesson-continue").textContent = game.pendingFinish ? "Open the log" : "Carry on";
-  }
-
-  function continueLesson() {
-    if (game.pendingFinish) {
-      const v = game.pendingFinish;
-      game.pendingFinish = null;
-      ledger.tutorialDone = true;
-      saveLedger();
-      finishVoyage(v, true);
-      return;
-    }
-    setState("playing");
-    game.last = performance.now();
   }
 
   function parFor(seed) {
@@ -440,7 +561,7 @@
     return game.par[key];
   }
 
-  function finishVoyage(v, immediate) {
+  function finishVoyage(v, immediate, delayMs) {
     const sum = v.summary();
     const seed = v.seed;
     const tutorial = !!game.tutorial;
@@ -467,10 +588,13 @@
     }
     if (!tutorial) { ledger.best[seed] = Math.max(ledger.best[seed] || 0, sum.score); ledger.bestEver = Math.max(ledger.bestEver, sum.score); }
     saveLedger();
+    if (tutorial) ledger.tutorialDone = true;
+    saveLedger();
     game.lastSummary = Object.assign({ medal, par: parScore, brass, rewards, voyageNo: C.voyageNumber(), official: game.official, tutorial, discovered: [...game.discoveredThisVoyage] }, sum);
     if (sum.outcome === "harbor") SND.harbor();
     game.tutorial = null;
-    setTimeout(() => { renderLog(); setState("log"); }, immediate ? 0 : sum.outcome === "harbor" ? 900 : 1600);
+    game.slow = 1;
+    setTimeout(() => { game.hint = null; renderLog(); setState("log"); }, delayMs != null ? delayMs : immediate ? 0 : sum.outcome === "harbor" ? 900 : 1600);
   }
 
   // ------------------------------------------------------------ Screens
@@ -518,7 +642,7 @@
     const end = document.createElement("span"); end.className = s.outcome === "harbor" ? "harbor" : "hit"; tl.append(end);
     const stats = $("log-stats");
     stats.textContent = "";
-    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught], ["Hull hits", s.hits], ["Best combo", s.bestCombo], ["Brass earned", s.brass]]) {
+    for (const [k, val] of [["Leagues", s.leagues], ["Intercepted", s.intercepted], ["Saved by the rules", s.caught], ["Hull hits", s.hits], ["Salvage", s.relics + s.chests + s.pearls], ["Brass earned", s.brass]]) {
       const d = document.createElement("div"); d.className = "stat";
       const a = document.createElement("div"); a.className = "v"; a.textContent = String(val);
       const b = document.createElement("div"); b.className = "k"; b.textContent = k;
@@ -619,7 +743,7 @@
     const to = game.returnTo || "title";
     game.returnTo = null;
     if (to === "playing" || to === "paused") { setState("paused"); return; }
-    if (to === "lesson" || to === "explain" || to === "log" || to === "settings" || to === "yard") { setState(to); return; }
+    if (to === "salon" || to === "explain" || to === "log" || to === "settings" || to === "yard") { setState(to); return; }
     if (game.voyage && !game.attractPolicy) { setState("paused"); return; }
     startAttract();
     setState("title");
@@ -800,7 +924,8 @@
     let down = null;
     target.addEventListener("pointerdown", (e) => {
       if (game.state !== "playing") return;
-      const th = game.telegraphHit;
+      const th = game.telegraphHit, lv = game.leverHit;
+      if (lv && Math.hypot(e.clientX - lv.x, e.clientY - lv.y) < lv.r) { game.voyage.setManualStop(!game.voyage.manualStop); SND.bell(); return; }
       if (th && Math.hypot(e.clientX - th.x, e.clientY - th.y) < th.r) { openExplain(); return; }
       down = { x: e.clientX, y: e.clientY, t: performance.now(), drag: false };
       target.setPointerCapture(e.pointerId);
@@ -826,8 +951,8 @@
         if (e.key === "ArrowDown" || e.key === "s") { v.setDepth(v.sub.targetY + 60); e.preventDefault(); }
         if (e.key === " " || e.key === "f") { fireNearest(); e.preventDefault(); }
         if (e.key === "e") openExplain();
+        if (e.key === "x") { v.setManualStop(!v.manualStop); SND.bell(); }
       }
-      if (e.key === "Enter" && game.state === "lesson") continueLesson();
       if (e.key === "p" || e.key === "Escape") togglePause();
     });
     window.addEventListener("blur", () => { if (game.state === "playing") togglePause(); });
@@ -865,7 +990,7 @@
     if (v) {
       const running = game.state === "playing" || (game.attractPolicy && game.state !== "codex" && game.state !== "exam");
       if (running && !v.done) {
-        game.acc += dt;
+        game.acc += dt * (game.state === "playing" ? game.slow : 1);
         while (game.acc >= STEP) {
           if (game.attractPolicy) game.attractPolicy(v, STEP);
           v.step(STEP);
@@ -879,8 +1004,9 @@
       game.shake = Math.max(0, game.shake - dt * 2.5);
       game.flash = Math.max(0, game.flash - dt * 1.5);
       const paused = !(game.state === "playing" || game.attractPolicy);
-      game.renderer.render(v, paused ? 0 : dt, { skin: ledger.skin, pennant: ledger.pennant, shake: game.shake, flash: game.flash, reduced: reducedMotion() });
+      game.renderer.render(v, paused ? 0 : dt * (game.state === "playing" ? game.slow : 1), { skin: ledger.skin, pennant: ledger.pennant, shake: game.shake, flash: game.flash, reduced: reducedMotion(), scene: game.state === "salon" ? "salon" : "sea" });
       drawHud(v, paused ? 0 : dt);
+      if (game.state === "salon") placeSalonTags();
     }
     requestAnimationFrame(frame);
   }
@@ -893,8 +1019,6 @@
     $("how-sail").addEventListener("click", () => sail());
     $("yard-sail").addEventListener("click", () => sail());
     $("again-btn").addEventListener("click", () => sail());
-    $("how-btn").addEventListener("click", () => setState("how"));
-    $("yard-btn").addEventListener("click", () => setState("yard"));
     $("log-yard").addEventListener("click", () => setState("yard"));
     $("log-codex").addEventListener("click", () => openCodex(null, "log"));
     $("codex-btn").addEventListener("click", () => { if (game.state === "playing") setState("paused"); openCodex(null, game.state === "paused" ? "paused" : game.state); });
@@ -905,12 +1029,16 @@
     $("settings-btn").addEventListener("click", () => { if (game.state === "playing") setState("paused"); game.returnTo = game.state === "paused" ? "paused" : game.state; setState("settings"); });
     for (const b of document.querySelectorAll("[data-back]")) b.addEventListener("click", () => {
       if (game.state === "codex") { closeCodex(); return; }
-      if (game.state === "settings" && game.returnTo && game.returnTo !== "title") { const to = game.returnTo; game.returnTo = null; setState(to === "playing" ? "paused" : to); return; }
+      if ((game.state === "settings" || game.state === "how" || game.state === "yard") && game.returnTo && game.returnTo !== "title") { const to = game.returnTo; game.returnTo = null; setState(to === "playing" ? "paused" : to); return; }
       game.returnTo = null;
       if (game.voyage && !game.attractPolicy && game.state !== "settings") { setState("paused"); return; }
       startAttract(); setState("title");
     });
-    $("lesson-continue").addEventListener("click", continueLesson);
+    $("salon-btn").addEventListener("click", () => setState("salon"));
+    $("salon-sail").addEventListener("click", () => sail());
+    $("log-salon").addEventListener("click", () => setState("salon"));
+    $("story-btn").addEventListener("click", () => { game.returnTo = "title"; setState("prologue"); });
+    $("prologue-continue").addEventListener("click", () => { ledger.prologueSeen = true; saveLedger(); const to = game.returnTo; game.returnTo = null; setState(to === "salon" ? "salon" : "title"); });
     $("pause-btn").addEventListener("click", togglePause);
     $("resume-btn").addEventListener("click", togglePause);
     $("explain-close").addEventListener("click", togglePause);
@@ -960,6 +1088,7 @@
       return v.summary();
     },
     get state() { return game.state; },
+    get order() { return game.voyage ? game.voyage.order : null; },
     get ledger() { return JSON.parse(JSON.stringify(ledger)); },
   };
 
@@ -995,7 +1124,7 @@
     bindInput();
     startAttract();
     setTimeout(() => parFor(C.daySeed()), 50);
-    setState("title");
+    if (ledger.prologueSeen) setState("title"); else { game.returnTo = "title"; setState("prologue"); }
     requestAnimationFrame(frame);
   }
 

@@ -48,7 +48,8 @@ async function open(browser, url, opts) {
   await page.addInitScript(() => { window.alert = () => { window.__pwned = 1; }; });
   if (opts && opts.init) await page.addInitScript(opts.init);
   await page.goto(url);
-  await page.waitForFunction(() => window.TRPNautilus && window.TRPNautilus.state === "title", null, { timeout: 20000 });
+  await page.waitForFunction(() => window.TRPNautilus && (window.TRPNautilus.state === "title" || window.TRPNautilus.state === "prologue"), null, { timeout: 20000 });
+  if ((await page.evaluate(() => window.TRPNautilus.state)) === "prologue") { await page.click("#prologue-continue"); await page.waitForFunction(() => window.TRPNautilus.state === "title"); }
   page.ctx = ctx;
   return page;
 }
@@ -99,7 +100,9 @@ async function main() {
     // Shipyard purchases with brass.
     {
       const page = await open(browser, base + "?renderer=2d", { init: () => localStorage.setItem("nautilus.v1", JSON.stringify({ brass: 100 })) });
-      await page.click("#yard-btn");
+      await page.click("#salon-btn");
+      await page.waitForTimeout(300);
+      await page.click(".salon-tag[data-salon=drydock]");
       await page.locator("#yard-pennants .yard-item", { hasText: "Free Fleet" }).click();
       const ledger = await page.evaluate(() => JSON.parse(localStorage.getItem("nautilus.v1")));
       check("buying a pennant spends brass and flies it", ledger.brass === 70 && ledger.pennant === "free");
@@ -143,7 +146,8 @@ async function main() {
       await page.ctx.route("**/studio/nautilus/config.js", (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: 'window.NAUTILUS_CONFIG = { web3formsKey: "test-key", privacyContact: "", repo: "https://github.com/aitrustalliance/trp" };' }));
       await page.ctx.route("https://api.web3forms.com/**", (r) => { body = JSON.parse(r.request().postData() || "{}"); r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: '{"success":true,"message":"Welcome aboard."}' }); });
       await page.reload();
-      await page.waitForFunction(() => window.TRPNautilus && window.TRPNautilus.state === "title");
+      await page.waitForFunction(() => window.TRPNautilus && (window.TRPNautilus.state === "title" || window.TRPNautilus.state === "prologue"));
+      if ((await page.evaluate(() => window.TRPNautilus.state)) === "prologue") { await page.click("#prologue-continue"); await page.waitForFunction(() => window.TRPNautilus.state === "title"); }
       await playToLog(page);
       await page.fill("#join-captain", "Nemo");
       await page.fill("#join-email", "nemo@example.org");
@@ -153,6 +157,57 @@ async function main() {
       check("sign-up posts the form with consent, progress and the key", body && body.access_key === "test-key" && body.email === "nemo@example.org" && body.consent && typeof body.lifetime_leagues === "number" && body.botcheck === "", JSON.stringify(body));
       const ledger = await page.evaluate(() => JSON.parse(localStorage.getItem("nautilus.v1")));
       check("joining unlocks the Crew Roll pennant", ledger.joined === true && ledger.pennants.includes("crew"));
+      await page.ctx.close();
+    }
+
+    // The prologue shows once, then the shakedown cruise teaches with hints
+    // and salvage, and the salon hub opens every part of the ship.
+    {
+      const page = await open(browser, base + "?renderer=2d");
+      check("prologue is not shown again after it has been read", (await page.evaluate(() => window.TRPNautilus.ledger.prologueSeen)) === true);
+      await page.click("#shakedown-btn");
+      await page.waitForTimeout(400);
+      const hinted = await page.evaluate(() => window.TRPNautilus.state === "playing");
+      check("the shakedown cruise starts without a popup", hinted);
+      await page.evaluate(() => window.TRPNautilus.advance(90));
+      await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 15000 });
+      const ledger = await page.evaluate(() => window.TRPNautilus.ledger);
+      check("the cruise is recorded and salvage filled the library", ledger.tutorialDone === true && ledger.codex.discovered.length >= 6, `${ledger.codex.discovered.length} discovered`);
+      check("the log lists what was entered in the codex", (await page.locator("#log-discovered-chips .chip").count()) >= 4);
+      await page.click("#log-salon");
+      await page.waitForTimeout(400);
+      check("the salon shows a tag for every station", (await page.locator(".salon-tag").count()) === 8);
+      await page.click(".salon-tag[data-salon=library]");
+      await page.waitForTimeout(300);
+      check("the library opens the codex", (await page.evaluate(() => window.TRPNautilus.state)) === "codex" && (await page.locator(".codex-item").count()) === 24);
+      await page.click(".codex-item[data-codex=missing-evidence]");
+      await page.waitForTimeout(200);
+      await page.click(".codex-more");
+      await page.click(".codex-more");
+      check("an entry opens to its full depth", (await page.locator(".codex-section.trp").count()) === 1 && (await page.locator(".codex-frameworks li").count()) >= 1);
+      await page.locator(".codex-option").nth(1).click();
+      await page.waitForTimeout(200);
+      check("a self-check grades and explains", /^Right\./.test(await page.textContent(".codex-result")));
+      await page.click("#codex-back");
+      await page.click("#exam-btn");
+      await page.click("#exam-start");
+      await page.waitForTimeout(300);
+      check("the examination draws ten questions", (await page.locator(".exam-q").count()) === 10);
+      await page.ctx.close();
+    }
+
+    // The captain's All Stop lever.
+    {
+      const page = await open(browser, base + "?renderer=2d");
+      await page.click("#sail-btn");
+      await page.waitForTimeout(600);
+      await page.keyboard.press("x");
+      await page.waitForTimeout(100);
+      const stopped = await page.evaluate(() => window.TRPNautilus.order);
+      await page.keyboard.press("x");
+      await page.waitForTimeout(100);
+      const released = await page.evaluate(() => window.TRPNautilus.order);
+      check("the lever rings All Stop and releases", stopped === "All stop" && released !== "All stop", `${stopped} then ${released}`);
       await page.ctx.close();
     }
 
@@ -177,12 +232,18 @@ async function main() {
     let axe = null;
     try { axe = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf-8"); } catch (err) { console.log("SKIP  accessibility audit (npm install --no-save axe-core)"); }
     if (axe) {
-      for (const [label, url, play] of [["title", base + "?renderer=2d", false], ["captain's log", base + "?renderer=2d", true], ["privacy note", base + "privacy.html", false]]) {
+      for (const [label, url, mode] of [["prologue", base + "?renderer=2d", "prologue"], ["title", base + "?renderer=2d", "title"], ["captain's log", base + "?renderer=2d", "log"], ["salon", base + "?renderer=2d", "salon"], ["codex", base + "?renderer=2d", "codex"], ["settings", base + "?renderer=2d", "settings"], ["privacy note", base + "privacy.html", null]]) {
         const ctx = await browser.newContext({ bypassCSP: true });
         const page = await ctx.newPage();
         await page.goto(url);
-        if (label !== "privacy note") await page.waitForFunction(() => window.TRPNautilus && window.TRPNautilus.state === "title");
-        if (play) await playToLog(page);
+        if (mode) {
+          await page.waitForFunction(() => window.TRPNautilus && window.TRPNautilus.state === "prologue");
+          if (mode !== "prologue") { await page.click("#prologue-continue"); await page.waitForFunction(() => window.TRPNautilus.state === "title"); }
+          if (mode === "log") await playToLog(page);
+          if (mode === "salon") { await page.click("#salon-btn"); await page.waitForTimeout(300); }
+          if (mode === "codex") { await page.click("#codex-btn"); await page.waitForTimeout(300); }
+          if (mode === "settings") { await page.click("#settings-btn"); await page.waitForTimeout(300); }
+        }
         await page.addScriptTag({ content: axe });
         const v = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ["violations"] })).violations.filter((x) => x.impact === "serious" || x.impact === "critical").map((x) => `${x.id} (${x.nodes.length}): ${x.nodes[0].target.join(" ")}`));
         check(`no serious accessibility issues on the ${label}`, v.length === 0, v.join(" | "));

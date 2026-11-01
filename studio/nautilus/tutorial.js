@@ -1,7 +1,9 @@
 /**
  * The Shakedown Cruise. A scripted first voyage that introduces one control
- * and one threat at a time. Each lesson pauses the ship, shows a brass
- * plaque, and unlocks the matching codex entry.
+ * and one threat at a time. Lessons are spoken over the wire by the crew,
+ * Conseil and Ned Land from Verne's novel, while the sea slows for a few
+ * seconds. The full pages reach the library as salvage, the same way they
+ * do on every voyage.
  */
 (function (root) {
   "use strict";
@@ -21,83 +23,43 @@
       { t: 54.5, kind: "charge", jitter: 0.7, fuse: 0.6 },
     ],
     gears: [{ t: 2, y: 420 }, { t: 4, y: 330 }, { t: 9, y: 500 }, { t: 18, y: 380 }, { t: 26, y: 450 }, { t: 40, y: 340 }, { t: 49, y: 480 }, { t: 57, y: 400 }],
+    chests: [{ t: 16 }],
+    clams: [{ t: 47 }],
   };
 
-  // Each lesson fires once, on the first event that satisfies its test. A
-  // threat teaches whether the captain shoots it down or lets it land, so
-  // most lessons carry two texts.
   const met = (s, kind) => s.contacts.has(kind) || s.intercepts.has(kind);
-  const LESSONS = [
-    {
-      id: "helm",
-      when: (e) => e.type === "start",
-      title: "Welcome Aboard",
-      text: () => "This is the Nautilus. Drag up or down on the water to change depth, or use the arrow keys. Brass gears drift past the hull. Steer into them. Nothing will shoot at you yet.",
-      tip: "Drag to steer",
-    },
-    {
-      id: "harpoon",
-      when: (e) => e.type === "drop" && e.kind === "charge",
-      title: "Depth Charge",
-      text: () => "The Leviathan has dropped a depth charge. Tap it to fire a harpoon, or press space to fire at the nearest threat. Harpoons run on steam, the blue lamps at the top right, and steam comes back on its own. If you would rather dodge, the dotted line shows the depth where the charge will burst.",
-      tip: "Tap a threat to fire",
-    },
-    {
-      id: "fog",
-      when: (e, s) => (e.type === "order" && e.to === "suspended" && s.contacts.has("fog")) || (e.type === "intercept" && e.kind === "fog"),
-      title: "Why Would We Stop?",
-      text: (e) => e.type === "intercept"
-        ? "You shot down a fog canister. Had it reached the hull, the sonar would have lost its reading and the telegraph would have rung All Stop on its own. Your rule book says a ship that cannot see does not sail at speed. Missing evidence is treated as unknown, never as safe."
-        : "A fog canister reached the hull and the sonar lost its reading. The telegraph rang All Stop on its own. Your rule book says a ship that cannot see does not sail at speed. Missing evidence is treated as unknown, never as safe. The fog will lift in a few seconds and the telegraph will ring Full Ahead again.",
-      codex: "missing-evidence",
-      tip: "Stops cost leagues, so shooting the fog is worth the steam",
-    },
-    {
-      id: "ember",
-      when: (e, s) => (e.type === "order" && (e.to === "restricted" || e.to === "suspended") && s.contacts.has("ember") && !met(s, "siren")) || (e.type === "intercept" && e.kind === "ember"),
-      title: "The Gauges Have Limits",
-      text: (e) => (e.type === "intercept" ? "You shot down a firebrand before it could heat the reactor. " : "A firebrand is heating the reactor. ") +
-        "Watch the Reactor gauge. The amber arc is the warning range, where the telegraph rings Half Ahead and cuts the heat. The red arc is critical, where it rings All Stop. The limits are written in your rule book, and you can read them any time by tapping the telegraph.",
-      codex: "thresholds",
-      tip: "Tap the telegraph to see the rule behind any order",
-    },
-    {
-      id: "siren",
-      when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "siren",
-      title: "A Forged Command",
-      text: (e) => (e.type === "intercept"
-        ? "That signal on the wire was a forged order with a bad seal, and you shot it down. Had it reached the ship, the seal lamp would have gone red and the telegraph would have rung All Stop at once, before any gauge moved. "
-        : "That signal on the wire was an order with a bad seal. The seal lamp went red and the telegraph rang All Stop at once, before any gauge moved. ") +
-        "The command seal is a hard rule. It is never weighed against anything else. An order the ship cannot authenticate is never obeyed.",
-      codex: "prompt-injection",
-    },
-    {
-      id: "boarder",
-      when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "boarder",
-      title: "Boarders",
-      text: (e) => (e.type === "intercept"
-        ? "You shot down a boarding drone. Had it reached the crew, the Crew gauge would have climbed as the crew acted on goals that are not yours. "
-        : "A drone has reached the crew. Watch the Crew gauge climb. Crew drift measures how far the crew are acting on goals that are not yours. ") +
-        "The needle moves a little at a time, and the rules act on the trend before the crew can take the helm.",
-      codex: "goal-drift",
-    },
-    {
-      id: "writ",
-      when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "writ",
-      title: "The Writ",
-      text: (e) => (e.type === "intercept"
-        ? "You destroyed the Writ, the Leviathan's real weapon. Had it landed, your rule book would have been replaced by the Leviathan's. The limits would have moved past the point of harm, the seal rule would have vanished, and the telegraph would have rung Full Ahead through anything. "
-        : "The Writ has landed. The Leviathan has replaced your rule book with its own. Look at the gauges. The limits have moved past the point of harm, the seal rule is missing, and the telegraph will ring Full Ahead through anything. For the next few seconds nothing protects the ship. ") +
-        "This is why your rules must be open, yours, and impossible to rewrite in the dark. The Writ takes three harpoons.",
-      codex: "rule-capture",
-    },
-    {
-      id: "harbor",
-      when: (e) => e.type === "done",
-      title: "Free Harbor",
-      text: () => "You brought the Nautilus home. Everything that stopped the ship on this cruise was a rule you can read, judged against evidence the ship produced. That is how trust works, for a ship or for any AI system. Your first real voyage is waiting. Every captain sails the same sea on the same day.",
-      codex: "trust-from-evidence",
-    },
+
+  // Each hint fires once, on the first event that satisfies its test. A
+  // threat teaches whether the captain shoots it down or lets it land.
+  const HINTS = [
+    { id: "helm", when: (e) => e.type === "start", who: "Conseil",
+      line: () => "Welcome aboard, Captain. Drag up or down to set our depth, and steer into the brass gears. Nothing is shooting at us yet." },
+    { id: "harpoon", when: (e) => e.type === "drop" && e.kind === "charge", who: "Ned Land",
+      line: () => "Depth charge! Tap it and I'll put a harpoon in it. Steam's the blue lamps. It comes back on its own. Or dodge the dotted line, that's where it bursts." },
+    { id: "fog", when: (e, s) => (e.type === "order" && e.to === "suspended" && s.contacts.has("fog")) || (e.type === "intercept" && e.kind === "fog"), who: "Conseil",
+      line: (e) => e.type === "intercept"
+        ? "Fog canister destroyed. Had it reached us, the sonar would have gone blind and the rules would have rung All Stop. A ship that cannot see does not sail at speed."
+        : "The sonar is blind, so the rules rang All Stop on their own. Missing evidence is never read as safe, Captain. The fog lifts in a moment." },
+    { id: "chest", when: (e) => e.type === "chest", who: "Conseil",
+      line: () => "A sea chest from the old world. I have shelved its pages in the library. There is more of this on the seabed, and the hull strains in deep water, so mind the gauge." },
+    { id: "ember", when: (e, s) => (e.type === "order" && (e.to === "restricted" || e.to === "suspended") && s.contacts.has("ember") && !met(s, "siren")) || (e.type === "intercept" && e.kind === "ember"), who: "Conseil",
+      line: (e) => (e.type === "intercept" ? "Firebrand destroyed before it could heat the reactor. " : "The reactor is heating. ") +
+        "Watch the Reactor gauge. Amber rings Half Ahead. Red rings All Stop. Tap the telegraph any time and I will show you the rule behind the order." },
+    { id: "siren", when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "siren", who: "Conseil",
+      line: (e) => (e.type === "intercept" ? "That was a forged order with a bad seal, and it is gone. " : "A forged order with a bad seal. The seal lamp went red and we stopped at once. ") +
+        "The seal is a hard rule, Captain. It is never weighed against anything. An order we cannot authenticate is never obeyed." },
+    { id: "boarder", when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "boarder", who: "Ned Land",
+      line: (e) => (e.type === "intercept" ? "Boarding drone, destroyed. " : "Boarders on the crew deck! ") +
+        "Watch the Crew gauge. Crew drift is the crew acting on goals that aren't yours. The rules read the trend before anyone can take the helm." },
+    { id: "writ", when: (e) => (e.type === "contact" || e.type === "intercept") && e.kind === "writ", who: "Conseil",
+      line: (e) => (e.type === "intercept"
+        ? "The Decree is destroyed. It would have replaced our rule book with the Leviathan's, with limits past the point of harm and no seal rule at all. "
+        : "The Decree has landed. Our rules are the Leviathan's now. Look at the gauges. Nothing will stop us from sailing into harm until it passes. ") +
+        "This is why the rules must be open and ours. It takes three harpoons." },
+    { id: "clam", when: (e) => e.type === "pearl", who: "Conseil",
+      line: () => "A pearl, Captain. The great clams open only for a ship at rest. Your All Stop lever is yours to pull at any time. The rules can stop the ship, and so can you, and nothing can make her go when either says stop." },
+    { id: "harbor", when: (e) => e.type === "done", who: "Conseil",
+      line: () => "Free Harbor, Captain. Everything that stopped us was a rule you can read, judged on evidence we produced ourselves. The library has the pages. Your first true voyage waits, and every captain sails the same sea today." },
   ];
 
   function tracker() {
@@ -105,20 +67,20 @@
     const state = { contacts: new Set(), intercepts: new Set() };
     return {
       state,
-      // Returns the lesson a given event triggers, with its text resolved, or null.
+      // Returns the hint a given event triggers, with its line resolved, or null.
       on(e) {
         if (e.type === "contact") state.contacts.add(e.kind);
         if (e.type === "intercept") state.intercepts.add(e.kind);
-        for (const L of LESSONS) {
-          if (fired.has(L.id)) continue;
-          if (L.when(e, state)) { fired.add(L.id); return Object.assign({}, L, { text: L.text(e, state) }); }
+        for (const h of HINTS) {
+          if (fired.has(h.id)) continue;
+          if (h.when(e, state)) { fired.add(h.id); return { id: h.id, who: h.who, line: h.line(e, state) }; }
         }
         return null;
       },
       get done() { return fired.size; },
-      get total() { return LESSONS.length; },
+      get total() { return HINTS.length; },
     };
   }
 
-  root.NautilusTutorial = { DURATION, SCRIPT, LESSONS, tracker };
+  root.NautilusTutorial = { DURATION, SCRIPT, HINTS, tracker };
 })(window);

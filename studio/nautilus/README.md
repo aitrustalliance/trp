@@ -19,7 +19,9 @@ Open http://localhost:8000/studio/nautilus/. Add `?renderer=2d` to force the 2D 
 | `core.js` | The voyage simulation. Deterministic, tested in Node, no drawing |
 | `game.js` | Controller, input, heads-up display, screens, ledger, sharing and sign-up |
 | `world3d.js` | 3D renderer on Three.js, with every model built in code |
-| `art.js` | 2D renderer drawing, gauges, telegraph and share card |
+| `art.js` | 2D renderer drawing, gauges, telegraph, salvage, the salon and the share card |
+| `tutorial.js` | The shakedown cruise, spoken by Conseil and Ned Land |
+| `../codex.js`, `../codex.json` | The Captain's Codex, shared with TRP Studio |
 | `audio.js` | Sound, synthesized in the browser |
 | `crew.js` | Opt-in crew sign-up through Web3Forms |
 | `config.js` | Settings for whoever hosts the game |
@@ -33,6 +35,12 @@ Edit `config.js` before publishing.
 1. Create a Web3Forms access key at https://web3forms.com with the email address that should receive sign-ups, and set `web3formsKey`. Leave it empty to keep the sign-up closed.
 2. Set `privacyContact` to the address people can write to about their data. The privacy note shows it.
 3. Have the privacy note reviewed before turning on the sign-up.
+
+## The Captain's Codex
+
+Every threat in the voyage stands for a real failure mode in AI trust, safety and governance. `studio/codex.json` holds twenty-four entries, each with a definition anyone can read, the tie to the game, an explanation for learners, a documented case, the matching section of the Trust Requirements Profile specification, the wider frameworks, and a self-check. Pages reach the library as salvage. What is left of a threat sinks and can be recovered, sea chests on the seabed carry the Navigator pages, and pearls in the giant clams carry the Captain pages. A clam opens only for a ship at rest, and the captain's All Stop lever is always available. `tests/codex_content.js` checks the structure, the specification citations, the quizzes and the house style.
+
+`config.js` can carry a `learnMoreUrl`, shown under each entry, for a host that offers courses on the material.
 
 ## How Scoring Works
 

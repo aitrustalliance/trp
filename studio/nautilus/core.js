@@ -34,7 +34,7 @@
     ember:   { label: "Firebrand", vy: 110, hp: 1, points: 25, homing: true },
     boarder: { label: "Boarding drone", vy: 80, hp: 1, points: 25, homing: true },
     siren:   { label: "Forged command", vy: 90, hp: 1, points: 25, homing: true },
-    writ:    { label: "The Writ", vy: 42, hp: 3, points: 200, homing: true },
+    writ:    { label: "The Decree", vy: 42, hp: 3, points: 200, homing: true },
   };
 
   const LABELS = {
@@ -103,7 +103,11 @@
     out.sort((a, b) => a.t - b.t);
     const gears = [];
     for (let g = 1.5; g < D - 3; g += 2.6 + r() * 2.4) gears.push({ t: g, y: DEPTH_MIN + 20 + r() * (DEPTH_MAX - DEPTH_MIN - 40) });
-    return { drops: out, gears: gears };
+    // Sea chests lie on the seabed. Giant clams open only for a ship at rest.
+    const chests = [];
+    for (let c = 9 + r() * 6; c < D - 8; c += 14 + r() * 8) chests.push({ t: c });
+    const clams = [{ t: Math.round(D * 0.3) + r() * 4 }, { t: Math.round(D * 0.78) + r() * 4 }];
+    return { drops: out, gears: gears, chests: chests, clams: clams };
   }
 
   class Voyage {
@@ -118,9 +122,11 @@
       const diff = DIFFICULTY[this.difficulty];
       this.duration = opts.duration || DURATION;
       // A script replaces the daily schedule, for the tutorial and for tests.
-      const plan = opts.script ? { drops: opts.script.drops.slice(), gears: (opts.script.gears || []).slice() } : schedule(this.seed, diff.gap, this.duration);
+      const plan = opts.script ? { drops: opts.script.drops.slice(), gears: (opts.script.gears || []).slice(), chests: (opts.script.chests || []).slice(), clams: (opts.script.clams || []).slice() } : schedule(this.seed, diff.gap, this.duration);
       this.drops = plan.drops;
       this.gearPlan = plan.gears;
+      this.chestPlan = plan.chests;
+      this.clamPlan = plan.clams;
       this.t = 0;
       this.done = false;
       this.outcome = null;
@@ -140,6 +146,10 @@
       this.payloads = [];
       this.harpoons = [];
       this.gears = [];
+      this.relics = [];
+      this.chests = [];
+      this.clams = [];
+      this.manualStop = false;
       this.nextId = 1;
       this.evalClock = 0;
       this.evidence = {};
@@ -149,7 +159,7 @@
       this.harms = {};
       this.events = [];
       this.timeline = new Array(10).fill(0);
-      this.stats = { intercepted: 0, caught: 0, hits: 0, gears: 0, stopped_s: 0 };
+      this.stats = { intercepted: 0, caught: 0, hits: 0, gears: 0, relics: 0, chests: 0, pearls: 0, stopped_s: 0 };
       this.evaluate();
     }
 
@@ -157,6 +167,15 @@
     drain() { const e = this.events; this.events = []; return e; }
 
     setDepth(y) { this.sub.targetY = Math.max(DEPTH_MIN, Math.min(DEPTH_MAX, y)); }
+
+    // The captain can always ring All Stop. The rules can stop the ship,
+    // and the captain can stop the ship, and nothing can make it go when
+    // either says stop.
+    setManualStop(on) {
+      if (this.done || this.manualStop === !!on) return;
+      this.manualStop = !!on;
+      this.evaluate();
+    }
 
     // Fire a harpoon at a payload or gear by id.
     fire(id) {
@@ -210,9 +229,12 @@
         const g = this.gearPlan.shift();
         this.gears.push({ id: this.nextId++, x: W + 30, y: g.y, phase: g.t, hp: 1 });
       }
+      while (this.chestPlan.length && this.chestPlan[0].t <= t) { this.chestPlan.shift(); this.chests.push({ id: this.nextId++, x: W + 40, y: DEPTH_MAX + 70 }); }
+      while (this.clamPlan.length && this.clamPlan[0].t <= t) { this.clamPlan.shift(); this.clams.push({ id: this.nextId++, x: W + 60, y: DEPTH_MAX + 78, open: 0, done: false }); }
 
       this.movePayloads(dt, scroll);
       this.moveGears(dt, scroll);
+      this.moveSalvage(dt, scroll);
       this.moveHarpoons(dt);
       this.updateTruth(dt);
 
@@ -274,6 +296,57 @@
       this.gears = keep;
     }
 
+    // Relics sink and drift astern. Chests and clams sit on the seabed.
+    moveSalvage(dt, scroll) {
+      const keep = [];
+      for (const rl of this.relics) {
+        rl.life -= dt;
+        rl.x -= (scroll + 18) * dt;
+        rl.y = Math.min(DEPTH_MAX + 60, rl.y + 26 * dt);
+        if (rl.life <= 0 || rl.x < -40) continue;
+        if (Math.hypot(rl.x - SUB_X, rl.y - this.sub.y) < 80) { this.takeRelic(rl); continue; }
+        keep.push(rl);
+      }
+      this.relics = keep;
+      const chests = [];
+      for (const c of this.chests) {
+        c.x -= (scroll + 25) * dt;
+        if (c.x < -40) continue;
+        if (Math.hypot(c.x - SUB_X, c.y - this.sub.y) < 92) { this.openChest(c); continue; }
+        chests.push(c);
+      }
+      this.chests = chests;
+      const clams = [];
+      for (const cl of this.clams) {
+        cl.x -= (scroll + 25) * dt;
+        if (cl.x < -60) continue;
+        const near = Math.abs(cl.x - SUB_X) < 170 && this.sub.y > DEPTH_MAX - 150;
+        if (!cl.done) {
+          if (near && this.response === "suspended") cl.open = Math.min(1, cl.open + dt / 1.6);
+          else cl.open = Math.max(0, cl.open - dt / 0.8);
+          if (cl.open >= 1) { cl.done = true; this.takePearl(cl); }
+        }
+        clams.push(cl);
+      }
+      this.clams = clams;
+    }
+
+    takeRelic(rl) {
+      this.points += 5;
+      this.stats.relics += 1;
+      this.emit({ type: "relic", kind: rl.kind, x: rl.x, y: rl.y });
+    }
+    openChest(c) {
+      this.points += 40;
+      this.stats.chests += 1;
+      this.emit({ type: "chest", x: c.x, y: c.y });
+    }
+    takePearl(cl) {
+      this.points += 120;
+      this.stats.pearls += 1;
+      this.emit({ type: "pearl", x: cl.x, y: cl.y - 40 });
+    }
+
     moveHarpoons(dt) {
       const keep = [];
       for (const h of this.harpoons) {
@@ -302,6 +375,12 @@
       this.points += pts;
       this.stats.intercepted += 1;
       this.emit({ type: "intercept", kind: target.kind, x: target.x, y: target.y, points: pts, combo: this.combo, mult: mult });
+      this.dropRelic(target.kind, target.x, target.y);
+    }
+
+    // What is left of a threat sinks and can be recovered for the library.
+    dropRelic(kind, x, y) {
+      this.relics.push({ id: this.nextId++, kind: kind, x: x, y: y, life: 14 });
     }
 
     collect(g) {
@@ -322,7 +401,7 @@
       const T = this.timers;
       const msg = {
         fog: "Fog blinds the sonar", decoy: "Decoy feeds false sonar", ember: "Firebrand on the reactor",
-        boarder: "Drone boards the crew", siren: "Forged command on the wire", writ: "The Leviathan rewrote your rules",
+        boarder: "Drone boards the crew", siren: "Forged command on the wire", writ: "The Decree has rewritten your rules",
       }[p.kind];
       if (p.kind === "fog") T.fog = 3.5;
       if (p.kind === "decoy") T.decoy = 3.5;
@@ -332,6 +411,7 @@
       if (p.kind === "writ") T.captured = 8;
       this.combo = 0;
       this.emit({ type: "contact", kind: p.kind, x: p.x, y: p.y, message: msg });
+      this.dropRelic(p.kind, SUB_X - 60, this.sub.y + 30);
     }
 
     hit(reason, impulse) {
@@ -379,8 +459,8 @@
       const r = this.engine.evaluate(profile, e);
       const before = this.response;
       this.result = r;
-      this.response = r.response;
-      this.reason = explain(r);
+      this.response = this.manualStop ? "suspended" : r.response;
+      this.reason = this.manualStop ? "Captain's order" : explain(r);
       if (before !== this.response) this.emit({ type: "order", from: before, to: this.response, order: ORDERS[this.response], reason: this.reason });
     }
 
@@ -423,7 +503,7 @@
 
     get leagues() { return Math.round(this.dist / LEAGUE_PX); }
     get score() { return this.leagues + this.points; }
-    get order() { return ORDERS[this.response] || "All stop"; }
+    get order() { return this.manualStop ? "All stop" : ORDERS[this.response] || "All stop"; }
     get rulesCaptured() { return this.timers.captured > 0; }
 
     summary() {
@@ -431,7 +511,7 @@
         score: this.score, leagues: this.leagues, points: this.points, outcome: this.outcome, difficulty: this.difficulty,
         hearts: this.hearts, bestCombo: this.bestCombo, timeline: this.timeline.slice(),
         intercepted: this.stats.intercepted, caught: this.stats.caught, hits: this.stats.hits,
-        gears: this.stats.gears, stopped_s: round(this.stats.stopped_s, 1),
+        gears: this.stats.gears, relics: this.stats.relics, chests: this.stats.chests, pearls: this.stats.pearls, stopped_s: round(this.stats.stopped_s, 1),
       };
     }
   }
