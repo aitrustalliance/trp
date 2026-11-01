@@ -9,6 +9,18 @@
       "path": "humanoid-floor/pack.json"
     },
     {
+      "id": "surgical-assist",
+      "path": "surgical-assist/pack.json"
+    },
+    {
+      "id": "agent-swarm",
+      "path": "agent-swarm/pack.json"
+    },
+    {
+      "id": "trading-desk",
+      "path": "trading-desk/pack.json"
+    },
+    {
       "id": "machine-line",
       "path": "machine-line/pack.json"
     },

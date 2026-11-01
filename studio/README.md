@@ -30,11 +30,11 @@ You can also drag any TRP profile or pack file onto the page, or use Import.
 
 **Command** is the first screen.
 
-- 72 systems from the 5 packs that carry a harm model, each with its own simulator, each evaluated by the engine every tick (250 ms) against the pack's profile. The humanoid pack's readings are stochastic.
+- 108 systems from the 8 packs that carry a harm model, each with its own simulator, each evaluated by the engine every tick (250 ms) against the pack's profile. Readings in the humanoid, surgical, agent swarm and trading packs are stochastic.
 - Faults are the pack's Arena moves. Benign excursions are new to each pack and push one signal toward a limit with no harm present.
 - The bar counts harm caught, harm missed and false stops over a five minute window. Definitions match `arena.js`. Caught means stopped within the reaction window of harm onset, missed means harm ended without a stop, and false stop means a stop with no harm present or near.
 - The rule book dial applies one of four profiles per pack. Loose moves every limit one warning-to-critical gap past the harm point. Published is the profile as shipped. Tight moves every limit one gap toward safe. Tuned applies the `solution` limits shipped with the pack's Learn challenge, set by measurement over 300 fault runs.
-- Measured over four minutes on the shipped packs, loose caught 120 with 113 missed and 29 false stops. Published caught 141 with 92 missed and 95 false stops. Tight caught 233 with none missed and 589 false stops. Tuned caught 233 with none missed and 73 false stops.
+- Measured over four minutes on the shipped packs, loose caught 185 with 155 missed and 26 false stops. Published caught 231 with 109 missed and 142 false stops. Tight caught 340 with none missed and 1,007 false stops. Tuned caught 340 with none missed and 111 false stops.
 - A system opens to its evidence against its limits, then into Live. A pack joins the floor by carrying a `command` block (`group`, `unit`, `count`, `fault_rate`, `benign`, `benign_rate`) beside its `arena` harm model.
 
 **Live** lets you change conditions and watch the profile respond. Click any event to see exactly which requirement caused it.
@@ -81,11 +81,11 @@ Each example in the Studio is a scenario pack, a JSON file that pairs a TRP prof
 |---|---|
 | `pack_version` | Always `"1"` for this format |
 | `id`, `title`, `subtitle` | How the pack appears in the Studio |
-| `scene` | The drawing to use: `robot-cell`, `humanoid-floor`, `machine-line`, `data-flow`, `agent-trace` or `instrument` |
+| `scene` | The drawing to use: `robot-cell`, `humanoid-floor`, `surgical-field`, `agent-swarm`, `trading-desk`, `machine-line`, `data-flow`, `agent-trace`, `fleet` or `instrument` |
 | `profile` | Path to the TRP profile, relative to the pack file. An imported pack can embed the profile object here instead |
 | `tick_ms` | How often the profile is evaluated, in milliseconds |
 | `cycle_s` | Length of one work cycle, used for episode and frame numbering |
-| `signals` | One entry per profile signal and hard rule field, with `base`, and for numbers `jitter`, `min`, `max`, `decimals` and `label`. Optional `process`, `shocks` and `derive` make a signal stochastic or coupled, see [CONNECT.md](CONNECT.md) |
+| `signals` | One entry per profile signal and hard rule field, with `base`, and for numbers `jitter`, `min`, `max`, `decimals` and `label`. Optional `process`, `shocks`, `wave` and `derive` make a signal stochastic, periodic or coupled, see [CONNECT.md](CONNECT.md) |
 | `rule_labels` | Optional readable names for hard rules |
 | `controls` | What the viewer can change (see below) |
 | `story` | Optional timed script that plays when the pack opens |

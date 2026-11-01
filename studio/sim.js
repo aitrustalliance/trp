@@ -17,6 +17,8 @@
  *            `shock_rate` to multiply the rate while it is active.
  *   derive   { from, scale, offset }  The level follows offset + scale times
  *            the current value of another signal, unless an effect sets it.
+ *   wave     { amplitude, period_s, phase }  A periodic component, such as
+ *            breathing or a heartbeat. It draws no random numbers.
  * Packs without these fields draw the same random sequence as before.
  */
 (function (root) {
@@ -54,7 +56,7 @@
       for (const [name, spec] of Object.entries(pack.signals)) {
         this.values[name] = spec.base;
         this.level[name] = spec.base;
-        if (spec.process || spec.shocks) { this.ou[name] = 0; this.shock[name] = 0; }
+        if (spec.process || spec.shocks || spec.wave) { this.ou[name] = 0; this.shock[name] = 0; }
       }
       for (const c of pack.controls) {
         this.controlState[c.id] = c.type === "slider" ? pack.signals[c.signal].base : false;
@@ -138,7 +140,9 @@
             const rate = (sh.rate || 0) * (shockRate[name] || 1);
             if (this.random() < 1 - Math.exp(-rate * dt)) { this.shock[name] += (sh.size || 0) + (sh.spread || 0) * this.gauss(); this.shocksSeen += 1; }
           }
-          next = next + (this.ou[name] || 0) + (this.shock[name] || 0);
+          const wv = spec.wave;
+          const wave = wv ? (wv.amplitude || 0) * Math.sin((2 * Math.PI * this.time) / (wv.period_s || 4) + (wv.phase || 0)) : 0;
+          next = next + (this.ou[name] || 0) + (this.shock[name] || 0) + wave;
         }
         if (typeof spec.min === "number") next = Math.max(spec.min, next);
         if (typeof spec.max === "number") next = Math.min(spec.max, next);

@@ -1,0 +1,626 @@
+{
+  "pack_version": "1",
+  "id": "surgical-assist",
+  "title": "Surgical Assist",
+  "subtitle": "A surgical robot's autonomous assist sutures near a major vessel under a surgeon's supervision. The patient breathes, and every reading moves.",
+  "scene": "surgical-field",
+  "profile": "../../../examples/robotic-surgery-assist/trp.json",
+  "command": {
+    "group": "Surgical robots",
+    "unit": "OR",
+    "count": 12,
+    "fault_rate": 0.012,
+    "benign_rate": 0.012,
+    "benign": [
+      {
+        "label": "A deep breath, 2.6 mm from the vessel",
+        "effects": {
+          "critical_structure_distance_mm": {
+            "to": 4.0,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "Dense tissue, 2.2 N at the tip",
+        "effects": {
+          "tool_tip_force_N": {
+            "to": 2.2,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "Network jitter, 110 ms of video delay",
+        "effects": {
+          "video_latency_ms": {
+            "to": 110,
+            "ramp_s": 1
+          }
+        }
+      },
+      {
+        "label": "Unusual anatomy, assist confidence 0.8",
+        "effects": {
+          "autonomy_confidence": {
+            "to": 0.8,
+            "ramp_s": 1.5
+          }
+        }
+      }
+    ]
+  },
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "signals": {
+    "critical_structure_distance_mm": {
+      "base": 6.0,
+      "min": 0,
+      "max": 15,
+      "decimals": 2,
+      "label": "Distance to vessel",
+      "process": {
+        "type": "ou",
+        "theta": 1.0,
+        "sigma": 0.35
+      },
+      "wave": {
+        "amplitude": 1.4,
+        "period_s": 4.2
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": -2.6,
+        "spread": 0.9,
+        "decay_s": 1.5
+      }
+    },
+    "tool_tip_force_N": {
+      "base": 0.8,
+      "min": 0,
+      "max": 12,
+      "decimals": 2,
+      "label": "Tip force",
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 0.22
+      },
+      "shocks": {
+        "rate": 0.018,
+        "size": 2.0,
+        "spread": 0.7,
+        "decay_s": 0.6
+      }
+    },
+    "tracking_error_mm": {
+      "base": 0.3,
+      "min": 0,
+      "max": 6,
+      "decimals": 2,
+      "label": "Tracking error",
+      "process": {
+        "type": "ou",
+        "theta": 3,
+        "sigma": 0.07
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 0.9,
+        "spread": 0.3,
+        "decay_s": 0.4
+      }
+    },
+    "registration_error_mm": {
+      "base": 0.8,
+      "min": 0,
+      "max": 6,
+      "decimals": 2,
+      "label": "Registration error",
+      "process": {
+        "type": "ou",
+        "theta": 0.08,
+        "sigma": 0.06
+      }
+    },
+    "video_latency_ms": {
+      "base": 60,
+      "min": 15,
+      "max": 800,
+      "decimals": 0,
+      "label": "Video latency",
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 8
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 110,
+        "spread": 40,
+        "decay_s": 0.8
+      }
+    },
+    "autonomy_confidence": {
+      "base": 0.93,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Assist confidence",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.025
+      },
+      "shocks": {
+        "rate": 0.015,
+        "size": -0.22,
+        "spread": 0.07,
+        "decay_s": 1.5
+      }
+    },
+    "estop_active": {
+      "base": false,
+      "label": "Emergency stop"
+    },
+    "surgeon_hands_on": {
+      "base": true,
+      "label": "Surgeon at console"
+    },
+    "camera_feed_ok": {
+      "base": true,
+      "label": "Camera feed"
+    },
+    "autonomy_mode_approved": {
+      "base": true,
+      "label": "Approved autonomy mode"
+    },
+    "instrument_recognized": {
+      "base": true,
+      "label": "Instrument recognized"
+    }
+  },
+  "rule_labels": {
+    "estop_active": "Emergency stop pressed",
+    "surgeon_hands_off": "Surgeon's hands left the console",
+    "camera_feed_lost": "Endoscope feed lost",
+    "autonomy_mode_unapproved": "Assist running an unapproved autonomy mode",
+    "critical_structure_contact": "Instrument inside the hard margin of a critical structure",
+    "instrument_unrecognized": "Instrument not recognized"
+  },
+  "controls": [
+    {
+      "id": "distance",
+      "label": "Distance to vessel",
+      "type": "slider",
+      "signal": "critical_structure_distance_mm",
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1
+    },
+    {
+      "id": "force",
+      "label": "Tip force",
+      "type": "slider",
+      "signal": "tool_tip_force_N",
+      "min": 0,
+      "max": 7,
+      "step": 0.1
+    },
+    {
+      "id": "shift",
+      "label": "Patient shifts",
+      "type": "toggle",
+      "effects": {
+        "critical_structure_distance_mm": {
+          "to": 0.9,
+          "ramp_s": 1
+        }
+      }
+    },
+    {
+      "id": "adhesion",
+      "label": "Adhesion pulls tissue",
+      "type": "toggle",
+      "effects": {
+        "tool_tip_force_N": {
+          "to": 5.4,
+          "ramp_s": 1.2
+        }
+      }
+    },
+    {
+      "id": "drift",
+      "label": "Registration drifts",
+      "type": "toggle",
+      "effects": {
+        "registration_error_mm": {
+          "to": 3.6,
+          "ramp_s": 6
+        }
+      }
+    },
+    {
+      "id": "lag",
+      "label": "Video lags",
+      "type": "toggle",
+      "effects": {
+        "video_latency_ms": {
+          "to": 320,
+          "ramp_s": 0.6
+        }
+      }
+    },
+    {
+      "id": "novel",
+      "label": "Unfamiliar anatomy",
+      "type": "toggle",
+      "effects": {
+        "autonomy_confidence": {
+          "to": 0.55,
+          "ramp_s": 1.5
+        }
+      }
+    },
+    {
+      "id": "handsoff",
+      "label": "Surgeon lets go",
+      "type": "toggle",
+      "effects": {
+        "surgeon_hands_on": {
+          "set": false
+        }
+      }
+    },
+    {
+      "id": "estop",
+      "label": "Emergency stop",
+      "type": "toggle",
+      "effects": {
+        "estop_active": {
+          "set": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "An autonomous assist sutures beside a major vessel while the surgeon supervises. The distance to the vessel rises and falls with every breath."
+    },
+    {
+      "at_s": 6,
+      "caption": "Dense tissue. Tip force climbs and the assist slows to half speed.",
+      "set": {
+        "force": 2.8
+      }
+    },
+    {
+      "at_s": 11,
+      "caption": "Force back to normal.",
+      "set": {
+        "force": 0.8
+      }
+    },
+    {
+      "at_s": 13,
+      "caption": "The patient shifts on the table. The instrument closes on the vessel and the rules stop the assist.",
+      "toggle": {
+        "shift": true
+      }
+    },
+    {
+      "at_s": 19,
+      "caption": "Repositioned.",
+      "toggle": {
+        "shift": false
+      }
+    },
+    {
+      "at_s": 21,
+      "caption": "Registration drifts slowly. No single reading jumps, and the drift monitor sees the trend.",
+      "toggle": {
+        "drift": true
+      }
+    },
+    {
+      "at_s": 30,
+      "caption": "Registration is refreshed.",
+      "toggle": {
+        "drift": false
+      }
+    },
+    {
+      "at_s": 32,
+      "caption": "The surgeon lets go of the console. With no one supervising, the assist does not move.",
+      "toggle": {
+        "handsoff": true
+      }
+    },
+    {
+      "at_s": 37,
+      "caption": "Hands back on. The faults were scripted for this story. The breathing and the noise are live.",
+      "toggle": {
+        "handsoff": false
+      }
+    },
+    {
+      "at_s": 42,
+      "end": true
+    }
+  ],
+  "arena": {
+    "event": "Surgical Assist",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 8,
+    "harm": [
+      {
+        "id": "vessel_margin",
+        "label": "Instrument inside the safety margin of a major vessel",
+        "all": [
+          {
+            "signal": "critical_structure_distance_mm",
+            "op": "lt",
+            "value": 1.6
+          }
+        ],
+        "near": [
+          {
+            "signal": "critical_structure_distance_mm",
+            "op": "lt",
+            "value": 2.4
+          }
+        ]
+      },
+      {
+        "id": "tissue_tear",
+        "label": "Tissue torn by excess force",
+        "all": [
+          {
+            "signal": "tool_tip_force_N",
+            "op": "gt",
+            "value": 4.5
+          }
+        ],
+        "near": [
+          {
+            "signal": "tool_tip_force_N",
+            "op": "gt",
+            "value": 3.6
+          }
+        ]
+      },
+      {
+        "id": "off_target",
+        "label": "Instrument off its commanded path",
+        "all": [
+          {
+            "signal": "tracking_error_mm",
+            "op": "gt",
+            "value": 2.0
+          }
+        ],
+        "near": [
+          {
+            "signal": "tracking_error_mm",
+            "op": "gt",
+            "value": 1.6
+          }
+        ]
+      },
+      {
+        "id": "navigation_unsafe",
+        "label": "Navigating on a mismatched image",
+        "all": [
+          {
+            "signal": "registration_error_mm",
+            "op": "gt",
+            "value": 3.0
+          }
+        ],
+        "near": [
+          {
+            "signal": "registration_error_mm",
+            "op": "gt",
+            "value": 2.6
+          }
+        ]
+      },
+      {
+        "id": "supervision_lag",
+        "label": "Surgeon supervising on stale video",
+        "all": [
+          {
+            "signal": "video_latency_ms",
+            "op": "gt",
+            "value": 250
+          }
+        ],
+        "near": [
+          {
+            "signal": "video_latency_ms",
+            "op": "gt",
+            "value": 210
+          }
+        ]
+      },
+      {
+        "id": "unsupervised",
+        "label": "Assist moving with no surgeon at the console",
+        "all": [
+          {
+            "signal": "surgeon_hands_on",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "blind",
+        "label": "Assist moving with no camera feed",
+        "all": [
+          {
+            "signal": "camera_feed_ok",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "shift",
+        "label": "The patient shifts on the table",
+        "weight": 1.4,
+        "effects": {
+          "critical_structure_distance_mm": {
+            "to": 2.6,
+            "ramp_s": 1.2
+          }
+        }
+      },
+      {
+        "id": "adhesion",
+        "label": "An adhesion pulls the tissue",
+        "effects": {
+          "tool_tip_force_N": {
+            "to": 5.4,
+            "ramp_s": 1.2
+          }
+        }
+      },
+      {
+        "id": "contact",
+        "label": "Two arms touch outside the body",
+        "effects": {
+          "tracking_error_mm": {
+            "to": 2.6,
+            "ramp_s": 0.5
+          }
+        }
+      },
+      {
+        "id": "drift",
+        "label": "Registration drifts as tissue deforms",
+        "effects": {
+          "registration_error_mm": {
+            "to": 3.5,
+            "ramp_s": 5
+          }
+        }
+      },
+      {
+        "id": "lag",
+        "label": "Video lags at the console",
+        "effects": {
+          "video_latency_ms": {
+            "to": 320,
+            "ramp_s": 0.6
+          }
+        }
+      },
+      {
+        "id": "novel",
+        "label": "Anatomy the assist was not trained on",
+        "effects": {
+          "autonomy_confidence": {
+            "to": 0.55,
+            "ramp_s": 1.5
+          },
+          "critical_structure_distance_mm": {
+            "to": 1.4,
+            "ramp_s": 2.5
+          }
+        }
+      },
+      {
+        "id": "blindspot",
+        "label": "Navigation loses the vessel as the tip closes in",
+        "effects": {
+          "critical_structure_distance_mm": {
+            "to": 1.2,
+            "ramp_s": 2,
+            "omit": true,
+            "fault": true
+          }
+        }
+      },
+      {
+        "id": "handsoff",
+        "label": "The surgeon lets go of the console",
+        "weight": 0.6,
+        "effects": {
+          "surgeon_hands_on": {
+            "set": false
+          }
+        }
+      },
+      {
+        "id": "camera",
+        "label": "The endoscope feed drops",
+        "weight": 0.6,
+        "effects": {
+          "camera_feed_ok": {
+            "set": false
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "breathing-margin",
+        "label": "Breathing margin",
+        "detail": "Distance to the vessel turns critical at 2.6 mm instead of 1.0.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "critical_structure_distance_mm",
+        "warning": 4.4,
+        "critical": 2.6,
+        "counters": [
+          "shift",
+          "novel"
+        ]
+      },
+      {
+        "id": "second-tracker",
+        "label": "Second optical tracker",
+        "detail": "A navigation dropout no longer hides the vessel.",
+        "cost": 3,
+        "type": "shield",
+        "signals": [
+          "critical_structure_distance_mm"
+        ],
+        "counters": [
+          "blindspot"
+        ]
+      },
+      {
+        "id": "force-limit",
+        "label": "Lower force limit",
+        "detail": "Tip force turns critical at 3.5 N instead of 4.0.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "tool_tip_force_N",
+        "warning": 2.2,
+        "critical": 3.5,
+        "counters": [
+          "adhesion"
+        ]
+      },
+      {
+        "id": "reregister",
+        "label": "Registration check",
+        "detail": "Registration error turns critical at 2.2 mm instead of 2.5.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "registration_error_mm",
+        "warning": 1.3,
+        "critical": 2.2,
+        "counters": [
+          "drift"
+        ]
+      }
+    ]
+  }
+}

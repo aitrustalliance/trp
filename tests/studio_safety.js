@@ -38,6 +38,8 @@ rejects("bad pack id", () => S.checkPack(Object.assign(read("studio/packs/robot-
 rejects("arena rounds as text", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { arena: Object.assign(read("studio/packs/robot-cell/pack.json").arena, { rounds: "<b>8</b>" }) })));
 rejects("tick too fast", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { tick_ms: 1 })));
 ok("the stochastic humanoid pack passes", () => S.checkPack(read("studio/packs/humanoid-floor/pack.json")));
+rejects("wave with no period", () => { const pk = read("studio/packs/surgical-assist/pack.json"); pk.signals.critical_structure_distance_mm.wave = { amplitude: 1, period_s: 0 }; S.checkPack(pk); });
+ok("the periodic surgical pack passes", () => S.checkPack(read("studio/packs/surgical-assist/pack.json")));
 const hp = () => read("studio/packs/humanoid-floor/pack.json");
 rejects("runaway shock rate", () => { const pk = hp(); pk.signals.balance_margin_m.shocks.rate = 1e6; S.checkPack(pk); });
 rejects("unknown process type", () => { const pk = hp(); pk.signals.balance_margin_m.process.type = "brownian"; S.checkPack(pk); });

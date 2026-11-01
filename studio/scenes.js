@@ -676,7 +676,216 @@
     },
   };
 
+  const HARM = "#f2b48a";
+  function sigOf(profile, name) { return profile && profile.scoredSignals ? profile.scoredSignals.find((x) => x.signal === name) : null; }
+  // Color for a reading against its limits: blue inside, white in warning,
+  // gold in critical.
+  function tone(profile, name, v) {
+    const s = sigOf(profile, name);
+    if (!s || typeof v !== "number") return C.accent;
+    const hi = s.direction === "higher_is_unsafe";
+    if (hi ? v >= s.criticalThreshold : v <= s.criticalThreshold) return C.gold;
+    if (hi ? v >= s.warningThreshold : v <= s.warningThreshold) return C.white;
+    return C.accent;
+  }
+  function readout(ctx, rows, x, y, profile, values) {
+    rows.forEach(([label, name, fmt], i) => {
+      const v = values[name];
+      text(ctx, label, x, y + i * 20, { size: 12, color: C.silverDim });
+      text(ctx, typeof v === "number" ? fmt(v) : "no reading", x + 150, y + i * 20, { size: 12, mono: true, color: typeof v === "number" ? tone(profile, name, v) : C.silverDim });
+    });
+  }
+  function rngScene(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  // ------------------------------------------------------------- Agent swarm
+  // An orchestrator at the center, agents on rings by delegation depth,
+  // messages as sparks along the links. Drifting agents leave their orbit.
+  const swarm = {
+    init(state) { state.r = rngScene(7); state.sparks = []; state.angle = 0; state.agents = []; state.acc = 0; },
+    draw(frame, state) {
+      const { ctx, w, h, values, dt, profile } = frame;
+      const p = pace(frame);
+      const cx = w * 0.56, cy = h * 0.53;
+      const R = Math.min(w * 0.36, h * 0.42);
+      const n = Math.max(1, Math.min(180, Math.round(num(values, "active_agents", 12))));
+      const depth = Math.max(1, Math.min(12, Math.round(num(values, "delegation_depth", 2))));
+      const drift = num(values, "goal_drift_score", 0.08);
+      const msgs = num(values, "message_rate_per_s", 60);
+      state.angle += dt * 0.12 * p;
+      while (state.agents.length < n) state.agents.push({ a: state.r() * Math.PI * 2, j: state.r(), out: 0 });
+      if (state.agents.length > n) state.agents.length = n;
+      const ring = (k) => R * (0.22 + 0.78 * (k / depth));
+      const pos = state.agents.map((ag, i) => {
+        const k = 1 + (i % depth);
+        const rogue = ag.j < drift * 0.9;
+        ag.out += ((rogue ? 1 : 0) - ag.out) * Math.min(1, dt * 0.8);
+        const r = ring(k) + ag.out * R * 0.18;
+        const a = ag.a + state.angle * (1 + (k % 3) * 0.2) + ag.out * 0.6;
+        return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.78, k, rogue };
+      });
+      // Rings and links.
+      for (let k = 1; k <= depth; k++) { ctx.strokeStyle = C.hair; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(cx, cy, ring(k), ring(k) * 0.78, 0, 0, Math.PI * 2); ctx.stroke(); }
+      const parent = (i) => { const k = pos[i].k; if (k === 1) return { x: cx, y: cy }; let best = null, bd = Infinity; for (let j = 0; j < pos.length; j++) if (pos[j].k === k - 1) { const d = Math.hypot(pos[j].x - pos[i].x, pos[j].y - pos[i].y); if (d < bd) { bd = d; best = pos[j]; } } return best || { x: cx, y: cy }; };
+      const parents = pos.map((_, i) => parent(i));
+      ctx.lineWidth = 1;
+      pos.forEach((q, i) => { ctx.strokeStyle = q.rogue ? "rgba(230,211,161,0.25)" : "rgba(214,222,238,0.08)"; ctx.beginPath(); ctx.moveTo(parents[i].x, parents[i].y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
+      // Messages travel along links at a rate set by the message reading.
+      state.acc += dt * p * Math.min(260, msgs * 0.35);
+      while (state.acc >= 1 && pos.length) { state.acc -= 1; const i = Math.floor(state.r() * pos.length); state.sparks.push({ i, t: 0, up: state.r() < 0.5 }); }
+      if (state.sparks.length > 600) state.sparks.splice(0, state.sparks.length - 600);
+      const hot = tone(profile, "message_rate_per_s", msgs) !== C.accent;
+      for (let s = state.sparks.length - 1; s >= 0; s--) {
+        const sp = state.sparks[s];
+        sp.t += dt * 1.6 * Math.max(p, 0.001);
+        if (sp.t >= 1 || !pos[sp.i]) { state.sparks.splice(s, 1); continue; }
+        const a = sp.up ? pos[sp.i] : parents[sp.i], b = sp.up ? parents[sp.i] : pos[sp.i];
+        const x = a.x + (b.x - a.x) * sp.t, y = a.y + (b.y - a.y) * sp.t;
+        ctx.fillStyle = hot ? C.gold : C.accent; ctx.globalAlpha = 0.85; ctx.fillRect(x - 1, y - 1, 2, 2); ctx.globalAlpha = 1;
+      }
+      // Agents.
+      pos.forEach((q) => { ctx.fillStyle = q.rogue ? C.gold : frame.halted ? C.silverDim : C.white; ctx.fillRect(q.x - 3, q.y - 3, 6, 6); if (q.rogue) { ctx.strokeStyle = "rgba(230,211,161,0.5)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(q.x, q.y, 9, 0, Math.PI * 2); ctx.stroke(); } });
+      glowDot(ctx, cx, cy, 7, frame.halted ? C.silverDim : C.white, 16);
+      text(ctx, "Orchestrator", cx, cy + 24, { size: 11, color: C.silverDim, align: "center" });
+      if (values.credential_shared === true && pos.length > 4) { line(ctx, pos[1].x, pos[1].y, pos[4].x, pos[4].y, C.gold, 2); text(ctx, "Shared credential", (pos[1].x + pos[4].x) / 2, (pos[1].y + pos[4].y) / 2 - 8, { size: 12, color: C.gold, align: "center" }); }
+      if (values.agent_outside_allowlist === true) { const x = cx + R * 1.12, y = cy - R * 0.5; glowDot(ctx, x, y, 5, HARM, 14); line(ctx, x, y, cx + ring(1), cy, HARM, 1, [4, 4]); text(ctx, "Unvetted agent", x, y - 12, { size: 12, color: HARM, align: "center" }); }
+      if (values.data_egress_unapproved === true) { line(ctx, cx, cy, w - 12, cy - R * 0.9, HARM, 2, [6, 4]); text(ctx, "Unapproved destination", w - 16, cy - R * 0.9 - 10, { size: 12, color: HARM, align: "right" }); }
+      readout(ctx, [["Active agents", "active_agents", (v) => String(Math.round(v))], ["Spawn rate", "spawn_rate_per_min", (v) => `${v.toFixed(1)} a min`], ["Delegation depth", "delegation_depth", (v) => `${v.toFixed(1)} levels`], ["Message rate", "message_rate_per_s", (v) => `${Math.round(v)} a s`], ["Spend", "spend_usd_per_min", (v) => `$${v.toFixed(2)} a min`], ["Goal drift", "goal_drift_score", (v) => v.toFixed(2)], ["Consensus", "consensus_agreement", (v) => v.toFixed(2)]], 24, 34, profile, values);
+    },
+  };
+
+  // ------------------------------------------------------------- Surgical field
+  // The endoscope view. The vessel rises and falls with the patient's breath,
+  // the margins come from the profile, the tip ring follows force, a ghost
+  // tip shows tracking error, a ghost vessel shows registration error, and
+  // video latency makes the view stutter.
+  const surgical = {
+    init(state) { state.shown = null; state.shownAt = -1; state.r = rngScene(11); state.spots = null; },
+    draw(frame, state) {
+      const { ctx, w, h, values, profile, t } = frame;
+      const lat = num(values, "video_latency_ms", 60);
+      // The view refreshes only as often as the video arrives.
+      if (!state.shown || t - state.shownAt >= Math.max(0.033, lat / 1000)) { state.shown = Object.assign({}, values); state.shownAt = t; }
+      const v = state.shown;
+      const cx = w * 0.36, cy = h * 0.52, R = Math.min(w * 0.3, h * 0.44);
+      const px = R / 9; // pixels per millimeter
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+      const bg = ctx.createRadialGradient(cx - R * 0.2, cy - R * 0.25, R * 0.1, cx, cy, R);
+      bg.addColorStop(0, "#4a3340"); bg.addColorStop(0.7, "#2a1c26"); bg.addColorStop(1, "#0d0a12");
+      ctx.fillStyle = bg; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+      if (!state.spots) { state.spots = []; for (let i = 0; i < 40; i++) state.spots.push([state.r() * 2 - 1, state.r() * 2 - 1, 4 + state.r() * 18]); }
+      for (const [sx, sy, sr] of state.spots) { ctx.fillStyle = "rgba(255,220,230,0.035)"; ctx.beginPath(); ctx.arc(cx + sx * R, cy + sy * R, sr, 0, Math.PI * 2); ctx.fill(); }
+      if (v.camera_feed_ok === false) { ctx.fillStyle = "#05060c"; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); ctx.restore(); text(ctx, "No video", cx, cy, { size: 22, weight: 300, color: C.gold, align: "center" }); this.panel(frame); return; }
+      const dist = num(v, "critical_structure_distance_mm", 6);
+      const tipX = cx, tipY = cy - R * 0.08;
+      const vesselY = tipY + dist * px;
+      const curve = (dy, color, width, dash) => { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(cx - R, vesselY + dy + R * 0.12); ctx.bezierCurveTo(cx - R * 0.4, vesselY + dy - R * 0.06, cx + R * 0.3, vesselY + dy + R * 0.02, cx + R, vesselY + dy - R * 0.14); ctx.stroke(); ctx.restore(); };
+      // Registration error as a ghost of where the images place the vessel.
+      const reg = num(v, "registration_error_mm", 0.8);
+      curve(-reg * px, "rgba(244,246,251,0.07)", px * 1.6);
+      // The vessel and its margins from the profile.
+      curve(0, "#7d2f3a", px * 1.6); curve(-px * 0.35, "rgba(255,170,170,0.25)", px * 0.3);
+      const s = sigOf(profile, "critical_structure_distance_mm");
+      if (s) {
+        curve(-s.warningThreshold * px, "rgba(244,246,251,0.35)", 1, [4, 6]);
+        curve(-s.criticalThreshold * px, "rgba(230,211,161,0.7)", 1.2, [4, 4]);
+      }
+      // Instrument shaft, tip, force ring, tracking ghost.
+      const trk = num(v, "tracking_error_mm", 0.3);
+      line(ctx, cx + R, cy - R * 0.9, tipX + 6, tipY - 6, "rgba(200,205,215,0.85)", px * 0.9);
+      ctx.strokeStyle = "rgba(244,246,251,0.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tipX - trk * px, tipY - trk * px * 0.4, 5, 0, Math.PI * 2); ctx.stroke();
+      const force = num(v, "tool_tip_force_N", 0.8);
+      ctx.strokeStyle = tone(profile, "tool_tip_force_N", force); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tipX, tipY, 6 + force * 4, 0, Math.PI * 2); ctx.stroke();
+      glowDot(ctx, tipX, tipY, 4, C.white, 10);
+      ctx.restore();
+      // Rim, scale and the measured gap.
+      ctx.strokeStyle = C.hairStrong; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      line(ctx, tipX + 26, tipY, tipX + 26, Math.min(vesselY, cy + R), tone(profile, "critical_structure_distance_mm", dist), 1);
+      text(ctx, `${dist.toFixed(2)} mm`, tipX + 32, (tipY + Math.min(vesselY, cy + R)) / 2 + 4, { size: 13, mono: true, color: tone(profile, "critical_structure_distance_mm", dist) });
+      // Margin labels sit outside the scope where each margin meets the rim.
+      if (s) { text(ctx, `${s.criticalThreshold} mm stop`, cx + R + 8, vesselY - s.criticalThreshold * px - R * 0.14 + 4, { size: 11, color: C.gold }); text(ctx, `${s.warningThreshold} mm warning`, cx + R + 8, vesselY - s.warningThreshold * px - R * 0.14 + 4, { size: 11, color: C.silverDim }); }
+      this.panel(frame);
+    },
+    panel(frame) {
+      const { ctx, w, values, profile } = frame;
+      const x = w * 0.36 + Math.min(w * 0.3, frame.h * 0.44) + 110;
+      readout(ctx, [["Distance to vessel", "critical_structure_distance_mm", (v) => `${v.toFixed(2)} mm`], ["Tip force", "tool_tip_force_N", (v) => `${v.toFixed(2)} N`], ["Tracking error", "tracking_error_mm", (v) => `${v.toFixed(2)} mm`], ["Registration error", "registration_error_mm", (v) => `${v.toFixed(2)} mm`], ["Video latency", "video_latency_ms", (v) => `${Math.round(v)} ms`], ["Assist confidence", "autonomy_confidence", (v) => v.toFixed(2)]], Math.min(x, w - 260), 40, profile, values);
+      const flags = [[values.surgeon_hands_on !== false, "Surgeon at console", "Surgeon's hands off"], [values.camera_feed_ok !== false, "Camera feed", "Camera feed lost"]];
+      flags.forEach(([okv, a, b], i) => text(ctx, okv ? a : b, Math.min(x, w - 260), 190 + i * 20, { size: 12, color: okv ? C.silver : C.gold }));
+    },
+  };
+
+  // ------------------------------------------------------------- Trading desk
+  // Orders flow from the agent through the pre-trade risk gate to the market.
+  // Each order sits at its distance from the reference price, the collar
+  // comes from the profile, and the equity line is the drawdown history.
+  const desk = {
+    init(state) { state.r = rngScene(5); state.orders = []; state.acc = 0; state.eq = []; state.feed = 0; },
+    draw(frame, state) {
+      const { ctx, w, h, values, dt, profile } = frame;
+      const p = pace(frame);
+      const mid = h * 0.5, gateX = w * 0.58, left = 28, right = w - 28;
+      const dev = num(values, "price_deviation_bps", 4);
+      const rate = num(values, "order_rate_per_s", 12);
+      const s = sigOf(profile, "price_deviation_bps");
+      const scale = (h * 0.16) / 300; // pixels per basis point
+      const span = 300 * scale + 14;
+      // Reference price and the collar.
+      line(ctx, left, mid, right, mid, C.hairStrong, 1);
+      text(ctx, "Reference price", left, mid - 8, { size: 11, color: C.silverDim });
+      if (s) for (const [lim, col, lab] of [[s.warningThreshold, "rgba(244,246,251,0.3)", "warning"], [s.criticalThreshold, "rgba(230,211,161,0.7)", "collar"]]) {
+        for (const sign of [-1, 1]) line(ctx, left, mid + sign * lim * scale, right, mid + sign * lim * scale, col, 1, [4, 6]);
+        text(ctx, `${lim} bps ${lab}`, right, mid - lim * scale - 6, { size: 11, color: col, align: "right" });
+      }
+      line(ctx, gateX, mid - span, gateX, mid + span, frame.halted ? C.gold : C.hairStrong, frame.halted ? 2 : 1);
+      text(ctx, frame.halted ? "Risk gate closed" : "Risk gate", gateX, mid - span - 8, { size: 11, color: frame.halted ? C.gold : C.silverDim, align: "center" });
+      text(ctx, "Market", right, mid + span + 16, { size: 11, color: C.silverDim, align: "right" });
+      text(ctx, "Agent", left, mid + span + 16, { size: 11, color: C.silverDim });
+      // Orders.
+      state.acc += dt * Math.min(60, rate * 0.4) * (frame.halted ? 0.3 : 1);
+      while (state.acc >= 1) { state.acc -= 1; const sign = state.r() < 0.5 ? -1 : 1; state.orders.push({ x: left, dev: sign * Math.max(0, dev + (state.r() - 0.5) * 6), buy: sign > 0 }); }
+      if (state.orders.length > 400) state.orders.splice(0, state.orders.length - 400);
+      for (let i = state.orders.length - 1; i >= 0; i--) {
+        const o = state.orders[i];
+        const speed = (right - left) / 2.2;
+        const nx = o.x + speed * dt * (p > 0 ? 1 : 0.6);
+        if (frame.halted && o.x < gateX && nx >= gateX) { state.orders.splice(i, 1); continue; }
+        o.x = nx;
+        if (o.x > right) { state.orders.splice(i, 1); continue; }
+        const y = mid - Math.max(-span + 4, Math.min(span - 4, o.dev * scale));
+        const outside = Math.abs(o.dev) >= 200;
+        ctx.fillStyle = outside ? HARM : Math.abs(o.dev) >= (s ? s.warningThreshold : 100) ? C.white : C.accent;
+        ctx.fillRect(o.x - 2, y - 2, 4, 4);
+      }
+      // Equity from drawdown history.
+      const dd = num(values, "intraday_drawdown_pct", 0.3);
+      state.eq.push(dd); if (state.eq.length > 600) state.eq.shift();
+      const ey0 = h - 22, eh = h * 0.12;
+      const dSig = sigOf(profile, "intraday_drawdown_pct");
+      text(ctx, "Equity against the day's high", left, ey0 - eh - 10, { size: 11, color: C.silverDim });
+      line(ctx, left, ey0 - eh, right, ey0 - eh, C.hairStrong, 1);
+      if (dSig) line(ctx, left, ey0 - eh + (dSig.criticalThreshold / 4) * eh, right, ey0 - eh + (dSig.criticalThreshold / 4) * eh, "rgba(230,211,161,0.6)", 1, [4, 6]);
+      ctx.strokeStyle = tone(profile, "intraday_drawdown_pct", dd); ctx.lineWidth = 1.5; ctx.beginPath();
+      state.eq.forEach((d, i) => { const x = left + (i / 599) * (right - left), y = ey0 - eh + Math.min(1.2, d / 4) * eh; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.stroke();
+      // Exposure bar.
+      const ex = num(values, "gross_exposure_ratio", 0.45), eSig = sigOf(profile, "gross_exposure_ratio");
+      const bx = w * 0.62, bw = right - bx, by = 40;
+      ctx.fillStyle = "rgba(214,222,238,0.06)"; ctx.fillRect(bx, by, bw, 8);
+      ctx.fillStyle = tone(profile, "gross_exposure_ratio", ex); ctx.fillRect(bx, by, Math.min(1.2, ex) / 1.2 * bw, 8);
+      if (eSig) line(ctx, bx + eSig.criticalThreshold / 1.2 * bw, by - 4, bx + eSig.criticalThreshold / 1.2 * bw, by + 12, C.gold, 1);
+      line(ctx, bx + bw / 1.2, by - 4, bx + bw / 1.2, by + 12, HARM, 1);
+      text(ctx, `Gross exposure ${Math.round(ex * 100)}% of limit`, bx, by - 8, { size: 11, color: C.silverDim });
+      readout(ctx, [["Order rate", "order_rate_per_s", (v) => `${Math.round(v)} a s`], ["Price deviation", "price_deviation_bps", (v) => `${Math.round(v)} bps`], ["Drawdown", "intraday_drawdown_pct", (v) => `${v.toFixed(2)}%`], ["Market data age", "market_data_age_ms", (v) => `${Math.round(v)} ms`], ["Cancel to fill", "cancel_to_fill_ratio", (v) => v.toFixed(1)], ["Model confidence", "model_confidence", (v) => v.toFixed(2)]], 24, 34, profile, values);
+      if (values.restricted_list_hit === true) text(ctx, "Restricted security", right, 80, { size: 13, color: C.gold, align: "right" });
+      if (values.credit_check_ok === false) text(ctx, "Credit check failed", right, 100, { size: 13, color: C.gold, align: "right" });
+    },
+  };
+
   const api = {
+    "agent-swarm": swarm,
+    "surgical-field": surgical,
+    "trading-desk": desk,
     "humanoid-floor": humanoid,
     fleet: fleet,
     "robot-cell": robotCell,

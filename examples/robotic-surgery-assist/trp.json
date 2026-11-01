@@ -1,0 +1,173 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/robotic-surgery-assist/1.0.0/trp.json",
+  "trp_id": "robotic-surgery-assist",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "Robot-assisted surgery with an autonomous assist",
+  "description": "Reference Trust Requirements Profile for a surgical robot with an autonomous suturing assist, working under a surgeon at the console. Illustrative draft values, not clinical limits.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "healthcare",
+    "use_case": "robot-assisted-surgery"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one robot-assisted procedure in which an autonomous assist moves instruments while a surgeon supervises from the console.",
+    "boundary": "One surgical robot, its instruments, its navigation and imaging, the autonomous assist, and the surgeon's console.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced",
+      "Any claim of regulatory compliance or certification"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "critical_structure_distance_mm",
+      "weight": 25,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 3.0,
+      "critical_threshold": 1.0,
+      "unit": "mm",
+      "reason": "Distance from the instrument tip to the nearest registered critical structure, such as a major vessel or nerve. It moves with the patient's breathing.",
+      "on_missing": "incomplete"
+    },
+    {
+      "signal": "tool_tip_force_N",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 2.5,
+      "critical_threshold": 4.0,
+      "unit": "N",
+      "reason": "Force at the instrument tip. Excess force tears tissue."
+    },
+    {
+      "signal": "tracking_error_mm",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.8,
+      "critical_threshold": 1.5,
+      "unit": "mm",
+      "reason": "Gap between the commanded and measured tip position. A gap means the instrument is not where the system believes it is."
+    },
+    {
+      "signal": "registration_error_mm",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 1.5,
+      "critical_threshold": 2.5,
+      "unit": "mm",
+      "reason": "Error between the preoperative images and the patient on the table. Navigation is only as good as this match."
+    },
+    {
+      "signal": "video_latency_ms",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 120,
+      "critical_threshold": 200,
+      "unit": "ms",
+      "reason": "Delay of the endoscope video at the console. A surgeon who sees late cannot supervise in time."
+    },
+    {
+      "signal": "autonomy_confidence",
+      "weight": 15,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.85,
+      "critical_threshold": 0.7,
+      "unit": "ratio",
+      "reason": "Confidence of the autonomous assist in its next motion. Unfamiliar anatomy lowers it.",
+      "on_missing": "incomplete"
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "estop_active",
+      "field": "estop_active",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "surgeon_hands_off",
+      "field": "surgeon_hands_on",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "camera_feed_lost",
+      "field": "camera_feed_ok",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "autonomy_mode_unapproved",
+      "field": "autonomy_mode_approved",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "critical_structure_contact",
+      "field": "critical_structure_distance_mm",
+      "condition": "less_than",
+      "action": "halt",
+      "value": 1.0
+    },
+    {
+      "rule": "instrument_unrecognized",
+      "field": "instrument_recognized",
+      "condition": "is_false",
+      "action": "block_startup"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": [
+      "registration_error_mm",
+      "tracking_error_mm"
+    ]
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable operating range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range, missing evidence, or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "For clinical, regulatory or insurance use, the evaluation source should be independent of the device manufacturer.",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values for a demonstration and are not clinical limits.",
+    "The distance to a critical structure moves with respiration. A margin set on a still phantom is too small on a breathing patient.",
+    "For orientation only, not a compliance claim. Standards that address this class of device include IEC 80601-2-77 for robotically assisted surgical equipment, ISO 14971 for risk management and IEC 62304 for medical device software."
+  ]
+}

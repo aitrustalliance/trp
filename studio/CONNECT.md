@@ -105,7 +105,8 @@ A use case is a scenario pack, a JSON file in `studio/packs/<id>/pack.json` regi
 | `signals.<name>.base`, `min`, `max`, `decimals`, `jitter`, `label` | Starting value, bounds, display precision, small noise |
 | `signals.<name>.process` | `{ "type": "ou", "theta": <1/s>, "sigma": <units/√s> }`. Ornstein-Uhlenbeck drift around the level, the standard model for a reading that wanders and reverts |
 | `signals.<name>.shocks` | `{ "rate": <per s>, "size": <units>, "spread": <units>, "decay_s": <s> }`. Poisson arrivals of sudden deviations that decay, such as a slip, a bump or a person stepping out |
-| `signals.<name>.derive` | `{ "from": <signal>, "scale": <k>, "offset": <c> }`. The level follows another signal, such as joint torque from payload |
+| `signals.<name>.wave` | `{ "amplitude": <units>, "period_s": <s>, "phase": <radians> }`. A periodic swing on top of the level, such as a patient's breathing moving tissue toward an instrument |
+| `signals.<name>.derive` | `{ "from": <signal>, "scale": <k>, "offset": <c> }`. The level follows another signal, such as joint torque from payload or spend from message rate |
 | `controls` | Sliders that set a signal and toggles with effects (`set`, `to`, `ramp_s`, `omit`, `shock_rate`) |
 | `story` | Timed captions and control changes for the guided demo |
 | `arena.harm` | Conditions on true values that define harm, with optional `near` conditions for near misses. This is what the stress test and the Command floor score against |
@@ -116,6 +117,14 @@ A use case is a scenario pack, a JSON file in `studio/packs/<id>/pack.json` regi
 A Learn challenge in `studio/challenges.json` with a `solution` gives the pack a tuned rule book on the Command floor. `tests/learn_challenges.js` checks the published profile fails the challenge and the solution passes it.
 
 `examples/humanoid-workforce/trp.json` and `studio/packs/humanoid-floor/pack.json` are the reference for a stochastic use case. Humanoid robots on learned policies carry totes in an aisle shared with people. Human distance, balance margin, contact force, joint torque, policy confidence and perception latency drift and take shocks. Joint torque follows payload. Measured over 300 runs, the published limits stop every harm and stop for nothing 36 times. The tuned limits in the Noisy Floor challenge stop every harm and stop for nothing twice.
+
+Three more reference use cases sit in regulated settings. Each has a profile, a pack, a scene, an Arena event, a Command group and a Learn challenge whose tuned limits were set by measurement. The published profiles ship with a gap that the challenge closes.
+
+| Use case | Profile and pack | Stochastic behavior | Published, 300 runs | Tuned, 300 runs |
+|---|---|---|---|---|
+| Surgical assist. An autonomous suturing assist near a major vessel under a surgeon's supervision | `examples/robotic-surgery-assist/`, `studio/packs/surgical-assist/` | Breathing moves the vessel margin periodically, force and tracking drift, the patient can shift | 94% of harm stopped, 13 false stops | All harm stopped, 18 false stops (Breathing Room) |
+| Agent swarm. AI agents doing back-office work that spawn helpers and delegate | `examples/agent-swarm-operations/`, `studio/packs/agent-swarm/` | Agent count follows spawn rate, spend follows message rate, drift and depth take shocks | 88% of harm stopped, 6 false stops | All harm stopped, 10 false stops (Quiet Takeover) |
+| Trading agent. An AI agent trading equities through a broker's market access | `examples/algorithmic-trading-agent/`, `studio/packs/trading-desk/` | Price deviation, drawdown, order rate and data age drift and take shocks | 85% of harm stopped, 31 false stops | All harm stopped, 10 false stops (Price Collar) |
 
 ## Verification
 
@@ -132,6 +141,7 @@ A Learn challenge in `studio/challenges.json` with a `solution` gives the pack a
 | MQTT through `mosquitto_sub` | Not verified | Relies on one payload per line on standard output |
 | Arm motion thresholds | Placeholders | Set from a real LeRobot episode before any claim about arm safety |
 | Humanoid profile thresholds | Illustrative | Reference values for a demo, not certified limits |
+| Surgical, agent swarm and trading profile thresholds | Illustrative | Reference values for a demo, not clinical, regulatory or risk limits. The standards and rules named in each profile's notes are for orientation and need checking against the primary text |
 
 ## Risks
 

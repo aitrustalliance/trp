@@ -19,7 +19,7 @@
     replaySteps: 2000,
     replaySeconds: 3600,
   };
-  const SCENES = ["robot-cell", "machine-line", "data-flow", "agent-trace", "instrument", "fleet", "humanoid-floor"];
+  const SCENES = ["robot-cell", "machine-line", "data-flow", "agent-trace", "instrument", "fleet", "humanoid-floor", "agent-swarm", "surgical-field", "trading-desk"];
 
   const RESERVED = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -131,6 +131,11 @@
         if (!isObj(s.shocks)) fail(`${name} shocks must be an object.`);
         for (const k of ["rate", "size", "spread", "decay_s"]) num(s.shocks[k], `${name} shocks ${k}`, true);
         if ((s.shocks.rate || 0) < 0 || (s.shocks.rate || 0) > 20 || (s.shocks.decay_s !== undefined && s.shocks.decay_s <= 0)) fail(`${name} shocks are out of range.`);
+      }
+      if (s.wave !== undefined) {
+        if (!isObj(s.wave)) fail(`${name} wave must be an object.`);
+        for (const k of ["amplitude", "period_s", "phase"]) num(s.wave[k], `${name} wave ${k}`, true);
+        if (s.wave.period_s !== undefined && s.wave.period_s <= 0.05) fail(`${name} wave period is too short.`);
       }
       if (s.derive !== undefined) {
         if (!isObj(s.derive)) fail(`${name} derive must be an object.`);

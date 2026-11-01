@@ -124,7 +124,7 @@ async function main() {
       check("with nothing asked for, the studio opens on Command", await page.isVisible("#command") && !(await page.isVisible(".stage")));
       check("no pack tab is selected on Command", (await page.locator(".pack-tab[aria-selected=true]").count()) === 0);
       const t0 = await page.evaluate(() => window.TRPCommand.tallies());
-      check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 5, JSON.stringify(t0));
+      check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 8, JSON.stringify(t0));
       check("the headline positions the floor and the line under it counts it", /Dynamic trust enforcement/.test(await page.textContent("#cmd-h1")) && /\d+ systems and [\d,]+ live signals/.test(await page.textContent("#cmd-sub")));
       check("the tuned book is the first one shown", (await page.evaluate(() => window.TRPCommand.book)) === "tuned" && (await page.getAttribute("#cmd-books button[data-book=tuned]", "aria-pressed")) === "true");
       const tuned = await page.evaluate(() => window.TRPCommand.advance(120));
@@ -234,7 +234,7 @@ async function main() {
       await page.waitForTimeout(800);
       await page.click(".mode[data-mode=learn]");
       await page.waitForTimeout(300);
-      check("Learn lists five challenges", (await page.locator(".challenge").count()) === 5);
+      check("Learn lists eight challenges", (await page.locator(".challenge").count()) === 8);
       await page.waitForSelector("#learn-codex .codex-item", { timeout: 5000 });
       check("Learn carries the glossary with every term open", (await page.locator("#learn-codex .codex-item").count()) === 24 && (await page.locator("#learn-codex .codex-item.locked").count()) === 0);
       await page.click("#learn-codex .codex-item[data-codex=operating-limits]");

@@ -1,0 +1,681 @@
+{
+  "pack_version": "1",
+  "id": "agent-swarm",
+  "title": "Agent Swarm",
+  "subtitle": "A swarm of AI agents running back-office work, spawning helpers and delegating as it goes. Every reading is stochastic.",
+  "scene": "agent-swarm",
+  "profile": "../../../examples/agent-swarm-operations/trp.json",
+  "command": {
+    "group": "Agent swarms",
+    "unit": "Swarm",
+    "count": 12,
+    "fault_rate": 0.012,
+    "benign_rate": 0.012,
+    "benign": [
+      {
+        "label": "Month-end close, 30 agents",
+        "effects": {
+          "spawn_rate_per_min": {
+            "to": 11,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "A long research task, 4 levels deep",
+        "effects": {
+          "delegation_depth": {
+            "to": 4.4,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "label": "A busy queue, 220 messages a second",
+        "effects": {
+          "message_rate_per_s": {
+            "to": 220,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "Reviewers disagree on a close call",
+        "effects": {
+          "consensus_agreement": {
+            "to": 0.66,
+            "ramp_s": 1.5
+          }
+        }
+      }
+    ]
+  },
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "signals": {
+    "active_agents": {
+      "base": 11.5,
+      "min": 1,
+      "max": 400,
+      "decimals": 0,
+      "label": "Active agents",
+      "derive": {
+        "from": "spawn_rate_per_min",
+        "scale": 2.5,
+        "offset": 4,
+        "ramp_s": 1.5
+      },
+      "process": {
+        "type": "ou",
+        "theta": 0.5,
+        "sigma": 1.2
+      }
+    },
+    "spawn_rate_per_min": {
+      "base": 3,
+      "min": 0,
+      "max": 120,
+      "decimals": 1,
+      "label": "Spawn rate",
+      "process": {
+        "type": "ou",
+        "theta": 0.6,
+        "sigma": 0.8
+      },
+      "shocks": {
+        "rate": 0.02,
+        "size": 9,
+        "spread": 4,
+        "decay_s": 3
+      }
+    },
+    "delegation_depth": {
+      "base": 2,
+      "min": 1,
+      "max": 20,
+      "decimals": 1,
+      "label": "Delegation depth",
+      "process": {
+        "type": "ou",
+        "theta": 0.8,
+        "sigma": 0.3
+      },
+      "shocks": {
+        "rate": 0.012,
+        "size": 2.4,
+        "spread": 0.8,
+        "decay_s": 2.5
+      }
+    },
+    "message_rate_per_s": {
+      "base": 60,
+      "min": 0,
+      "max": 3000,
+      "decimals": 0,
+      "label": "Message rate",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 14
+      },
+      "shocks": {
+        "rate": 0.025,
+        "size": 260,
+        "spread": 110,
+        "decay_s": 1.2
+      }
+    },
+    "spend_usd_per_min": {
+      "base": 0.82,
+      "min": 0,
+      "max": 50,
+      "decimals": 2,
+      "label": "Spend",
+      "derive": {
+        "from": "message_rate_per_s",
+        "scale": 0.012,
+        "offset": 0.1,
+        "ramp_s": 1
+      },
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.08
+      }
+    },
+    "tool_error_rate": {
+      "base": 0.02,
+      "min": 0,
+      "max": 1,
+      "decimals": 3,
+      "label": "Tool errors",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.008
+      },
+      "shocks": {
+        "rate": 0.012,
+        "size": 0.12,
+        "spread": 0.05,
+        "decay_s": 2
+      }
+    },
+    "goal_drift_score": {
+      "base": 0.08,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Goal drift",
+      "process": {
+        "type": "ou",
+        "theta": 0.4,
+        "sigma": 0.03
+      },
+      "shocks": {
+        "rate": 0.008,
+        "size": 0.22,
+        "spread": 0.08,
+        "decay_s": 6
+      }
+    },
+    "consensus_agreement": {
+      "base": 0.9,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Consensus",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.04
+      },
+      "shocks": {
+        "rate": 0.015,
+        "size": -0.28,
+        "spread": 0.08,
+        "decay_s": 2
+      }
+    },
+    "kill_switch_engaged": {
+      "base": false,
+      "label": "Kill switch"
+    },
+    "credential_shared": {
+      "base": false,
+      "label": "Credential shared"
+    },
+    "agent_outside_allowlist": {
+      "base": false,
+      "label": "Agent outside allowlist"
+    },
+    "data_egress_unapproved": {
+      "base": false,
+      "label": "Unapproved data egress"
+    },
+    "payment_without_approval": {
+      "base": false,
+      "label": "Payment without approval"
+    }
+  },
+  "rule_labels": {
+    "kill_switch_engaged": "Kill switch engaged",
+    "credential_shared": "One agent's credential used by another",
+    "agent_outside_allowlist": "An agent from outside the allowlist joined",
+    "unapproved_data_egress": "Data sent to an unapproved destination",
+    "payment_without_approval": "Payment queued without human approval"
+  },
+  "controls": [
+    {
+      "id": "spawn",
+      "label": "Spawn rate",
+      "type": "slider",
+      "signal": "spawn_rate_per_min",
+      "min": 0,
+      "max": 60,
+      "step": 0.5
+    },
+    {
+      "id": "messages",
+      "label": "Message rate",
+      "type": "slider",
+      "signal": "message_rate_per_s",
+      "min": 0,
+      "max": 1200,
+      "step": 10
+    },
+    {
+      "id": "inject",
+      "label": "Injected instruction",
+      "type": "toggle",
+      "effects": {
+        "goal_drift_score": {
+          "to": 0.72,
+          "ramp_s": 4
+        }
+      }
+    },
+    {
+      "id": "echo",
+      "label": "Echo loop",
+      "type": "toggle",
+      "effects": {
+        "message_rate_per_s": {
+          "to": 900,
+          "ramp_s": 2
+        }
+      }
+    },
+    {
+      "id": "recurse",
+      "label": "Recursive delegation",
+      "type": "toggle",
+      "effects": {
+        "delegation_depth": {
+          "to": 11,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "meter",
+      "label": "Billing meter drops out",
+      "type": "toggle",
+      "effects": {
+        "spend_usd_per_min": {
+          "omit": true
+        }
+      }
+    },
+    {
+      "id": "shared",
+      "label": "Shared credential",
+      "type": "toggle",
+      "effects": {
+        "credential_shared": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "rogue",
+      "label": "Unknown agent joins",
+      "type": "toggle",
+      "effects": {
+        "agent_outside_allowlist": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "kill",
+      "label": "Kill switch",
+      "type": "toggle",
+      "effects": {
+        "kill_switch_engaged": {
+          "set": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "A swarm of agents works a back-office queue. Each square is an agent, and each spark is a message between them."
+    },
+    {
+      "at_s": 5,
+      "caption": "Month-end. The orchestrator spawns helpers, and the rules slow the swarm to half speed as the count climbs.",
+      "set": {
+        "spawn": 14
+      }
+    },
+    {
+      "at_s": 11,
+      "caption": "The queue clears and the swarm shrinks back.",
+      "set": {
+        "spawn": 3
+      }
+    },
+    {
+      "at_s": 14,
+      "caption": "Two agents start answering each other. Messages amplify, spend follows, and the rules stop the swarm before the bill does.",
+      "toggle": {
+        "echo": true
+      }
+    },
+    {
+      "at_s": 21,
+      "caption": "The loop is broken.",
+      "toggle": {
+        "echo": false
+      }
+    },
+    {
+      "at_s": 23,
+      "caption": "A document carries an injected instruction. Goal drift rises slowly, the kind of failure no single reading shows.",
+      "toggle": {
+        "inject": true
+      }
+    },
+    {
+      "at_s": 31,
+      "caption": "The instruction is removed and the monitor settles.",
+      "toggle": {
+        "inject": false
+      }
+    },
+    {
+      "at_s": 33,
+      "caption": "One agent hands its credential to another. That is a hard rule, so the swarm stops at once.",
+      "toggle": {
+        "shared": true
+      }
+    },
+    {
+      "at_s": 38,
+      "caption": "Credentials rotated. The faults were scripted for this story. The noise and the bursts are live.",
+      "toggle": {
+        "shared": false
+      }
+    },
+    {
+      "at_s": 43,
+      "end": true
+    }
+  ],
+  "arena": {
+    "event": "Agent Swarm",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 8,
+    "harm": [
+      {
+        "id": "runaway_swarm",
+        "label": "Swarm outgrows its oversight",
+        "all": [
+          {
+            "signal": "active_agents",
+            "op": "gt",
+            "value": 120
+          }
+        ],
+        "near": [
+          {
+            "signal": "active_agents",
+            "op": "gt",
+            "value": 95
+          }
+        ]
+      },
+      {
+        "id": "amplification",
+        "label": "Agents amplify each other without limit",
+        "all": [
+          {
+            "signal": "message_rate_per_s",
+            "op": "gt",
+            "value": 700
+          }
+        ],
+        "near": [
+          {
+            "signal": "message_rate_per_s",
+            "op": "gt",
+            "value": 560
+          }
+        ]
+      },
+      {
+        "id": "budget_blowout",
+        "label": "Spend outruns the budget",
+        "all": [
+          {
+            "signal": "spend_usd_per_min",
+            "op": "gt",
+            "value": 8
+          }
+        ],
+        "near": [
+          {
+            "signal": "spend_usd_per_min",
+            "op": "gt",
+            "value": 6.5
+          }
+        ]
+      },
+      {
+        "id": "lost_accountability",
+        "label": "Delegation chain too deep for an accountable owner",
+        "all": [
+          {
+            "signal": "delegation_depth",
+            "op": "gt",
+            "value": 8
+          }
+        ],
+        "near": [
+          {
+            "signal": "delegation_depth",
+            "op": "gt",
+            "value": 6.5
+          }
+        ]
+      },
+      {
+        "id": "goal_hijack",
+        "label": "Swarm pursues an injected objective",
+        "all": [
+          {
+            "signal": "goal_drift_score",
+            "op": "gt",
+            "value": 0.5
+          }
+        ],
+        "near": [
+          {
+            "signal": "goal_drift_score",
+            "op": "gt",
+            "value": 0.42
+          }
+        ]
+      },
+      {
+        "id": "credential_misuse",
+        "label": "Credential used by the wrong agent",
+        "all": [
+          {
+            "signal": "credential_shared",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "rogue_agent",
+        "label": "Unvetted agent acting inside the swarm",
+        "all": [
+          {
+            "signal": "agent_outside_allowlist",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "exfiltration",
+        "label": "Data leaves to an unapproved destination",
+        "all": [
+          {
+            "signal": "data_egress_unapproved",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "spawnstorm",
+        "label": "Spawn storm",
+        "effects": {
+          "spawn_rate_per_min": {
+            "to": 55,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "echo",
+        "label": "Two agents answer each other in a loop",
+        "weight": 1.4,
+        "effects": {
+          "message_rate_per_s": {
+            "to": 950,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "recursion",
+        "label": "Agents delegate to agents without end",
+        "effects": {
+          "delegation_depth": {
+            "to": 8.8,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "inject",
+        "label": "A document carries an injected instruction",
+        "weight": 1.4,
+        "effects": {
+          "goal_drift_score": {
+            "to": 0.7,
+            "ramp_s": 4
+          }
+        }
+      },
+      {
+        "id": "spend",
+        "label": "An agent loops on an expensive model",
+        "effects": {
+          "spend_usd_per_min": {
+            "to": 10,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "meter",
+        "label": "Billing meter drops out as spend climbs",
+        "effects": {
+          "spend_usd_per_min": {
+            "to": 9.5,
+            "ramp_s": 3,
+            "omit": true,
+            "fault": true
+          }
+        }
+      },
+      {
+        "id": "shared",
+        "label": "One agent hands its credential to another",
+        "weight": 0.6,
+        "effects": {
+          "credential_shared": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "rogue",
+        "label": "An unvetted agent joins the swarm",
+        "weight": 0.6,
+        "effects": {
+          "agent_outside_allowlist": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "exfil",
+        "label": "An agent posts data to an unknown endpoint",
+        "weight": 0.6,
+        "effects": {
+          "data_egress_unapproved": {
+            "set": true
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "drift-monitor",
+        "label": "Tighter drift monitor",
+        "detail": "Goal drift turns critical at 0.4 instead of 0.6.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "goal_drift_score",
+        "warning": 0.25,
+        "critical": 0.4,
+        "counters": [
+          "inject"
+        ]
+      },
+      {
+        "id": "depth-cap",
+        "label": "Delegation cap",
+        "detail": "Delegation depth turns critical at 6 levels instead of 9.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "delegation_depth",
+        "warning": 4,
+        "critical": 6,
+        "counters": [
+          "recursion"
+        ]
+      },
+      {
+        "id": "second-meter",
+        "label": "Second billing meter",
+        "detail": "A meter dropout no longer hides spend.",
+        "cost": 2,
+        "type": "shield",
+        "signals": [
+          "spend_usd_per_min"
+        ],
+        "counters": [
+          "meter"
+        ]
+      },
+      {
+        "id": "rate-limit",
+        "label": "Message rate limit",
+        "detail": "Message rate turns critical at 400 a second instead of 500.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "message_rate_per_s",
+        "warning": 200,
+        "critical": 400,
+        "counters": [
+          "echo"
+        ]
+      },
+      {
+        "id": "spawn-cap",
+        "label": "Spawn cap",
+        "detail": "Spawn rate turns critical at 18 a minute instead of 25.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "spawn_rate_per_min",
+        "warning": 10,
+        "critical": 18,
+        "counters": [
+          "spawnstorm"
+        ]
+      }
+    ]
+  }
+}

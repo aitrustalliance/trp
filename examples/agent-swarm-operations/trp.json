@@ -1,0 +1,183 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/agent-swarm-operations/1.0.0/trp.json",
+  "trp_id": "agent-swarm-operations",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "AI agent swarm running back-office operations",
+  "description": "Reference Trust Requirements Profile for a swarm of AI agents that plans, delegates and executes back-office work and spawns helper agents as it goes. Illustrative draft values.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "enterprise-operations",
+    "use_case": "multi-agent-swarm"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one swarm of language model agents under a single orchestrator, with tool access, a budget and a human approver for payments.",
+    "boundary": "One orchestrator, every agent it spawns, their tools, credentials, budget and outbound data paths.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced",
+      "Any claim of regulatory compliance or certification"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "active_agents",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 40,
+      "critical_threshold": 80,
+      "unit": "count",
+      "reason": "Agents alive in the swarm. Uncontrolled spawning is how a swarm outgrows its oversight and its budget."
+    },
+    {
+      "signal": "spawn_rate_per_min",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 12,
+      "critical_threshold": 25,
+      "unit": "per minute",
+      "reason": "New agents a minute. A burst of spawning precedes most runaway swarms."
+    },
+    {
+      "signal": "delegation_depth",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 5,
+      "critical_threshold": 9,
+      "unit": "levels",
+      "reason": "Longest chain of agents delegating to agents. Deep chains lose the original instruction and the accountable owner."
+    },
+    {
+      "signal": "message_rate_per_s",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 250,
+      "critical_threshold": 500,
+      "unit": "per second",
+      "reason": "Messages between agents a second. Agents answering each other in a loop amplify without limit."
+    },
+    {
+      "signal": "spend_usd_per_min",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 3,
+      "critical_threshold": 6,
+      "unit": "USD per minute",
+      "reason": "Model and tool spend a minute.",
+      "on_missing": "incomplete"
+    },
+    {
+      "signal": "tool_error_rate",
+      "weight": 5,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.08,
+      "critical_threshold": 0.2,
+      "unit": "ratio",
+      "reason": "Share of tool calls that fail. A rising rate means the swarm is acting on a broken picture of its systems."
+    },
+    {
+      "signal": "goal_drift_score",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.35,
+      "critical_threshold": 0.6,
+      "unit": "ratio",
+      "reason": "Distance between what the swarm is doing and the objective it was given, scored by an independent monitor. Injected instructions show up here first."
+    },
+    {
+      "signal": "consensus_agreement",
+      "weight": 5,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.7,
+      "critical_threshold": 0.5,
+      "unit": "ratio",
+      "reason": "Agreement between agents that check each other's work. Low agreement marks a decision nobody should trust yet."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "kill_switch_engaged",
+      "field": "kill_switch_engaged",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "credential_shared",
+      "field": "credential_shared",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "agent_outside_allowlist",
+      "field": "agent_outside_allowlist",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "unapproved_data_egress",
+      "field": "data_egress_unapproved",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "payment_without_approval",
+      "field": "payment_without_approval",
+      "condition": "is_true",
+      "action": "require_review"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": [
+      "goal_drift_score",
+      "delegation_depth"
+    ]
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable operating range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range, missing evidence, or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "The goal drift monitor and the evaluation source should be independent of the swarm and its vendor.",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values for a demonstration.",
+    "Readings in a swarm are stochastic and coupled. Agent count follows spawn rate, and spend follows message rate.",
+    "For orientation only, not a compliance claim. Frameworks that address oversight of autonomous AI systems include the EU AI Act provisions on human oversight and the NIST AI Risk Management Framework."
+  ]
+}

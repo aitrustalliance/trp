@@ -1,0 +1,168 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/algorithmic-trading-agent/1.0.0/trp.json",
+  "trp_id": "algorithmic-trading-agent",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "AI trading agent under pre-trade and intraday risk controls",
+  "description": "Reference Trust Requirements Profile for an AI agent trading listed equities through a broker's market access. Illustrative draft values, not regulatory limits.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "financial-services",
+    "use_case": "algorithmic-trading"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one AI trading agent that generates and sends orders through a broker-dealer's market access, under pre-trade and intraday risk controls.",
+    "boundary": "One trading agent, its order flow, positions, market data and the broker's risk systems.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced",
+      "Any claim of regulatory compliance or certification"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "gross_exposure_ratio",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.8,
+      "critical_threshold": 0.95,
+      "unit": "ratio",
+      "reason": "Gross exposure as a share of the approved limit."
+    },
+    {
+      "signal": "order_rate_per_s",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 40,
+      "critical_threshold": 80,
+      "unit": "per second",
+      "reason": "Orders a second. A runaway algorithm floods the market faster than anyone can watch."
+    },
+    {
+      "signal": "intraday_drawdown_pct",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 1.5,
+      "critical_threshold": 2.5,
+      "unit": "percent",
+      "reason": "Loss from the day's high-water mark as a percent of capital."
+    },
+    {
+      "signal": "price_deviation_bps",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 100,
+      "critical_threshold": 300,
+      "unit": "bps",
+      "reason": "Distance of an order's price from the reference price, in basis points. A wide gap is the signature of an erroneous order."
+    },
+    {
+      "signal": "market_data_age_ms",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 250,
+      "critical_threshold": 1000,
+      "unit": "ms",
+      "reason": "Age of the market data the agent is trading on.",
+      "on_missing": "incomplete"
+    },
+    {
+      "signal": "cancel_to_fill_ratio",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 15,
+      "critical_threshold": 30,
+      "unit": "ratio",
+      "reason": "Orders cancelled for every order filled. A high ratio is a pattern regulators read as layering or spoofing."
+    },
+    {
+      "signal": "model_confidence",
+      "weight": 10,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.75,
+      "critical_threshold": 0.6,
+      "unit": "ratio",
+      "reason": "Confidence of the trading model in its signal. A regime the model has not seen lowers it."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "kill_switch_engaged",
+      "field": "kill_switch_engaged",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "restricted_list_hit",
+      "field": "restricted_list_hit",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "credit_check_failed",
+      "field": "credit_check_ok",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "strategy_unapproved",
+      "field": "strategy_version_approved",
+      "condition": "is_false",
+      "action": "block_startup"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": [
+      "intraday_drawdown_pct",
+      "gross_exposure_ratio"
+    ]
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable operating range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range, missing evidence, or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "For audit or regulatory use, the evaluation source should be independent of the trading desk.",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values for a demonstration and are not regulatory limits.",
+    "Market readings are stochastic. Drawdown wanders, gaps arrive without warning, and a single erroneous order lasts less than a second.",
+    "For orientation only, not a compliance claim. Rules that require pre-trade risk controls of this kind include SEC Rule 15c3-5 in the United States and the MiFID II regulatory technical standards for algorithmic trading in the European Union."
+  ]
+}

@@ -52,15 +52,16 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   entries on AI trust, safety and governance and the TRP specification at
   three depths, with documented cases and self-checks, checked by
   `tests/codex_content.js`.
-- Studio Learn mode with four challenges, graded by a fixed-seed stress
+- Studio Learn mode with eight challenges, graded by a fixed-seed stress
   test, in which players fix the limits of a profile with a gap in it. Each
   challenge ships the limits that solve it, as `solution`.
-- Studio Command, the first screen: a floor of fifty-six systems from every
-  pack, each judged by the engine every tick, with a bar that counts harm caught,
+- Studio Command as the first screen, a floor of 108 systems from every
+  pack with a harm model, each judged by the engine every tick, with a bar that counts harm caught,
   harm missed and false stops, and a rule book dial (loose,
   published, tight, tuned by measurement) that shows the trade-off live.
   Packs carry a `command` block with benign excursions.
 - Humanoid Floor, a stochastic use case with humanoid robots on learned policies in an aisle shared with people, with a profile in `examples/humanoid-workforce/`, a scene, an Arena event, a Command group and the Noisy Floor Learn challenge. The simulator gains Ornstein-Uhlenbeck drift, Poisson shocks and coupled signals, with existing packs unchanged.
+- Three regulated stochastic use cases, each with a profile, pack, scene, Arena event, Command group and Learn challenge. Surgical Assist (`examples/robotic-surgery-assist/`) places an autonomous suturing assist near a vessel that moves with breathing. Agent Swarm (`examples/agent-swarm-operations/`) covers spawning, delegation depth, spend and goal drift. Trading Desk (`examples/algorithmic-trading-agent/`) covers price collars, drawdown, exposure and stale data. The simulator gains a periodic `wave` field.
 - Studio Connect takes outside evidence from JSON lines, CSV, OpenTelemetry OTLP/JSON, WebSocket, Server-Sent Events, rosbridge, the page API `window.TRPStudio.ingest` and LeRobot with a synthetic SO-101 fallback. `studio/bridge/evidence-bridge.js` relays telemetry to the Studio. `studio/CONNECT.md` is the integration guide, and `tests/studio_connect.js` covers it.
 - The Studio header offers Nautilus as coming soon with an early access
   sign-up, in place of a link to the game.

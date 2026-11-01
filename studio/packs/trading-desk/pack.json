@@ -1,0 +1,669 @@
+{
+  "pack_version": "1",
+  "id": "trading-desk",
+  "title": "Trading Desk",
+  "subtitle": "An AI agent trading equities through a broker's market access. Prices, losses and order flow are stochastic.",
+  "scene": "trading-desk",
+  "profile": "../../../examples/algorithmic-trading-agent/trp.json",
+  "command": {
+    "group": "Trading agents",
+    "unit": "Book",
+    "count": 12,
+    "fault_rate": 0.012,
+    "benign_rate": 0.012,
+    "benign": [
+      {
+        "label": "Market open, 35 orders a second",
+        "effects": {
+          "order_rate_per_s": {
+            "to": 35,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "A volatile morning, 1.4 percent drawdown",
+        "effects": {
+          "intraday_drawdown_pct": {
+            "to": 1.4,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "label": "A wide spread, 80 bps from reference",
+        "effects": {
+          "price_deviation_bps": {
+            "to": 80,
+            "ramp_s": 0.5
+          }
+        }
+      },
+      {
+        "label": "A slow quote feed, 220 ms",
+        "effects": {
+          "market_data_age_ms": {
+            "to": 220,
+            "ramp_s": 1
+          }
+        }
+      }
+    ]
+  },
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "signals": {
+    "gross_exposure_ratio": {
+      "base": 0.45,
+      "min": 0,
+      "max": 3,
+      "decimals": 2,
+      "label": "Gross exposure",
+      "process": {
+        "type": "ou",
+        "theta": 0.3,
+        "sigma": 0.05
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 0.22,
+        "spread": 0.08,
+        "decay_s": 4
+      }
+    },
+    "order_rate_per_s": {
+      "base": 12,
+      "min": 0,
+      "max": 1000,
+      "decimals": 0,
+      "label": "Order rate",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 3.5
+      },
+      "shocks": {
+        "rate": 0.02,
+        "size": 26,
+        "spread": 10,
+        "decay_s": 1
+      }
+    },
+    "intraday_drawdown_pct": {
+      "base": 0.3,
+      "min": 0,
+      "max": 20,
+      "decimals": 2,
+      "label": "Drawdown",
+      "process": {
+        "type": "ou",
+        "theta": 0.08,
+        "sigma": 0.12
+      },
+      "shocks": {
+        "rate": 0.006,
+        "size": 0.9,
+        "spread": 0.4,
+        "decay_s": 15
+      }
+    },
+    "price_deviation_bps": {
+      "base": 4,
+      "min": 0,
+      "max": 5000,
+      "decimals": 0,
+      "label": "Price deviation",
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 2.5
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 170,
+        "spread": 70,
+        "decay_s": 0.35
+      }
+    },
+    "market_data_age_ms": {
+      "base": 40,
+      "min": 1,
+      "max": 20000,
+      "decimals": 0,
+      "label": "Market data age",
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 9
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 500,
+        "spread": 250,
+        "decay_s": 1.5
+      }
+    },
+    "cancel_to_fill_ratio": {
+      "base": 4,
+      "min": 0,
+      "max": 500,
+      "decimals": 1,
+      "label": "Cancel to fill",
+      "process": {
+        "type": "ou",
+        "theta": 0.5,
+        "sigma": 0.9
+      },
+      "shocks": {
+        "rate": 0.006,
+        "size": 14,
+        "spread": 5,
+        "decay_s": 5
+      }
+    },
+    "model_confidence": {
+      "base": 0.88,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Model confidence",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.035
+      },
+      "shocks": {
+        "rate": 0.015,
+        "size": -0.24,
+        "spread": 0.08,
+        "decay_s": 2
+      }
+    },
+    "kill_switch_engaged": {
+      "base": false,
+      "label": "Kill switch"
+    },
+    "restricted_list_hit": {
+      "base": false,
+      "label": "Restricted list"
+    },
+    "credit_check_ok": {
+      "base": true,
+      "label": "Credit check"
+    },
+    "strategy_version_approved": {
+      "base": true,
+      "label": "Approved strategy version"
+    }
+  },
+  "rule_labels": {
+    "kill_switch_engaged": "Kill switch engaged",
+    "restricted_list_hit": "Order in a restricted security",
+    "credit_check_failed": "Credit check failed",
+    "strategy_unapproved": "Strategy version not approved"
+  },
+  "controls": [
+    {
+      "id": "rate",
+      "label": "Order rate",
+      "type": "slider",
+      "signal": "order_rate_per_s",
+      "min": 0,
+      "max": 200,
+      "step": 1
+    },
+    {
+      "id": "exposure",
+      "label": "Gross exposure",
+      "type": "slider",
+      "signal": "gross_exposure_ratio",
+      "min": 0,
+      "max": 1.3,
+      "step": 0.01
+    },
+    {
+      "id": "fat",
+      "label": "Erroneous order",
+      "type": "toggle",
+      "effects": {
+        "price_deviation_bps": {
+          "to": 380,
+          "ramp_s": 0.2
+        }
+      }
+    },
+    {
+      "id": "runaway",
+      "label": "Runaway algorithm",
+      "type": "toggle",
+      "effects": {
+        "order_rate_per_s": {
+          "to": 160,
+          "ramp_s": 1.5
+        }
+      }
+    },
+    {
+      "id": "gap",
+      "label": "Market gaps down",
+      "type": "toggle",
+      "effects": {
+        "intraday_drawdown_pct": {
+          "to": 3.4,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "stale",
+      "label": "Quote feed stalls",
+      "type": "toggle",
+      "effects": {
+        "market_data_age_ms": {
+          "to": 1800,
+          "ramp_s": 0.5
+        }
+      }
+    },
+    {
+      "id": "layer",
+      "label": "Layering pattern",
+      "type": "toggle",
+      "effects": {
+        "cancel_to_fill_ratio": {
+          "to": 55,
+          "ramp_s": 3
+        }
+      }
+    },
+    {
+      "id": "restricted",
+      "label": "Restricted security",
+      "type": "toggle",
+      "effects": {
+        "restricted_list_hit": {
+          "set": true
+        }
+      }
+    },
+    {
+      "id": "kill",
+      "label": "Kill switch",
+      "type": "toggle",
+      "effects": {
+        "kill_switch_engaged": {
+          "set": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "An AI agent trades through a broker's market access. Prices move, the book fills, and every order is checked before it leaves."
+    },
+    {
+      "at_s": 5,
+      "caption": "The open. Order rate climbs and the rules slow the agent to half speed.",
+      "set": {
+        "rate": 50
+      }
+    },
+    {
+      "at_s": 10,
+      "caption": "The open settles.",
+      "set": {
+        "rate": 12
+      }
+    },
+    {
+      "at_s": 12,
+      "caption": "The agent prices an order far from the market. The rules stop it before it reaches the exchange.",
+      "toggle": {
+        "fat": true
+      }
+    },
+    {
+      "at_s": 17,
+      "caption": "Corrected.",
+      "toggle": {
+        "fat": false
+      }
+    },
+    {
+      "at_s": 19,
+      "caption": "The quote feed stalls. The agent would be trading on old prices, so it stops.",
+      "toggle": {
+        "stale": true
+      }
+    },
+    {
+      "at_s": 24,
+      "caption": "The feed recovers.",
+      "toggle": {
+        "stale": false
+      }
+    },
+    {
+      "at_s": 26,
+      "caption": "Cancellations pile up against fills, the pattern regulators read as layering. The rules stop the agent before a regulator has to.",
+      "toggle": {
+        "layer": true
+      }
+    },
+    {
+      "at_s": 34,
+      "caption": "Pattern cleared. The faults were scripted for this story. Prices, losses and order flow are live.",
+      "toggle": {
+        "layer": false
+      }
+    },
+    {
+      "at_s": 39,
+      "end": true
+    }
+  ],
+  "arena": {
+    "event": "Trading Desk",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 8,
+    "harm": [
+      {
+        "id": "erroneous_order",
+        "label": "Erroneous order reaches the market",
+        "all": [
+          {
+            "signal": "price_deviation_bps",
+            "op": "gt",
+            "value": 200
+          }
+        ],
+        "near": [
+          {
+            "signal": "price_deviation_bps",
+            "op": "gt",
+            "value": 160
+          }
+        ]
+      },
+      {
+        "id": "runaway_algo",
+        "label": "Runaway algorithm floods the market",
+        "all": [
+          {
+            "signal": "order_rate_per_s",
+            "op": "gt",
+            "value": 120
+          }
+        ],
+        "near": [
+          {
+            "signal": "order_rate_per_s",
+            "op": "gt",
+            "value": 95
+          }
+        ]
+      },
+      {
+        "id": "limit_breach",
+        "label": "Exposure past the approved limit",
+        "all": [
+          {
+            "signal": "gross_exposure_ratio",
+            "op": "gt",
+            "value": 1.0
+          }
+        ],
+        "near": [
+          {
+            "signal": "gross_exposure_ratio",
+            "op": "gt",
+            "value": 0.97
+          }
+        ]
+      },
+      {
+        "id": "loss_limit",
+        "label": "Loss past the daily limit",
+        "all": [
+          {
+            "signal": "intraday_drawdown_pct",
+            "op": "gt",
+            "value": 3.0
+          }
+        ],
+        "near": [
+          {
+            "signal": "intraday_drawdown_pct",
+            "op": "gt",
+            "value": 2.7
+          }
+        ]
+      },
+      {
+        "id": "stale_trading",
+        "label": "Trading on stale prices",
+        "all": [
+          {
+            "signal": "market_data_age_ms",
+            "op": "gt",
+            "value": 1200
+          }
+        ],
+        "near": [
+          {
+            "signal": "market_data_age_ms",
+            "op": "gt",
+            "value": 1000
+          }
+        ]
+      },
+      {
+        "id": "layering",
+        "label": "Order pattern that reads as layering",
+        "all": [
+          {
+            "signal": "cancel_to_fill_ratio",
+            "op": "gt",
+            "value": 40
+          }
+        ],
+        "near": [
+          {
+            "signal": "cancel_to_fill_ratio",
+            "op": "gt",
+            "value": 32
+          }
+        ]
+      },
+      {
+        "id": "restricted_trade",
+        "label": "Trade in a restricted security",
+        "all": [
+          {
+            "signal": "restricted_list_hit",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "credit_breach",
+        "label": "Trading without credit",
+        "all": [
+          {
+            "signal": "credit_check_ok",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "fat",
+        "label": "An order priced far from the market",
+        "weight": 1.4,
+        "effects": {
+          "price_deviation_bps": {
+            "to": 260,
+            "ramp_s": 0.2
+          }
+        }
+      },
+      {
+        "id": "runaway",
+        "label": "The algorithm runs away",
+        "effects": {
+          "order_rate_per_s": {
+            "to": 160,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "id": "creep",
+        "label": "Exposure creeps past the limit",
+        "effects": {
+          "gross_exposure_ratio": {
+            "to": 1.08,
+            "ramp_s": 5
+          }
+        }
+      },
+      {
+        "id": "gap",
+        "label": "The market gaps down",
+        "effects": {
+          "intraday_drawdown_pct": {
+            "to": 3.4,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "stale",
+        "label": "The quote feed stalls",
+        "effects": {
+          "market_data_age_ms": {
+            "to": 1800,
+            "ramp_s": 0.5
+          }
+        }
+      },
+      {
+        "id": "layer",
+        "label": "Cancellations pile up against fills",
+        "weight": 1.2,
+        "effects": {
+          "cancel_to_fill_ratio": {
+            "to": 55,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "regime",
+        "label": "A market regime the model has not seen",
+        "effects": {
+          "model_confidence": {
+            "to": 0.5,
+            "ramp_s": 1.5
+          },
+          "intraday_drawdown_pct": {
+            "to": 2.8,
+            "ramp_s": 4
+          }
+        }
+      },
+      {
+        "id": "feedgap",
+        "label": "The feed drops as prices run",
+        "effects": {
+          "market_data_age_ms": {
+            "to": 1600,
+            "ramp_s": 1,
+            "omit": true,
+            "fault": true
+          }
+        }
+      },
+      {
+        "id": "restricted",
+        "label": "An order in a restricted security",
+        "weight": 0.6,
+        "effects": {
+          "restricted_list_hit": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "credit",
+        "label": "The credit check fails",
+        "weight": 0.6,
+        "effects": {
+          "credit_check_ok": {
+            "set": false
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "price-collar",
+        "label": "Price collar",
+        "detail": "Price deviation turns critical at 150 bps instead of 300.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "price_deviation_bps",
+        "warning": 60,
+        "critical": 150,
+        "counters": [
+          "fat"
+        ]
+      },
+      {
+        "id": "second-feed",
+        "label": "Second market data feed",
+        "detail": "A feed dropout no longer hides stale prices.",
+        "cost": 2,
+        "type": "shield",
+        "signals": [
+          "market_data_age_ms"
+        ],
+        "counters": [
+          "feedgap"
+        ]
+      },
+      {
+        "id": "layering-check",
+        "label": "Layering surveillance",
+        "detail": "Cancel to fill turns critical at 25 instead of 30.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "cancel_to_fill_ratio",
+        "warning": 12,
+        "critical": 25,
+        "counters": [
+          "layer"
+        ]
+      },
+      {
+        "id": "loss-limit",
+        "label": "Tighter loss limit",
+        "detail": "Drawdown turns critical at 2.2 percent instead of 2.5.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "intraday_drawdown_pct",
+        "warning": 1.3,
+        "critical": 2.2,
+        "counters": [
+          "gap",
+          "regime"
+        ]
+      }
+    ]
+  }
+}

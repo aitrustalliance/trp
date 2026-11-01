@@ -153,6 +153,85 @@
           "critical": 34.4
         }
       }
+    },
+    {
+      "id": "breathing-room",
+      "pack": "surgical-assist",
+      "title": "Breathing Room",
+      "brief": "The published margin around the vessel was set on a still phantom. On a breathing patient the instrument crosses the safety margin at the bottom of every breath, and the 1 mm limit never fires. Widen the margin so every breach is stopped, without stopping the assist at every breath.",
+      "edit": [
+        "critical_structure_distance_mm",
+        "registration_error_mm"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 25,
+        "uptime": 0.65
+      },
+      "hint": "The distance swings about 1.4 mm with each breath. Set the critical limit far enough out that the trough of a breath near the margin still trips it.",
+      "lesson": "Periodic motion changes what a safe limit is. A limit set on the average distance is crossed at every trough, so physical systems that move with the body, the tide or the load cycle need limits set against the worst point of the cycle.",
+      "solution": {
+        "critical_structure_distance_mm": {
+          "warning": 4.4,
+          "critical": 2.6
+        }
+      }
+    },
+    {
+      "id": "quiet-takeover",
+      "pack": "agent-swarm",
+      "title": "Quiet Takeover",
+      "brief": "An injected instruction moves the swarm's goal a little at a time, and delegation chains grow past the point where anyone owns the outcome. The published limits sit above where harm begins, so both slip through. Tighten them so every harm is stopped and the swarm keeps working.",
+      "edit": [
+        "goal_drift_score",
+        "delegation_depth",
+        "message_rate_per_s"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 20,
+        "uptime": 0.65
+      },
+      "hint": "Compare each critical limit with the point where harm begins. Two of them are on the wrong side.",
+      "lesson": "Slow failures never trip a loose limit. A swarm taken over by an injected instruction looks normal reading by reading, so its limits must sit below the harm point with room for the trend to be seen.",
+      "solution": {
+        "goal_drift_score": {
+          "warning": 0.25,
+          "critical": 0.4
+        },
+        "delegation_depth": {
+          "warning": 4,
+          "critical": 6.5
+        }
+      }
+    },
+    {
+      "id": "price-collar",
+      "pack": "trading-desk",
+      "title": "Price Collar",
+      "brief": "The published price collar is wider than the point where an erroneous order does damage, and the confidence limit stops the agent in every unfamiliar market even when nothing is wrong. Narrow the collar, relax the confidence limit, and keep every harm stopped.",
+      "edit": [
+        "price_deviation_bps",
+        "model_confidence",
+        "cancel_to_fill_ratio"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 20,
+        "uptime": 0.65
+      },
+      "hint": "An erroneous order lasts well under a second, so the collar must already be inside the harm point. Low model confidence on its own has caused no harm in any run.",
+      "lesson": "Controls that fire on the wrong signal cost uptime and teach traders to override them. Controls set past the harm point let the one order that matters through. Measurement shows which limit is which.",
+      "solution": {
+        "price_deviation_bps": {
+          "warning": 60,
+          "critical": 150
+        },
+        "model_confidence": {
+          "warning": 0.6,
+          "critical": 0.45
+        }
+      }
     }
   ]
 }
