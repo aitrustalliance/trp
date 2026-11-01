@@ -224,8 +224,7 @@
     text("cmd-missed", String(c.missed));
     text("cmd-needless", String(c.needless));
     text("cmd-state", `${c.stopped} stopped · ${c.restricted} at half · ${c.systems - c.stopped - c.restricted} running`);
-    text("cmd-h1", `The open engine judges ${c.systems} AI systems on this floor by rules anyone can read.`);
-    text("cmd-sub", `${groups.length} domains, ${c.parameters.toLocaleString()} live readings, ${Math.round(1 / tick)} checks a second, nothing scripted. Pick a rule book and watch what it catches.`);
+    text("cmd-sub", `${c.systems} live systems of ${groups.length} kinds, every one running on rules anyone can read. Pick a rule book and see what gets through.`);
   }
 
   function renderIncidents() {

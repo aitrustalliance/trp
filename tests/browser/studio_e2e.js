@@ -125,7 +125,7 @@ async function main() {
       check("no pack tab is selected on Command", (await page.locator(".pack-tab[aria-selected=true]").count()) === 0);
       const t0 = await page.evaluate(() => window.TRPCommand.tallies());
       check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 4, JSON.stringify(t0));
-      check("the headline and the line under it state the floor in numbers", /judges \d+ AI systems/.test(await page.textContent("#cmd-h1")) && /4 domains, [\d,]+ live readings/.test(await page.textContent("#cmd-sub")));
+      check("the headline says what to watch and the line under it counts the floor", /stopped before it does harm/.test(await page.textContent("#cmd-h1")) && /\d+ live systems of 4 kinds/.test(await page.textContent("#cmd-sub")));
       check("the tuned book is the first one shown", (await page.evaluate(() => window.TRPCommand.book)) === "tuned" && (await page.getAttribute("#cmd-books button[data-book=tuned]", "aria-pressed")) === "true");
       const tuned = await page.evaluate(() => window.TRPCommand.advance(120));
       check("under the tuned book the floor catches harm and lets none through", tuned.caught >= 20 && tuned.missed === 0, JSON.stringify(tuned));
