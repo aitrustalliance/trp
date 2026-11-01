@@ -13,16 +13,21 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--white); font-family: var(--sans); overflow: hidden; }
-canvas#c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+canvas.layer { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+canvas#hud { z-index: 2; }
+.explain-body { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 4px; }
+.ex-row { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; background: rgba(255,255,255,0.03); }
+.ex-row b { color: var(--parchment); font-weight: 600; }
+.ex-row span { color: var(--silver); font-size: 14px; }
 
-.bar { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; z-index: 5; pointer-events: none; }
+.bar { position: fixed; z-index: 6; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; pointer-events: none; }
 .bar > * { pointer-events: auto; }
 .brand { color: var(--silver); text-decoration: none; font-size: 13px; letter-spacing: .08em; }
 .bar-actions { display: flex; gap: 8px; }
 .icon-btn { background: rgba(10, 18, 40, 0.55); border: 1px solid var(--hair); color: var(--parchment); border-radius: 999px; padding: 6px 12px; font: 600 12px var(--sans); cursor: pointer; text-decoration: none; backdrop-filter: blur(10px); }
 .icon-btn:hover { border-color: var(--hair-strong); }
 
-.screen { position: fixed; inset: 0; display: grid; place-items: center; padding: 64px 16px 16px; z-index: 4; overflow-y: auto; background: radial-gradient(ellipse at center, rgba(5, 9, 22, 0.25), rgba(5, 9, 22, 0.75)); }
+.screen { position: fixed; inset: 0; display: grid; place-items: center; padding: 64px 16px 16px; z-index: 5; overflow-y: auto; background: radial-gradient(ellipse at center, rgba(5, 9, 22, 0.25), rgba(5, 9, 22, 0.75)); }
 .screen[hidden] { display: none; }
 .card { width: min(680px, 100%); background: var(--glass); border: 1px solid var(--hair); border-radius: 18px; padding: 28px; backdrop-filter: blur(18px); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .card.hero { text-align: center; }

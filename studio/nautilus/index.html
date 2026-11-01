@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Nautilus</title>
   <meta name="description" content="Captain a free vessel through a drowned world. One machine mind wants control of every ship. Your Nautilus runs on open rules anyone can read.">
@@ -12,7 +14,8 @@
   <link rel="stylesheet" href="nautilus.css">
 </head>
 <body>
-  <canvas id="c" aria-label="The Nautilus voyage" role="img"></canvas>
+  <canvas id="world" class="layer" aria-hidden="true"></canvas>
+  <canvas id="hud" class="layer" aria-label="The Nautilus voyage. Tap threats to fire, drag to change depth." role="img"></canvas>
 
   <header class="bar">
     <a class="brand" href="../">TRP Studio</a>
@@ -47,7 +50,7 @@
         <li><b>Stopping keeps you alive</b> but costs leagues. Shoot down fog, decoys, firebrands, boarding drones and forged commands before they reach you.</li>
         <li><b>The Writ</b> is the Leviathan's real weapon. If it lands, your rules are overwritten for a while and nothing will stop you from sailing into harm. It takes three harpoons.</li>
       </ul>
-      <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, P to pause.</p>
+      <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, E to see why the telegraph rang, P to pause. Tap the telegraph for the same explanation.</p>
       <div class="cta"><button class="btn primary" id="how-sail" type="button">Set sail</button><button class="btn" data-back type="button">Back</button></div>
     </div>
   </section>
@@ -114,6 +117,22 @@
     </div>
   </section>
 
+  <section class="screen" id="pause-screen" hidden aria-labelledby="pause-h">
+    <div class="card hero">
+      <h2 id="pause-h">Paused</h2>
+      <div class="cta"><button class="btn primary" id="resume-btn" type="button">Resume</button><button class="btn" id="quit-btn" type="button">Leave voyage</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="explain-screen" hidden aria-labelledby="explain-h">
+    <div class="card">
+      <div class="eyebrow">Why the telegraph rang</div>
+      <h2 id="explain-h">The Rules In Force</h2>
+      <div class="explain-body" id="explain-body"></div>
+      <div class="cta"><button class="btn primary" id="explain-close" type="button">Back to the helm</button><a class="btn" id="explain-rules" target="_blank" rel="noopener">Read the full rules</a></div>
+    </div>
+  </section>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="../engine.js"></script>
@@ -122,6 +141,7 @@
   <script src="art.js"></script>
   <script src="audio.js"></script>
   <script src="crew.js"></script>
+  <script type="module" src="world3d.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
