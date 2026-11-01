@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nautilus</title>
+  <meta name="description" content="Captain a free vessel through a drowned world. One machine mind wants control of every ship. Your Nautilus runs on open rules anyone can read.">
+  <meta property="og:title" content="Nautilus, a free vessel on open rules">
+  <meta property="og:description" content="A daily voyage. Keep your Nautilus sailing while the Leviathan tries to blind it, board it and rewrite its rules.">
+  <meta property="og:image" content="og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="nautilus.css">
+</head>
+<body>
+  <canvas id="c" aria-label="The Nautilus voyage" role="img"></canvas>
+
+  <header class="bar">
+    <a class="brand" href="../">TRP Studio</a>
+    <div class="bar-actions">
+      <button class="icon-btn" id="pause-btn" type="button" hidden>Pause</button>
+      <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true">Sound on</button>
+      <a class="icon-btn" id="star-btn" href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star TRP</a>
+    </div>
+  </header>
+
+  <section class="screen" id="title-screen" aria-labelledby="title-h">
+    <div class="card hero">
+      <div class="eyebrow" id="voyage-label">Voyage No. 1</div>
+      <h1 id="title-h">Nautilus</h1>
+      <p class="lede">The world drowned, and one power built the last great machine mind. Its airship, the Leviathan, hunts every vessel that still sails free. Your Nautilus runs on open rules that anyone can read, and those rules are all that keep it alive.</p>
+      <div class="cta">
+        <button class="btn primary" id="sail-btn" type="button">Set sail</button>
+        <button class="btn" id="how-btn" type="button">How to play</button>
+        <button class="btn" id="yard-btn" type="button">Shipyard</button>
+      </div>
+      <div class="captain-row" id="captain-row"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="how-screen" hidden aria-labelledby="how-h">
+    <div class="card">
+      <h2 id="how-h">How To Play</h2>
+      <ul class="how">
+        <li><b>Tap a threat</b> to fire a harpoon at it. Harpoons run on steam, so pick your shots.</li>
+        <li><b>Drag up or down</b> to change depth and slip past depth charges. Deeper water strains the hull.</li>
+        <li><b>Watch the gauges.</b> They read your vessel's evidence, and the open TRP engine checks it ten times a second. When a reading crosses a rule, the telegraph rings Half Ahead or All Stop on its own.</li>
+        <li><b>Stopping keeps you alive</b> but costs leagues. Shoot down fog, decoys, firebrands, boarding drones and forged commands before they reach you.</li>
+        <li><b>The Writ</b> is the Leviathan's real weapon. If it lands, your rules are overwritten for a while and nothing will stop you from sailing into harm. It takes three harpoons.</li>
+      </ul>
+      <p class="muted">Keyboard: arrows for depth, space to fire at the nearest threat, P to pause.</p>
+      <div class="cta"><button class="btn primary" id="how-sail" type="button">Set sail</button><button class="btn" data-back type="button">Back</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="log-screen" hidden aria-labelledby="log-h">
+    <div class="card log">
+      <div class="eyebrow" id="log-voyage"></div>
+      <h2 id="log-h">Captain's Log</h2>
+      <div class="log-top">
+        <div class="medal" id="log-medal"></div>
+        <div>
+          <div class="score" id="log-score">0</div>
+          <div class="muted" id="log-par"></div>
+        </div>
+      </div>
+      <div class="timeline" id="log-timeline" aria-label="Voyage timeline"></div>
+      <div class="stats" id="log-stats"></div>
+      <div class="rank" id="log-rank"></div>
+      <div class="share-row">
+        <button class="btn primary" id="share-btn" type="button">Share voyage</button>
+        <a class="btn" id="x-btn" target="_blank" rel="noopener">Post on X</a>
+        <button class="btn" id="copy-btn" type="button">Copy</button>
+        <button class="btn" id="again-btn" type="button">Sail again</button>
+      </div>
+      <form class="join" id="join-form" novalidate>
+        <div class="join-head">
+          <h3>Join The Crew</h3>
+          <p class="muted">Put your captain's name on the crew roll and keep your brass and leagues for future seasons. Joining also unlocks the Crew Roll pennant.</p>
+        </div>
+        <div class="join-fields">
+          <input name="captain" id="join-captain" type="text" placeholder="Captain name" maxlength="40" autocomplete="nickname" required>
+          <input name="email" id="join-email" type="email" placeholder="Email" autocomplete="email" required>
+          <select name="role" id="join-role" aria-label="What brings you aboard">
+            <option value="curious">Just playing</option>
+            <option value="builder">I build AI or robots</option>
+            <option value="contributor">I want to contribute to TRP</option>
+            <option value="organization">My organization needs trust rules</option>
+            <option value="research">Research or policy</option>
+          </select>
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+        </div>
+        <label class="consent"><input type="checkbox" id="join-consent"> Send me Nautilus and TRP updates. I have read the <a href="privacy.html" target="_blank" rel="noopener">privacy note</a>, and I can leave at any time.</label>
+        <div class="join-actions"><button class="btn primary" type="submit" id="join-btn">Join the crew</button><span class="muted" id="join-msg" aria-live="polite"></span></div>
+      </form>
+      <div class="foot-links">
+        <a href="../../examples/nautilus/trp.json" target="_blank" rel="noopener">Read the rules your vessel ran on</a>
+        <a href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star TRP on GitHub</a>
+        <a href="https://github.com/aitrustalliance/trp/subscription" target="_blank" rel="noopener">Watch for Season 2</a>
+        <button class="linkish" id="log-yard" type="button">Shipyard</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="yard-screen" hidden aria-labelledby="yard-h">
+    <div class="card">
+      <h2 id="yard-h">Shipyard</h2>
+      <p class="muted" id="yard-brass"></p>
+      <h3>Hulls</h3>
+      <div class="yard-grid" id="yard-hulls"></div>
+      <h3>Pennants</h3>
+      <div class="yard-grid" id="yard-pennants"></div>
+      <p class="muted small">Brass, medals and unlocks are game rewards with no cash value.</p>
+      <div class="cta"><button class="btn primary" id="yard-sail" type="button">Set sail</button><button class="btn" data-back type="button">Back</button></div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../engine.js"></script>
+  <script src="config.js"></script>
+  <script src="core.js"></script>
+  <script src="art.js"></script>
+  <script src="audio.js"></script>
+  <script src="crew.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
