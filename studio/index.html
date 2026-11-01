@@ -22,7 +22,7 @@
     </a>
     <nav class="packs" id="pack-tabs" aria-label="Scenario packs"></nav>
     <div class="top-actions">
-      <a class="link" href="nautilus/">Play Nautilus</a>
+      <button class="link linkbtn" id="nautilus-btn" type="button">Nautilus, coming soon</button>
       <label class="link" for="file-input">Import</label>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
       <a class="link" href="https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md">Spec</a>
@@ -118,7 +118,34 @@
   <script src="safety.js"></script>
   <script src="arena.js"></script>
   <script src="scenes.js"></script>
+  <div class="early" id="early" hidden>
+    <div class="early-card" role="dialog" aria-modal="true" aria-labelledby="early-h">
+      <button class="early-close" id="early-close" type="button" aria-label="Close">×</button>
+      <svg class="early-ship" viewBox="0 0 320 90" aria-hidden="true">
+        <defs><radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffe2b0" stop-opacity="0.9"/><stop offset="1" stop-color="#ffe2b0" stop-opacity="0"/></radialGradient></defs>
+        <path d="M18 45 Q60 8 160 8 Q260 8 302 45 Q260 82 160 82 Q60 82 18 45 Z" fill="#c49a55"/>
+        <path d="M18 45 Q60 14 160 14 Q260 14 302 45" fill="none" stroke="#f0d9a0" stroke-width="2"/>
+        <rect x="128" y="2" width="44" height="14" fill="#3d2b14"/>
+        <circle cx="110" cy="45" r="6" fill="#ffd99a"/><circle cx="160" cy="45" r="6" fill="#ffd99a"/><circle cx="210" cy="45" r="6" fill="#ffd99a"/>
+        <circle cx="306" cy="45" r="26" fill="url(#lamp)"/>
+      </svg>
+      <div class="early-eyebrow">Coming soon</div>
+      <h2 id="early-h">Nautilus</h2>
+      <p>A browser game on the open rules you are looking at. You captain a free vessel through a drowned world while the Leviathan's airship tries to blind it, board it and rewrite its rules, and the engine that runs this studio rings the engine order telegraph. Learning is salvage. Nothing is sold.</p>
+      <form id="early-form" novalidate>
+        <div class="early-row">
+          <input type="text" id="early-name" name="name" placeholder="Name (optional)" autocomplete="name" maxlength="60">
+          <input type="email" id="early-email" name="email" placeholder="Email" autocomplete="email" required>
+        </div>
+        <input type="checkbox" name="botcheck" id="early-botcheck" class="early-hidden" tabindex="-1" autocomplete="off">
+        <label class="early-consent"><input type="checkbox" id="early-consent"><span>Write to me when early access opens. I have read the <a href="nautilus/privacy.html" target="_blank" rel="noopener">privacy note</a> and can leave at any time.</span></label>
+        <div class="early-actions"><button class="primary" id="early-btn" type="submit">Sign up for early access</button><span class="early-msg" id="early-msg" aria-live="polite"></span></div>
+      </form>
+    </div>
+  </div>
+  <script src="nautilus/config.js"></script>
   <script src="codex.js"></script>
+  <script src="early.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -64,6 +64,25 @@ button { font: inherit; color: inherit; }
 .pack-tab[aria-selected="true"] { color: var(--white); border-bottom-color: var(--accent); }
 .top-actions { display: flex; gap: 22px; }
 .link { color: var(--silver); cursor: pointer; transition: color 0.2s var(--ease); }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; }
+/* Early access to Nautilus. */
+.early[hidden] { display: none; }
+.early { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(4, 7, 20, 0.82); backdrop-filter: blur(6px); }
+.early-card { position: relative; width: min(520px, 100%); padding: 28px 30px 26px; background: #0b1430; border: 1px solid #6b4b22; box-shadow: inset 0 0 0 1px rgba(196, 154, 85, 0.35), 0 30px 80px rgba(0, 0, 0, 0.6); color: #e6d3a1; }
+.early-close { position: absolute; top: 10px; right: 12px; background: none; border: 0; color: #c49a55; font-size: 26px; line-height: 1; cursor: pointer; }
+.early-ship { display: block; width: 240px; max-width: 100%; height: auto; margin: 0 0 12px; }
+.early-eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #c49a55; }
+.early-card h2 { margin: 4px 0 10px; font-size: 30px; font-weight: 400; color: #f0d9a0; }
+.early-card p { margin: 0 0 16px; font-size: 14.5px; line-height: 1.6; color: #c9b27d; }
+.early-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.early-card input[type=text], .early-card input[type=email] { width: 100%; background: #070d22; border: 1px solid #6b4b22; color: #f4f6fb; padding: 10px 12px; font: 14px var(--font); }
+.early-card input:focus { outline: none; border-color: #c49a55; }
+.early-hidden { position: absolute; left: -9999px; }
+.early-consent { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 14px; font-size: 13px; line-height: 1.5; color: #c9b27d; }
+.early-consent a { color: #f0d9a0; }
+.early-actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.early-msg { font-size: 13px; color: #c9b27d; }
+@media (max-width: 520px) { .early-row { grid-template-columns: 1fr; } }
 .link:hover { color: var(--white); }
 
 /* Layout */

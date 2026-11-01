@@ -116,6 +116,50 @@ async function main() {
     }
     for (const csp of [true, false]) {
       const tag = csp ? "" : " (policy removed)";
+    // Early access to Nautilus, from the header.
+    {
+      const page = await newPage(browser, base);
+      const requests = [];
+      page.on("request", (r) => requests.push(r.url()));
+      await page.goto(`${base}/studio/?pack=fleet&story=0`);
+      await page.waitForTimeout(600);
+      check("the header offers Nautilus as coming soon and not as a link", (await page.locator("#nautilus-btn").count()) === 1 && (await page.locator("header a[href='nautilus/']").count()) === 0);
+      await page.click("#nautilus-btn");
+      check("the early access card opens and takes focus", await page.locator("#early").isVisible() && (await page.evaluate(() => document.activeElement && document.activeElement.id)) === "early-email");
+      await page.click("#early-btn");
+      check("an email address is required", /email/.test(await page.textContent("#early-msg")));
+      await page.fill("#early-email", "nemo@example.org");
+      await page.click("#early-btn");
+      check("consent is required", /tick the box/.test(await page.textContent("#early-msg")));
+      await page.check("#early-consent");
+      await page.click("#early-btn");
+      await page.waitForTimeout(300);
+      check("with no key the card says the list is not open and sends nothing", /not open yet/.test(await page.textContent("#early-msg")) && !requests.some((u) => u.includes("web3forms")));
+      await page.keyboard.press("Escape");
+      check("Escape closes the card", !(await page.locator("#early").isVisible()));
+      check("the early access card raises no page errors", page.errors.length === 0, page.errors.join(" | "));
+      await page.close();
+    }
+
+    // Early access with a key, against a stand-in for the form service.
+    {
+      let body = null;
+      const page = await newPage(browser, base);
+      await page.route("**/studio/nautilus/config.js", (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: 'window.NAUTILUS_CONFIG = { web3formsKey: "test-key", privacyContact: "", repo: "https://github.com/aitrustalliance/trp" };' }));
+      await page.route("https://api.web3forms.com/**", (r) => { body = JSON.parse(r.request().postData() || "{}"); r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: '{"success":true,"message":"ok"}' }); });
+      await page.goto(`${base}/studio/?pack=fleet&story=0`);
+      await page.waitForTimeout(600);
+      await page.click("#nautilus-btn");
+      await page.fill("#early-name", "Nemo");
+      await page.fill("#early-email", "nemo@example.org");
+      await page.check("#early-consent");
+      await page.click("#early-btn");
+      await page.waitForTimeout(600);
+      check("early access posts a name, an email, consent and the key, and nothing else of note", body && body.access_key === "test-key" && body.email === "nemo@example.org" && body.name === "Nemo" && body.consent && body.botcheck === "" && !("lifetime_leagues" in body), JSON.stringify(body));
+      check("the card thanks the person", /Thank you/.test(await page.textContent("#early-msg")));
+      await page.close();
+    }
+
       // A Learn challenge, failed with the shipped limits and passed with better ones.
     {
       const page = await newPage(browser, base);
