@@ -40,7 +40,7 @@ jobs:
           "
 
       - name: Check TRP Studio engine matches the reference evaluator
-        run: node tests/studio_parity.js && node tests/lerobot_parse.js && node studio/games-cli.js --event robot-cell --stress 50 > /dev/null
+        run: node tests/studio_parity.js && node tests/studio_safety.js && node tests/lerobot_parse.js && node studio/games-cli.js --event robot-cell --stress 50 > /dev/null
 
       - name: Run evaluator against manufacturing example
         run: |
@@ -164,3 +164,23 @@ jobs:
           print(f'Cross-evaluator agreement: {passed}/{passed + failed}')
           sys.exit(1 if failed else 0)
           "
+
+  studio-browser:
+    name: TRP Studio browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: node tests/browser/studio_e2e.js

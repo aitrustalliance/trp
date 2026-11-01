@@ -27,6 +27,10 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Experimental Studio Lab (`studio/lab.html`) with a LeRobot episode replay and
   a webcam distance sensor, documented in `studio/DATA_SOURCES.md`, and the
   reference profile `examples/arm-motion/trp.json`.
+- Studio import checks (`studio/safety.js`), an escaping HTML template for
+  every write to the page, a Content Security Policy, and tests in
+  `tests/studio_safety.js` and `tests/browser/studio_e2e.js`. CI runs the
+  browser tests, and a CodeQL workflow scans JavaScript and Python.
 
 ## [0.5.2] - 2026-10-31
 

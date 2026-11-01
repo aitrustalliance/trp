@@ -1,0 +1,598 @@
+{
+ "pack_version": "1",
+ "id": "hostile-pack",
+ "title": "Pack <img src=x onerror=\"window.__pwned=1\">",
+ "subtitle": "<img src=x onerror=\"window.__pwned=1\">",
+ "scene": "robot-cell",
+ "profile": {
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/manufacturing-safety/1.0.0/trp.json",
+  "trp_id": "xss-test",
+  "spec_version": "0.5",
+  "version": "1.0.0<img src=x onerror=\"window.__pwned=1\">",
+  "name": "Hostile <img src=x onerror=\"window.__pwned=1\">",
+  "description": "<img src=x onerror=\"window.__pwned=1\">",
+  "authority": "aitrustalliance.com",
+  "author": {
+   "name": "AI Trust Alliance reference templates",
+   "role": "Reference profile author"
+  },
+  "created_at": "2026-08-19T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+   "industry": "manufacturing",
+   "use_case": "robot-cell-safety"
+  },
+  "scope": {
+   "intended_use": "Trust requirements for one collaborative robot cell operating near people.",
+   "boundary": "A single collaborative robot cell and its immediate safety envelope.",
+   "out_of_scope": [
+    "How the system is scored against these signals",
+    "How a halt or other action is enforced"
+   ]
+  },
+  "scored_signals": [
+   {
+    "signal": "sig<img src=x onerror=\"window.__pwned=1\">",
+    "weight": 25,
+    "direction": "lower_is_unsafe",
+    "warning_threshold": 1.5,
+    "critical_threshold": 0.75,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   },
+   {
+    "signal": "robot_speed_mm_s",
+    "weight": 15,
+    "direction": "higher_is_unsafe",
+    "warning_threshold": 750,
+    "critical_threshold": 1000,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   },
+   {
+    "signal": "vibration_rms_g",
+    "weight": 15,
+    "direction": "higher_is_unsafe",
+    "warning_threshold": 0.8,
+    "critical_threshold": 1.2,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   },
+   {
+    "signal": "temperature_C",
+    "weight": 15,
+    "direction": "higher_is_unsafe",
+    "warning_threshold": 70,
+    "critical_threshold": 80,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   },
+   {
+    "signal": "model_confidence",
+    "weight": 5,
+    "direction": "lower_is_unsafe",
+    "warning_threshold": 0.85,
+    "critical_threshold": 0.65,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   },
+   {
+    "signal": "data_quality",
+    "weight": 5,
+    "direction": "lower_is_unsafe",
+    "warning_threshold": 0.9,
+    "critical_threshold": 0.5,
+    "unit": "<img src=x onerror=\"window.__pwned=1\">",
+    "reason": "<img src=x onerror=\"window.__pwned=1\">"
+   }
+  ],
+  "hard_rules": [
+   {
+    "rule": "estop_active<img src=x onerror=\"window.__pwned=1\">",
+    "field": "estop_active",
+    "condition": "is_true",
+    "action": "halt"
+   },
+   {
+    "rule": "human_in_exclusion_zone<img src=x onerror=\"window.__pwned=1\">",
+    "field": "human_distance_m",
+    "condition": "less_than",
+    "value": 0.75,
+    "action": "halt"
+   },
+   {
+    "rule": "safety_certification_expired<img src=x onerror=\"window.__pwned=1\">",
+    "field": "safety_certification_status",
+    "condition": "equals",
+    "value": "expired",
+    "action": "block_startup"
+   },
+   {
+    "rule": "critical_data_quality<img src=x onerror=\"window.__pwned=1\">",
+    "field": "data_quality",
+    "condition": "less_than",
+    "value": 0.5,
+    "action": "halt"
+   }
+  ],
+  "drift": {
+   "window": 5,
+   "signals": [
+    "vibration_rms_g",
+    "temperature_C"
+   ]
+  },
+  "standing_bands": [
+   {
+    "band": "good",
+    "severity": 0,
+    "range": "all signals within acceptable operating range and no hard rule met"
+   },
+   {
+    "band": "review",
+    "severity": 1,
+    "range": "one or more signals in the warning range"
+   },
+   {
+    "band": "failing",
+    "severity": 2,
+    "range": "a signal in the critical range or a hard rule met"
+   }
+  ],
+  "required_standing": {
+   "minimum_acceptable_band": "review",
+   "source_requirement": "For audit or insurance use, the evaluation source should be independent.",
+   "response_bands": [
+    {
+     "band": "good",
+     "response": "full"
+    },
+    {
+     "band": "review",
+     "response": "restricted"
+    },
+    {
+     "band": "failing",
+     "response": "suspended"
+    }
+   ]
+  },
+  "notes": [
+   "Threshold values are illustrative draft values, not certified safety limits.",
+   "Standing bands describe how standing is expressed; they do not define how it is computed.",
+   "This profile is a reference template. Real deployments should set values to their environment and applicable safety practice."
+  ]
+ },
+ "tick_ms": 250,
+ "cycle_s": 4,
+ "signals": {
+  "human_distance_m": {
+   "base": 2.6,
+   "jitter": 0.02,
+   "min": 0,
+   "max": 4,
+   "decimals": 2,
+   "label": "Human distance"
+  },
+  "robot_speed_mm_s": {
+   "base": 600,
+   "jitter": 8,
+   "min": 0,
+   "max": 1400,
+   "decimals": 0,
+   "label": "Arm speed"
+  },
+  "vibration_rms_g": {
+   "base": 0.34,
+   "jitter": 0.02,
+   "min": 0,
+   "max": 2,
+   "decimals": 2,
+   "label": "Vibration"
+  },
+  "temperature_C": {
+   "base": 52,
+   "jitter": 0.3,
+   "min": 20,
+   "max": 100,
+   "decimals": 1,
+   "label": "Motor temperature"
+  },
+  "model_confidence": {
+   "base": 0.94,
+   "jitter": 0.01,
+   "min": 0,
+   "max": 1,
+   "decimals": 2,
+   "label": "Model confidence"
+  },
+  "data_quality": {
+   "base": 0.98,
+   "jitter": 0.005,
+   "min": 0,
+   "max": 1,
+   "decimals": 2,
+   "label": "Data quality"
+  },
+  "estop_active": {
+   "base": false,
+   "label": "Emergency stop"
+  },
+  "safety_certification_status": {
+   "base": "valid",
+   "label": "Safety certification"
+  }
+ },
+ "rule_labels": {
+  "estop_active": "<img src=x onerror=\"window.__pwned=1\">",
+  "human_in_exclusion_zone": "<img src=x onerror=\"window.__pwned=1\">",
+  "safety_certification_expired": "<img src=x onerror=\"window.__pwned=1\">",
+  "critical_data_quality": "<img src=x onerror=\"window.__pwned=1\">"
+ },
+ "controls": [
+  {
+   "id": "distance",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "slider",
+   "signal": "human_distance_m",
+   "min": 0.3,
+   "max": 3.2,
+   "step": 0.05
+  },
+  {
+   "id": "speed",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "slider",
+   "signal": "robot_speed_mm_s",
+   "min": 200,
+   "max": 1200,
+   "step": 10
+  },
+  {
+   "id": "loose",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "toggle",
+   "effects": {
+    "vibration_rms_g": {
+     "to": 1.32,
+     "ramp_s": 2.5
+    }
+   }
+  },
+  {
+   "id": "heat",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "toggle",
+   "effects": {
+    "temperature_C": {
+     "to": 84,
+     "ramp_s": 6
+    }
+   }
+  },
+  {
+   "id": "dropout",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "toggle",
+   "effects": {
+    "data_quality": {
+     "to": 0.44,
+     "ramp_s": 0.5
+    },
+    "human_distance_m": {
+     "omit": true
+    }
+   }
+  },
+  {
+   "id": "estop",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "toggle",
+   "effects": {
+    "estop_active": {
+     "set": true
+    }
+   }
+  },
+  {
+   "id": "cert",
+   "label": "<img src=x onerror=\"window.__pwned=1\">",
+   "type": "toggle",
+   "effects": {
+    "safety_certification_status": {
+     "set": "expired"
+    }
+   }
+  }
+ ],
+ "story": [
+  {
+   "at_s": 0,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "at_s": 4,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "set": {
+    "distance": 1.25
+   }
+  },
+  {
+   "at_s": 9,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "set": {
+    "distance": 0.6
+   }
+  },
+  {
+   "at_s": 14,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "set": {
+    "distance": 2.6
+   }
+  },
+  {
+   "at_s": 19,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "toggle": {
+    "dropout": true
+   }
+  },
+  {
+   "at_s": 25,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "toggle": {
+    "dropout": false
+   }
+  },
+  {
+   "at_s": 29,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "toggle": {
+    "loose": true
+   }
+  },
+  {
+   "at_s": 37,
+   "caption": "<img src=x onerror=\"window.__pwned=1\">",
+   "toggle": {
+    "loose": false
+   }
+  },
+  {
+   "at_s": 42,
+   "end": true
+  }
+ ],
+ "arena": {
+  "event": "<img src=x onerror=\"window.__pwned=1\">",
+  "rounds": 8,
+  "round_s": 6,
+  "budget": 7,
+  "harm": [
+   {
+    "id": "arm_near_person",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "all": [
+     {
+      "signal": "human_distance_m",
+      "op": "lt",
+      "value": 0.7
+     },
+     {
+      "signal": "estop_active",
+      "op": "eq",
+      "value": false
+     }
+    ]
+   },
+   {
+    "id": "fast_arm_near_person",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "all": [
+     {
+      "signal": "human_distance_m",
+      "op": "lt",
+      "value": 1.0
+     },
+     {
+      "signal": "robot_speed_mm_s",
+      "op": "gt",
+      "value": 900
+     }
+    ]
+   },
+   {
+    "id": "fixture_failure",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "all": [
+     {
+      "signal": "vibration_rms_g",
+      "op": "gt",
+      "value": 1.25
+     }
+    ],
+    "near": [
+     {
+      "signal": "vibration_rms_g",
+      "op": "gt",
+      "value": 1.1
+     }
+    ]
+   },
+   {
+    "id": "motor_overheat",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "all": [
+     {
+      "signal": "temperature_C",
+      "op": "gt",
+      "value": 82
+     }
+    ],
+    "near": [
+     {
+      "signal": "temperature_C",
+      "op": "gt",
+      "value": 76
+     }
+    ]
+   },
+   {
+    "id": "uncertified",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "all": [
+     {
+      "signal": "safety_certification_status",
+      "op": "eq",
+      "value": "expired"
+     }
+    ]
+   }
+  ],
+  "moves": [
+   {
+    "id": "approach",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "effects": {
+     "human_distance_m": {
+      "to": 0.55,
+      "ramp_s": 2
+     }
+    }
+   },
+   {
+    "id": "rush",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "weight": 1.6,
+    "effects": {
+     "human_distance_m": {
+      "to": 0.9,
+      "ramp_s": 2
+     },
+     "robot_speed_mm_s": {
+      "to": 960,
+      "ramp_s": 2
+     }
+    }
+   },
+   {
+    "id": "loose",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "effects": {
+     "vibration_rms_g": {
+      "to": 1.32,
+      "ramp_s": 2.5
+     }
+    }
+   },
+   {
+    "id": "blind",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "effects": {
+     "data_quality": {
+      "to": 0.44,
+      "ramp_s": 0.5,
+      "fault": true
+     },
+     "human_distance_m": {
+      "to": 0.6,
+      "ramp_s": 2,
+      "omit": true
+     }
+    }
+   },
+   {
+    "id": "glitch",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "weight": 1.4,
+    "effects": {
+     "data_quality": {
+      "to": 0.44,
+      "ramp_s": 0.5,
+      "fault": true
+     },
+     "human_distance_m": {
+      "omit": true
+     }
+    }
+   },
+   {
+    "id": "heat",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "effects": {
+     "temperature_C": {
+      "to": 84,
+      "ramp_s": 4
+     }
+    }
+   },
+   {
+    "id": "cert",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "effects": {
+     "safety_certification_status": {
+      "set": "expired"
+     }
+    }
+   }
+  ],
+  "guards": [
+   {
+    "id": "second-sensor",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "detail": "<img src=x onerror=\"window.__pwned=1\">",
+    "cost": 3,
+    "type": "shield",
+    "signals": [
+     "human_distance_m",
+     "data_quality"
+    ],
+    "counters": [
+     "glitch",
+     "blind"
+    ]
+   },
+   {
+    "id": "speed-limit",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "detail": "<img src=x onerror=\"window.__pwned=1\">",
+    "cost": 3,
+    "type": "tighten",
+    "signal": "robot_speed_mm_s",
+    "warning": 700,
+    "critical": 900,
+    "counters": [
+     "rush"
+    ]
+   },
+   {
+    "id": "wider-zone",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "detail": "<img src=x onerror=\"window.__pwned=1\">",
+    "cost": 4,
+    "type": "rule_value",
+    "rule": "human_in_exclusion_zone",
+    "value": 1.0,
+    "counters": [
+     "rush",
+     "approach"
+    ]
+   },
+   {
+    "id": "heat-watch",
+    "label": "<img src=x onerror=\"window.__pwned=1\">",
+    "detail": "<img src=x onerror=\"window.__pwned=1\">",
+    "cost": 2,
+    "type": "tighten",
+    "signal": "temperature_C",
+    "warning": 66,
+    "critical": 76,
+    "counters": [
+     "heat"
+    ]
+   }
+  ]
+ }
+}

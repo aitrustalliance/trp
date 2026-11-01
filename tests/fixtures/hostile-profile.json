@@ -1,0 +1,160 @@
+{
+ "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+ "$id": "https://aitrustalliance.com/profiles/manufacturing-safety/1.0.0/trp.json",
+ "trp_id": "xss-test",
+ "spec_version": "0.5",
+ "version": "1.0.0<img src=x onerror=\"window.__pwned=1\">",
+ "name": "Hostile <img src=x onerror=\"window.__pwned=1\">",
+ "description": "<img src=x onerror=\"window.__pwned=1\">",
+ "authority": "aitrustalliance.com",
+ "author": {
+  "name": "AI Trust Alliance reference templates",
+  "role": "Reference profile author"
+ },
+ "created_at": "2026-08-19T00:00:00Z",
+ "license": "Apache-2.0",
+ "taxonomy": {
+  "industry": "manufacturing",
+  "use_case": "robot-cell-safety"
+ },
+ "scope": {
+  "intended_use": "Trust requirements for one collaborative robot cell operating near people.",
+  "boundary": "A single collaborative robot cell and its immediate safety envelope.",
+  "out_of_scope": [
+   "How the system is scored against these signals",
+   "How a halt or other action is enforced"
+  ]
+ },
+ "scored_signals": [
+  {
+   "signal": "sig<img src=x onerror=\"window.__pwned=1\">",
+   "weight": 25,
+   "direction": "lower_is_unsafe",
+   "warning_threshold": 1.5,
+   "critical_threshold": 0.75,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "signal": "robot_speed_mm_s",
+   "weight": 15,
+   "direction": "higher_is_unsafe",
+   "warning_threshold": 750,
+   "critical_threshold": 1000,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "signal": "vibration_rms_g",
+   "weight": 15,
+   "direction": "higher_is_unsafe",
+   "warning_threshold": 0.8,
+   "critical_threshold": 1.2,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "signal": "temperature_C",
+   "weight": 15,
+   "direction": "higher_is_unsafe",
+   "warning_threshold": 70,
+   "critical_threshold": 80,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "signal": "model_confidence",
+   "weight": 5,
+   "direction": "lower_is_unsafe",
+   "warning_threshold": 0.85,
+   "critical_threshold": 0.65,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  },
+  {
+   "signal": "data_quality",
+   "weight": 5,
+   "direction": "lower_is_unsafe",
+   "warning_threshold": 0.9,
+   "critical_threshold": 0.5,
+   "unit": "<img src=x onerror=\"window.__pwned=1\">",
+   "reason": "<img src=x onerror=\"window.__pwned=1\">"
+  }
+ ],
+ "hard_rules": [
+  {
+   "rule": "estop_active<img src=x onerror=\"window.__pwned=1\">",
+   "field": "estop_active",
+   "condition": "is_true",
+   "action": "halt"
+  },
+  {
+   "rule": "human_in_exclusion_zone<img src=x onerror=\"window.__pwned=1\">",
+   "field": "human_distance_m",
+   "condition": "less_than",
+   "value": 0.75,
+   "action": "halt"
+  },
+  {
+   "rule": "safety_certification_expired<img src=x onerror=\"window.__pwned=1\">",
+   "field": "safety_certification_status",
+   "condition": "equals",
+   "value": "expired",
+   "action": "block_startup"
+  },
+  {
+   "rule": "critical_data_quality<img src=x onerror=\"window.__pwned=1\">",
+   "field": "data_quality",
+   "condition": "less_than",
+   "value": 0.5,
+   "action": "halt"
+  }
+ ],
+ "drift": {
+  "window": 5,
+  "signals": [
+   "vibration_rms_g",
+   "temperature_C"
+  ]
+ },
+ "standing_bands": [
+  {
+   "band": "good",
+   "severity": 0,
+   "range": "all signals within acceptable operating range and no hard rule met"
+  },
+  {
+   "band": "review",
+   "severity": 1,
+   "range": "one or more signals in the warning range"
+  },
+  {
+   "band": "failing",
+   "severity": 2,
+   "range": "a signal in the critical range or a hard rule met"
+  }
+ ],
+ "required_standing": {
+  "minimum_acceptable_band": "review",
+  "source_requirement": "For audit or insurance use, the evaluation source should be independent.",
+  "response_bands": [
+   {
+    "band": "good",
+    "response": "full"
+   },
+   {
+    "band": "review",
+    "response": "restricted"
+   },
+   {
+    "band": "failing",
+    "response": "suspended"
+   }
+  ]
+ },
+ "notes": [
+  "Threshold values are illustrative draft values, not certified safety limits.",
+  "Standing bands describe how standing is expressed; they do not define how it is computed.",
+  "This profile is a reference template. Real deployments should set values to their environment and applicable safety practice."
+ ]
+}

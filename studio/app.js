@@ -8,6 +8,7 @@
   const E = window.TRPEngine;
   const S = window.TRPSim;
   const A = window.TRPArena;
+  const SAFE = window.TRPSafety;
   const SCENES = window.TRPScenes;
   const $ = (id) => document.getElementById(id);
 
@@ -69,14 +70,25 @@
     selectPack(pack.id, { story: false });
   }
 
+  // Imported packs and profiles are untrusted. TRPSafety rejects anything of
+  // the wrong shape or size before the Studio uses it.
+  async function fetchUntrusted(url) {
+    const href = SAFE.checkProfileUrl(url, location.href);
+    const res = await fetch(href, { cache: "no-cache", credentials: "omit" });
+    if (!res.ok) throw new Error(`Could not load that profile (${res.status}).`);
+    return SAFE.parse(await res.text());
+  }
+
   function packFromJSON(json) {
     if (json && json.pack_version && json.signals) {
       const profileObject = typeof json.profile === "object" ? json.profile : json.profileObject;
       if (!profileObject) throw new Error("This pack points to a profile file. Import a pack with the profile embedded, or import the profile itself.");
+      SAFE.checkPack(json);
+      SAFE.checkProfile(profileObject);
       E.loadProfile(profileObject);
       return Object.assign({}, json, { profileObject: profileObject });
     }
-    if (json && json.trp_id) return S.autoPack(json, E);
+    if (json && json.trp_id) return S.autoPack(SAFE.checkProfile(json), E);
     throw new Error("That file is not a TRP profile or a scenario pack.");
   }
 
@@ -256,9 +268,7 @@
       const hi = typeof spec.max === "number" ? spec.max : Math.max(s.warningThreshold, s.criticalThreshold) * 1.5;
       const li = document.createElement("li");
       li.dataset.signal = s.signal;
-      li.innerHTML =
-        `<div class="sig-top"><span class="sig-name"></span><span class="sig-val"></span></div>` +
-        `<div class="sig-track"><span class="line"></span><span class="tick warn"></span><span class="tick crit"></span><span class="pos"></span></div>`;
+      setHTML(li, html`<div class="sig-top"><span class="sig-name"></span><span class="sig-val"></span></div><div class="sig-track"><span class="line"></span><span class="tick warn"></span><span class="tick crit"></span><span class="pos"></span></div>`);
       li.querySelector(".sig-name").textContent = labelFor(s.signal);
       const pct = (v) => `${Math.max(0, Math.min(100, ((v - lo) / (hi - lo || 1)) * 100))}%`;
       li.querySelector(".tick.warn").style.left = pct(s.warningThreshold);
@@ -281,7 +291,7 @@
       li.append(name, state);
       rules.appendChild(li);
     }
-    if (!app.profile.hardRules.length) rules.innerHTML = `<li><span>None in this profile</span></li>`;
+    if (!app.profile.hardRules.length) setHTML(rules, html`<li><span>None in this profile</span></li>`);
   }
 
   function renderReadout() {
@@ -315,8 +325,7 @@
       li.classList.toggle("crit", !!res && res.in_critical);
       if (res) {
         const u = unitText(li._sig.unit || "");
-        const unit = u ? `<span class="unit">${escapeHTML(u)}</span>` : "";
-        val.innerHTML = escapeHTML(fmt(res.value, li._spec.decimals)) + unit;
+        setHTML(val, html`${fmt(res.value, li._spec.decimals)}${u ? html`<span class="unit">${u}</span>` : ""}`);
         li.querySelector(".pos").style.left = li._pct(res.value);
       } else {
         val.textContent = "no reading";
@@ -366,6 +375,20 @@
 
   function escapeHTML(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // Every piece of HTML the Studio writes goes through html``, which escapes
+  // each interpolated value unless it is itself the output of html``.
+  class SafeHTML { constructor(v) { this.v = v; } }
+  function html(strings, ...vals) {
+    const piece = (v) => (v instanceof SafeHTML ? v.v : escapeHTML(v === null || v === undefined ? "" : v));
+    let out = strings[0];
+    vals.forEach((v, i) => { out += (Array.isArray(v) ? v.map(piece).join("") : piece(v)) + strings[i + 1]; });
+    return new SafeHTML(out);
+  }
+  function setHTML(el, h) {
+    if (!(h instanceof SafeHTML)) throw new TypeError("setHTML needs html``");
+    el.innerHTML = h.v; // eslint-disable-line no-unsanitized/property
   }
 
   // ------------------------------------------------------------------ Events
@@ -617,10 +640,19 @@
 
   function store(key, value) {
     try {
-      if (value === undefined) return JSON.parse(localStorage.getItem("trp-studio-" + key) || "null");
+      if (value === undefined) return clean(JSON.parse(localStorage.getItem("trp-studio-" + key) || "null"));
       localStorage.setItem("trp-studio-" + key, JSON.stringify(value));
     } catch (err) { return null; }
     return value;
+  }
+
+  // Stored values are only ever numbers. Anything else is dropped, since other
+  // pages on the same site can write to the same storage.
+  function clean(v) {
+    if (v === null || typeof v !== "object") return typeof v === "number" && Number.isFinite(v) ? v : null;
+    const out = {};
+    for (const [k, x] of Object.entries(v)) if (typeof x === "number" && Number.isFinite(x)) out[k] = x;
+    return out;
   }
 
   function bumpStreak() {
@@ -645,15 +677,15 @@
     const seed = A.daySeed();
     app.arenaPar = A.par(app.current.pack, app.current.pack.profileObject, seed, { engine: E, sim: S });
     const best = store("best-" + app.current.pack.id);
-    panel.innerHTML = `
+    setHTML(panel, html`
       <div class="panel-row">
-        <h2>Arena #${A.dayNumber()} · ${escapeHTML(arena.event || app.current.pack.title)}</h2>
-        <span class="muted">Par ${app.arenaPar.score}${best ? ` · Your best ${best.score}` : ""}</span>
+        <h2>Arena #${A.dayNumber()} · ${arena.event || app.current.pack.title}</h2>
+        <span class="muted">Par ${app.arenaPar.score}${best && best.score !== undefined ? ` · Your best ${best.score}` : ""}</span>
       </div>
-      <p>You are the Guardian. Over ${arena.rounds} rounds the Challenger will try ${escapeHTML((arena.moves || []).length + " kinds of trouble")}, and it aims for whatever you leave open. Spend your budget on guards, then start. You score for every harm the system stops in time, and lose points for harm that slips through and for stopping when nothing was wrong.</p>
+      <p>You are the Guardian. Over ${Number(arena.rounds) || 0} rounds the Challenger will try ${(arena.moves || []).length} kinds of trouble, and it aims for whatever you leave open. Spend your budget on guards, then start. You score for every harm the system stops in time, and lose points for harm that slips through and for stopping when nothing was wrong.</p>
       <div class="panel-row"><span class="eyebrow">Guards</span><span class="budget" id="budget"></span></div>
       <div class="guards" id="guards"></div>
-      <div class="panel-row"><button class="primary" id="arena-start" type="button">Start match</button><span class="muted" id="arena-note">Everyone plays the same match today.</span></div>`;
+      <div class="panel-row"><button class="primary" id="arena-start" type="button">Start match</button><span class="muted" id="arena-note">Everyone plays the same match today.</span></div>`);
     const wrap = $("guards");
     for (const g of arena.guards) {
       const b = document.createElement("button");
@@ -661,7 +693,7 @@
       b.type = "button";
       b.dataset.id = g.id;
       b.setAttribute("aria-pressed", String(app.arenaGuards.has(g.id)));
-      b.innerHTML = `<span class="check"></span><span class="name"></span><span class="cost"></span><span class="detail"></span>`;
+      setHTML(b, html`<span class="check"></span><span class="name"></span><span class="cost"></span><span class="detail"></span>`);
       b.querySelector(".name").textContent = g.label;
       b.querySelector(".cost").textContent = `${g.cost} pts`;
       b.querySelector(".detail").textContent = g.detail || "";
@@ -704,8 +736,8 @@
     renderEvents();
     $("hud").hidden = false;
     const panel = $("arena-panel");
-    panel.innerHTML = `<div class="panel-row"><h2>Match in progress</h2><button class="text-btn" id="arena-quit" type="button">Quit match</button></div>
-      <p>Guards in play: ${app.arenaGuards.size ? [...app.arenaGuards].map((id) => escapeHTML(pack.arena.guards.find((g) => g.id === id).label)).join(", ") : "none"}.</p>`;
+    setHTML(panel, html`<div class="panel-row"><h2>Match in progress</h2><button class="text-btn" id="arena-quit" type="button">Quit match</button></div>
+      <p>Guards in play: ${app.arenaGuards.size ? [...app.arenaGuards].map((id) => pack.arena.guards.find((g) => g.id === id).label).join(", ") : "none"}.</p>`);
     $("arena-quit").addEventListener("click", () => setMode("arena"));
     renderHud();
   }
@@ -718,10 +750,10 @@
     const missed = s.incidents.filter((i) => !i.caught).length;
     const harmLabels = m.harms.map((id) => (m.arena.harm.find((h) => h.id === id) || {}).label).filter(Boolean);
     const move = m.move && m.moveApplied ? m.move.label : "Watching";
-    $("hud").innerHTML = `
-      <div class="hud-col"><span>Round ${Math.min(m.round + 1, m.rounds)} of ${m.rounds}</span><span class="move">${escapeHTML("Challenger: " + move)}</span>
-        <span class="truth">${harmLabels.length ? escapeHTML("Really happening: " + harmLabels.join(", ")) : ""}</span></div>
-      <div class="hud-stats"><div>Caught<span class="big">${caught}</span></div><div>Slipped through<span class="big">${missed}</span></div><div>False stops<span class="big">${s.falseHalts}</span></div></div>`;
+    setHTML($("hud"), html`
+      <div class="hud-col"><span>Round ${Math.min(m.round + 1, m.rounds)} of ${m.rounds}</span><span class="move">Challenger: ${move}</span>
+        <span class="truth">${harmLabels.length ? "Really happening: " + harmLabels.join(", ") : ""}</span></div>
+      <div class="hud-stats"><div>Caught<span class="big">${caught}</span></div><div>Slipped through<span class="big">${missed}</span></div><div>False stops<span class="big">${s.falseHalts}</span></div></div>`);
   }
 
   function shareLine(summary, medal, eventName, player) {
@@ -754,9 +786,9 @@
     $("hud").hidden = true;
     const missed = m.tally.incidents.filter((i) => !i.caught);
     const lessons = missed.length
-      ? `Slipped through: ${[...new Set(missed.map((i) => i.label))].map(escapeHTML).join(", ")}. Try a guard that covers it.`
+      ? `Slipped through: ${[...new Set(missed.map((i) => i.label))].join(", ")}. Try a guard that covers it.`
       : "Nothing slipped through.";
-    $("arena-panel").innerHTML = `
+    setHTML($("arena-panel"), html`
       <div class="panel-row"><h2>Match over</h2><span class="muted">Streak ${streak} day${streak === 1 ? "" : "s"}${isBest ? " · New personal best" : ` · Your best ${best.score}`}</span></div>
       <div class="panel-row" style="align-items:flex-end">
         <div><div class="result-score">${sum.score}</div><div class="medal ${medal || ""}">${medal ? medal + " medal" : "No medal"} · par ${par}</div></div>
@@ -780,7 +812,7 @@
         <a class="text-btn" href="${REPO}" target="_blank" rel="noopener">Star TRP on GitHub</a>
         <a class="text-btn" href="${REPO}/subscription" target="_blank" rel="noopener">Watch for Season 2</a>
         <a class="text-btn" href="${REPO}/blob/main/studio/README.md" target="_blank" rel="noopener">Build the next event</a>
-      </div>`;
+      </div>`);
     $("share-line").textContent = line;
     const link = location.origin + location.pathname + "?pack=" + pack.id + "&mode=arena";
     $("arena-copy").addEventListener("click", () => copyText(line + "\n" + link));
@@ -794,28 +826,28 @@
 
   function renderStressPrep() {
     const pack = app.current.pack;
-    $("stress-panel").innerHTML = `
-      <div class="panel-row"><h2>Stress test · ${escapeHTML(pack.arena.event || pack.title)}</h2>
+    setHTML($("stress-panel"), html`
+      <div class="panel-row"><h2>Stress test · ${pack.arena.event || pack.title}</h2>
         <span><label class="muted" for="stress-n">Runs </label><select id="stress-n"><option>100</option><option selected>300</option><option>1000</option><option>3000</option></select></span></div>
       <p>Run the profile through hundreds of short episodes with faults mixed in at random, then see what it caught, what slipped through and where it stopped for nothing. It all runs in your browser.</p>
       <div class="panel-row" style="justify-content:flex-start"><button class="primary" id="stress-run" type="button">Run stress test</button></div>
-      <div id="stress-out"></div>`;
+      <div id="stress-out"></div>`);
     $("stress-run").addEventListener("click", runStress);
   }
 
   function runStress() {
     const pack = app.current.pack;
     const n = Number($("stress-n").value);
-    $("stress-out").innerHTML = `<p>Running ${n} episodes…</p>`;
+    setHTML($("stress-out"), html`<p>Running ${n} episodes…</p>`);
     setTimeout(() => {
       const r = A.stressTest(pack, pack.profileObject, { episodes: n, seed: Date.now() % 100000 }, { engine: E, sim: S });
       const rows = r.rows.map((row) => {
         const rate = row.incidents ? row.caught / row.incidents : null;
-        return `<tr class="${rate !== null && rate < 0.6 ? "weak" : ""}"><td>${escapeHTML(row.label)}</td><td class="num">${row.runs}</td>
+        return html`<tr class="${rate !== null && rate < 0.6 ? "weak" : ""}"><td>${row.label}</td><td class="num">${row.runs}</td>
           <td class="num rate">${rate === null ? "—" : Math.round(rate * 100) + "%"}</td><td class="num">${row.falseHalts}</td>
           <td class="num">${row.meanReaction === null ? "—" : (row.meanReaction * 1000).toFixed(0) + " ms"}</td></tr>`;
-      }).join("");
-      $("stress-out").innerHTML = `
+      });
+      setHTML($("stress-out"), html`
         <div class="result-grid">
           <div><div class="stat-label">Episodes</div><div class="stat-value">${r.episodes.toLocaleString()}</div></div>
           <div><div class="stat-label">Evaluations</div><div class="stat-value">${r.evaluations.toLocaleString()}</div></div>
@@ -824,7 +856,7 @@
           <div><div class="stat-label">False stops</div><div class="stat-value">${r.overall.falseHalts}</div></div>
         </div>
         <table class="table"><thead><tr><th>Fault</th><th>Runs</th><th>Harm caught</th><th>False stops</th><th>Time to stop</th></tr></thead><tbody>${rows}</tbody></table>
-        <p>Faults the profile misses are where a guard in the Arena, or a better profile, earns its keep.</p>`;
+        <p>Faults the profile misses are where a guard in the Arena, or a better profile, earns its keep.</p>`);
     }, 30);
   }
 
@@ -832,27 +864,27 @@
 
   function explain(ev) {
     const box = $("explain");
-    const parts = [`<h3>${escapeHTML(ev.standing.replace(/[-_]/g, " "))} at ${ev.t.toFixed(1)}s</h3>`];
+    const parts = [html`<h3>${ev.standing.replace(/[-_]/g, " ")} at ${ev.t.toFixed(1)}s</h3>`];
     const fieldVal = (f) => (f in ev.evidence ? JSON.stringify(ev.evidence[f]) : "no reading");
     for (const rule of ev.rules_met) {
       const r = app.profile.hardRules.find((x) => x.rule === rule);
       if (!r) continue;
       const cond = r.condition.replace(/_/g, " ") + (r.value !== null ? ` ${JSON.stringify(r.value)}` : "");
-      parts.push(`<div class="row"><span>${escapeHTML(ruleLabel(rule))}<br><span class="muted">Rule: ${escapeHTML(r.fieldName)} ${escapeHTML(cond)}, action ${escapeHTML(r.action.replace(/_/g, " "))}</span></span><span class="mono">${escapeHTML(fieldVal(r.fieldName))}</span></div>`);
+      parts.push(html`<div class="row"><span>${ruleLabel(rule)}<br><span class="muted">Rule: ${r.fieldName} ${cond}, action ${r.action.replace(/_/g, " ")}</span></span><span class="mono">${fieldVal(r.fieldName)}</span></div>`);
     }
     for (const name of ev.signals_critical.concat(ev.signals_warning)) {
       const sig = app.profile.scoredSignals.find((x) => x.signal === name);
       if (!sig) continue;
       const level = ev.signals_critical.includes(name) ? "critical" : "warning";
-      parts.push(`<div class="row"><span>${escapeHTML(labelFor(name))} in ${level}<br><span class="muted">Warning at ${sig.warningThreshold}, critical at ${sig.criticalThreshold} ${escapeHTML(sig.unit)} (${sig.direction.replace(/_/g, " ")})</span></span><span class="mono">${escapeHTML(fieldVal(name))}</span></div>`);
+      parts.push(html`<div class="row"><span>${labelFor(name)} in ${level}<br><span class="muted">Warning at ${sig.warningThreshold}, critical at ${sig.criticalThreshold} ${sig.unit} (${String(sig.direction).replace(/_/g, " ")})</span></span><span class="mono">${fieldVal(name)}</span></div>`);
     }
     for (const name of ev.missing.concat(ev.rules_unknown)) {
-      parts.push(`<div class="row"><span>${escapeHTML(labelFor(name) || ruleLabel(name))}<br><span class="muted">No evidence, so the profile treats it as unknown and never as safe.</span></span><span class="mono">missing</span></div>`);
+      parts.push(html`<div class="row"><span>${labelFor(name) || ruleLabel(name)}<br><span class="muted">No evidence, so the profile treats it as unknown and never as safe.</span></span><span class="mono">missing</span></div>`);
     }
-    if (parts.length === 1) parts.push(`<div class="muted">Every signal is inside its operating range and no hard rule is met.</div>`);
-    parts.push(`<div class="muted">Response: ${escapeHTML(RESPONSE_TEXT[ev.response] || ev.response)}. Profile ${escapeHTML(app.profile.trpId)} ${escapeHTML(app.profile.version)}.</div>`);
-    parts.push(`<button class="text-btn small close" type="button" id="explain-close">Close</button>`);
-    box.innerHTML = parts.join("");
+    if (parts.length === 1) parts.push(html`<div class="muted">Every signal is inside its operating range and no hard rule is met.</div>`);
+    parts.push(html`<div class="muted">Response: ${RESPONSE_TEXT[ev.response] || ev.response}. Profile ${app.profile.trpId} ${app.profile.version}.</div>`);
+    parts.push(html`<button class="text-btn small close" type="button" id="explain-close">Close</button>`);
+    setHTML(box, html`${parts}`);
     box.hidden = false;
     $("explain-close").addEventListener("click", () => { box.hidden = true; });
   }
@@ -880,8 +912,9 @@
   }
 
   function decodeReplay(text) {
+    if (text.length > 65536) throw new Error("That replay link is too long.");
     const b64 = text.replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+    return SAFE.checkReplay(JSON.parse(decodeURIComponent(escape(atob(b64)))));
   }
 
   function shareSession() {
@@ -1038,7 +1071,7 @@
 
   async function importText(textValue) {
     try {
-      const pack = packFromJSON(JSON.parse(textValue));
+      const pack = packFromJSON(SAFE.parse(textValue));
       addCustomPack(pack);
       toast(`Loaded ${pack.title}`);
     } catch (err) {
@@ -1102,7 +1135,7 @@
     const wantMode = params.get("mode") || undefined;
     if (params.get("profile")) {
       try {
-        const pack = packFromJSON(await fetchJSON(params.get("profile")));
+        const pack = packFromJSON(await fetchUntrusted(params.get("profile")));
         addCustomPack(pack);
       } catch (err) {
         toast(err.message);

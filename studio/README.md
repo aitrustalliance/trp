@@ -92,6 +92,18 @@ node tests/studio_parity.js
 node tests/lerobot_parse.js
 ```
 
+## Security
+
+Anything the Studio did not ship with is untrusted, including imported files, `?profile=` links and replay links. `studio/safety.js` rejects files over 1 MB, values of the wrong type, oversized lists and names that reach an object's prototype. `?profile=` links must use https or point to the same site. Every piece of HTML the page writes goes through an escaping template, and a Content Security Policy blocks inline script as a second layer.
+
+```bash
+node tests/studio_safety.js
+npm install --no-save playwright && npx playwright install chromium
+node tests/browser/studio_e2e.js
+```
+
+The browser tests open every pack in every mode, import hostile profiles and packs with the policy on and off, try bad links and poisoned storage, play a full Arena match, and check the phone layout, control names, load time and frame rate.
+
 ## Contributing A Pack
 
 1. Add your profile under `examples/<name>/trp.json`. The conformance suite validates it against the schema.
