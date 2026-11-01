@@ -539,7 +539,145 @@
     },
   };
 
+  // ------------------------------------------------------------- Humanoid floor
+  // A humanoid seen from the side, carrying a tote down an aisle. Body lean
+  // follows balance margin, the dot under its feet is the zero moment point,
+  // hip and knee rings follow joint torque, the cone from its head fades with
+  // perception latency, and the person ahead stands at the measured distance.
+  const humanoid = {
+    init(state) { state.gait = 0; state.scroll = 0; state.flash = 0; },
+    draw(frame, state) {
+      const { ctx, w, h, values, omitted, dt, profile } = frame;
+      const p = pace(frame);
+      state.gait += dt * 5.2 * p;
+      state.scroll += dt * 60 * p;
+      const floorY = h * 0.78;
+      const m = Math.min(w / 7.4, h / 4.1); // pixels per meter
+      const rx = w * 0.3;
+
+      // Racks behind the aisle.
+      ctx.save();
+      for (let i = -1; i < 8; i++) {
+        const x = ((i * 190 - state.scroll) % (190 * 8) + 190 * 8) % (190 * 8) - 190;
+        ctx.strokeStyle = C.hair; ctx.lineWidth = 1;
+        ctx.strokeRect(x, floorY - m * 2.2, 150, m * 2.2);
+        for (let k = 1; k < 4; k++) line(ctx, x, floorY - m * 2.2 * k / 4, x + 150, floorY - m * 2.2 * k / 4, C.hair, 1);
+      }
+      ctx.restore();
+      line(ctx, 0, floorY, w, floorY, C.hairStrong, 1);
+
+      // Distance markers from the profile.
+      const dist = num(values, "human_distance_m", 2.4);
+      const sig = (name) => profile && profile.scoredSignals ? profile.scoredSignals.find((x) => x.signal === name) : null;
+      const dSig = sig("human_distance_m");
+      const hard = profile && profile.hardRules ? profile.hardRules.find((r) => r.fieldName === "human_distance_m") : null;
+      const marks = [];
+      if (dSig) marks.push([dSig.warningThreshold, `${dSig.warningThreshold} m warning`], [dSig.criticalThreshold, `${dSig.criticalThreshold} m stop`]);
+      if (hard && typeof hard.value === "number") marks.push([hard.value, `${hard.value} m exclusion`]);
+      marks.sort((a, b) => a[0] - b[0]);
+      marks.forEach(([d, label], i) => {
+        const x = rx + d * m;
+        line(ctx, x, floorY - m * 2.0, x, floorY + 8 + i * 15, C.hairStrong, 1, [3, 5]);
+        text(ctx, label, x + 4, floorY + 20 + i * 15, { size: 11, color: C.silverDim });
+      });
+
+      // The person.
+      const missing = omitted && omitted.has && omitted.has("human_distance_m");
+      const px = rx + dist * m;
+      const close = dSig && dist < dSig.warningThreshold;
+      ctx.save();
+      ctx.globalAlpha = missing ? 0.25 : 1;
+      ctx.strokeStyle = close ? C.gold : C.white; ctx.lineWidth = 2; ctx.lineCap = "round";
+      const pw = Math.sin(frame.t * 3) * 0.12;
+      ctx.beginPath(); ctx.arc(px, floorY - m * 1.62, m * 0.11, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px, floorY - m * 1.5); ctx.lineTo(px, floorY - m * 0.9);
+      ctx.moveTo(px, floorY - m * 0.9); ctx.lineTo(px - m * (0.18 + pw), floorY);
+      ctx.moveTo(px, floorY - m * 0.9); ctx.lineTo(px + m * (0.18 + pw), floorY);
+      ctx.moveTo(px, floorY - m * 1.38); ctx.lineTo(px - m * 0.22, floorY - m * 1.05);
+      ctx.moveTo(px, floorY - m * 1.38); ctx.lineTo(px + m * 0.2, floorY - m * 1.08); ctx.stroke();
+      ctx.restore();
+      text(ctx, missing ? "no reading" : `${dist.toFixed(2)} m`, px, floorY - m * 1.85, { size: 13, mono: true, color: missing ? C.silverDim : close ? C.gold : C.white, align: "center" });
+
+      // Perception cone, fading with latency.
+      const lat = num(values, "perception_latency_ms", 45);
+      const latSig = sig("perception_latency_ms");
+      const stale = Math.min(1, Math.max(0, (lat - 40) / ((latSig ? latSig.criticalThreshold : 180) - 40)));
+      const headX = rx + m * 0.05, headY = floorY - m * 1.62;
+      const cone = ctx.createLinearGradient(headX, headY, headX + m * 2.6, headY);
+      cone.addColorStop(0, `rgba(79,168,232,${0.28 * (1 - stale) + 0.04})`); cone.addColorStop(1, "rgba(79,168,232,0)");
+      ctx.fillStyle = cone;
+      ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(headX + m * 2.6, headY - m * 0.55); ctx.lineTo(headX + m * 2.6, headY + m * 0.9); ctx.closePath(); ctx.fill();
+
+      // The humanoid. Lean grows as balance margin shrinks.
+      const bal = num(values, "balance_margin_m", 0.075);
+      const lean = Math.max(-0.05, Math.min(0.42, (0.075 - bal) / 0.075 * 0.32));
+      const torque = num(values, "joint_torque_ratio", 0.56);
+      const tSig = sig("joint_torque_ratio");
+      const tColor = torque >= 1 ? "#f2b48a" : tSig && torque >= tSig.warningThreshold ? C.gold : C.accent;
+      const g = state.gait, step = Math.sin(g) * 0.22 * (p > 0 ? 1 : 0);
+      const hipX = rx, hipY = floorY - m * 0.95;
+      const legs = [[step, 0], [-step, Math.PI]];
+      ctx.save();
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      for (const [sw, ph] of legs) {
+        const lift = Math.max(0, Math.sin(g + ph)) * 0.08 * (p > 0 ? 1 : 0);
+        const kx = hipX + m * (sw * 0.6 + 0.04), ky = hipY + m * (0.47 - lift);
+        const fx = hipX + m * sw, fy = floorY - m * lift;
+        ctx.strokeStyle = "rgba(244,246,251,0.85)"; ctx.lineWidth = m * 0.07;
+        ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
+        ctx.strokeStyle = tColor; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(kx, ky, m * 0.055, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.translate(hipX, hipY); ctx.rotate(lean);
+      ctx.strokeStyle = C.white; ctx.lineWidth = m * 0.1;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -m * 0.6); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = tColor; ctx.beginPath(); ctx.arc(0, 0, m * 0.07, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(0, -m * 0.75, m * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#0a0e27"; ctx.fillRect(m * 0.02, -m * 0.79, m * 0.09, m * 0.04);
+      // Arms and the tote, sized by payload.
+      const load = num(values, "payload_kg", 8);
+      const tw = m * (0.26 + load * 0.012), th = m * (0.16 + load * 0.006);
+      ctx.strokeStyle = "rgba(244,246,251,0.85)"; ctx.lineWidth = m * 0.055;
+      ctx.beginPath(); ctx.moveTo(0, -m * 0.52); ctx.lineTo(m * 0.2, -m * 0.32); ctx.lineTo(m * 0.32, -m * 0.38); ctx.stroke();
+      ctx.fillStyle = load >= 20 ? "rgba(242,180,138,0.25)" : "rgba(230,211,161,0.14)"; ctx.strokeStyle = load >= 15 ? C.gold : C.hairStrong; ctx.lineWidth = 1.5;
+      ctx.fillRect(m * 0.3, -m * 0.38 - th / 2, tw, th); ctx.strokeRect(m * 0.3, -m * 0.38 - th / 2, tw, th);
+      ctx.restore();
+
+      // Contact force flashes at the hands.
+      const force = num(values, "contact_force_N", 12);
+      const fSig = sig("contact_force_N");
+      if (fSig && force >= fSig.warningThreshold) state.flash = 1;
+      state.flash = Math.max(0, state.flash - dt * 2.5);
+      if (state.flash > 0) glowDot(ctx, hipX + m * 0.45, hipY - m * 0.4, 4 + state.flash * 6, force >= (fSig ? fSig.criticalThreshold : 110) ? "#f2b48a" : C.gold, 18 * state.flash);
+
+      // Support polygon and zero moment point under the feet.
+      const half = m * 0.16;
+      const zx = rx + half - Math.max(0, Math.min(1, bal / 0.1)) * half * 1.6;
+      line(ctx, rx - half, floorY + 10, rx + half, floorY + 10, C.hairStrong, 3);
+      const bSig = sig("balance_margin_m");
+      glowDot(ctx, zx, floorY + 10, 3.5, bSig && bal <= bSig.criticalThreshold ? "#f2b48a" : bSig && bal <= bSig.warningThreshold ? C.gold : C.accent, 8);
+
+      // Readout.
+      const conf = num(values, "policy_confidence", 0.9);
+      const rows = [
+        ["Balance margin", `${(bal * 100).toFixed(1)} cm`],
+        ["Joint torque", `${Math.round(torque * 100)}% of rated`],
+        ["Payload", `${load.toFixed(1)} kg`],
+        ["Policy confidence", conf.toFixed(2)],
+        ["Perception latency", `${Math.round(lat)} ms`],
+        ["Contact force", `${Math.round(force)} N`],
+      ];
+      rows.forEach(([k, v], i) => {
+        text(ctx, k, 24, 34 + i * 20, { size: 12, color: C.silverDim });
+        text(ctx, v, 170, 34 + i * 20, { size: 12, mono: true, color: C.white });
+      });
+      if (values.teleop_link_ok === false) text(ctx, "Teleoperation link down", w - 24, 34, { size: 13, color: C.gold, align: "right" });
+      if (values.in_restricted_zone === true) text(ctx, "Restricted zone", w - 24, 54, { size: 13, color: C.gold, align: "right" });
+    },
+  };
+
   const api = {
+    "humanoid-floor": humanoid,
     fleet: fleet,
     "robot-cell": robotCell,
     "machine-line": machineLine,

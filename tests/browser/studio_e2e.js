@@ -124,7 +124,7 @@ async function main() {
       check("with nothing asked for, the studio opens on Command", await page.isVisible("#command") && !(await page.isVisible(".stage")));
       check("no pack tab is selected on Command", (await page.locator(".pack-tab[aria-selected=true]").count()) === 0);
       const t0 = await page.evaluate(() => window.TRPCommand.tallies());
-      check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 4, JSON.stringify(t0));
+      check("the floor carries every pack with a harm model, more than forty systems and hundreds of readings", t0.systems >= 40 && t0.parameters >= 400 && (await page.evaluate(() => new Set(window.TRPCommand.systems.map((s) => s.group.pack.id)).size)) === 5, JSON.stringify(t0));
       check("the headline positions the floor and the line under it counts it", /Dynamic trust enforcement/.test(await page.textContent("#cmd-h1")) && /\d+ systems and [\d,]+ live signals/.test(await page.textContent("#cmd-sub")));
       check("the tuned book is the first one shown", (await page.evaluate(() => window.TRPCommand.book)) === "tuned" && (await page.getAttribute("#cmd-books button[data-book=tuned]", "aria-pressed")) === "true");
       const tuned = await page.evaluate(() => window.TRPCommand.advance(120));
@@ -149,6 +149,38 @@ async function main() {
       check("a link into a pack still opens Live", await (async () => { await page.goto(`${base}/studio/?pack=fleet&story=0`); await page.waitForTimeout(600); return (await page.isVisible(".stage")) && !(await page.isVisible("#command")); })());
       check("Command raises no page errors", page.errors.length === 0, page.errors.join(" | "));
       await page.close();
+    }
+
+    // Connect: outside evidence through a stream, a file, the page API and LeRobot.
+    {
+      const { spawn } = require("child_process");
+      const bridge = spawn(process.execPath, [path.join(__dirname, "..", "..", "studio", "bridge", "evidence-bridge.js"), "--demo", "humanoid-floor", "--port", "0"]);
+      const port = await new Promise((resolve, reject) => { bridge.stdout.on("data", (d) => { const m = /127\.0\.0\.1:(\d+)/.exec(String(d)); if (m) resolve(Number(m[1])); }); setTimeout(() => reject(new Error("bridge did not start")), 5000); });
+      const page = await newPage(browser, base);
+      await page.route("https://datasets-server.huggingface.co/**", (r) => r.abort());
+      try {
+        await page.goto(`${base}/studio/?pack=humanoid-floor&story=0`);
+        await page.waitForTimeout(800);
+        await page.click(".mode[data-mode=connect]");
+        await page.waitForTimeout(300);
+        check("Connect lists five sources and the synthetic generator is active", (await page.locator(".cn-src").count()) === 5 && /Synthetic generator/.test(await page.textContent("#connect-status")) && /12 of 12/.test(await page.textContent("#connect-status")));
+        await page.fill("#cn-url", `http://127.0.0.1:${port}/events`);
+        await page.click("#cn-connect");
+        await page.waitForFunction(() => window.TRPStudio.source && window.TRPStudio.source.received >= 4, null, { timeout: 8000 });
+        await page.waitForTimeout(600);
+        const streamStatus = await page.textContent("#connect-status"), streamStanding = (await page.textContent("#standing-word")).trim();
+        check("a live stream from the evidence bridge is judged by the engine", /Live, \d+ readings/.test(streamStatus) && /^(Good|Review|Failing)$/i.test(streamStanding), `${streamStatus} | ${streamStanding}`);
+        const r = await page.evaluate(() => window.TRPStudio.ingest({ human_distance_m: 0.4, balance_margin_m: 0.07, estop_active: false, teleop_link_ok: true }));
+        check("the page API returns the engine result for each reading", r && r.response === "suspended" && r.hard_rules_triggered.some((x) => x.rule === "human_in_exclusion_zone"), JSON.stringify(r && r.hard_rules_triggered));
+        await page.setInputFiles("#cn-file", { name: "run.csv", mimeType: "text/csv", buffer: Buffer.from("timestamp,human_distance_m,balance_margin_m\n0,2.5,0.07\n0.25,2.4,0.07\n0.5,0.5,0.06\n") });
+        await page.waitForTimeout(300);
+        check("a CSV file replays with missing fields named", /run\.csv/.test(await page.textContent("#connect-status")) && /Missing, judged as missing evidence/.test(await page.textContent("#connect-status")));
+        await page.click("#cn-lerobot");
+        await page.waitForFunction(() => window.TRPStudio.source && /Synthetic SO-101/.test(window.TRPStudio.source.label), null, { timeout: 8000 });
+        check("LeRobot falls back to a labeled synthetic episode judged against the arm profile", /Robot arm motion/.test(await page.textContent("#pack-title")) && /4 of 4/.test(await page.textContent("#connect-status")));
+        const errors = page.errors.filter((e) => !/ERR_FAILED/.test(e));
+        check("Connect raises no page errors", errors.length === 0, errors.join(" | "));
+      } finally { bridge.kill(); await page.close(); }
     }
 
     // Early access to Nautilus, from the header.
@@ -202,7 +234,7 @@ async function main() {
       await page.waitForTimeout(800);
       await page.click(".mode[data-mode=learn]");
       await page.waitForTimeout(300);
-      check("Learn lists four challenges", (await page.locator(".challenge").count()) === 4);
+      check("Learn lists five challenges", (await page.locator(".challenge").count()) === 5);
       await page.waitForSelector("#learn-codex .codex-item", { timeout: 5000 });
       check("Learn carries the glossary with every term open", (await page.locator("#learn-codex .codex-item").count()) === 24 && (await page.locator("#learn-codex .codex-item.locked").count()) === 0);
       await page.click("#learn-codex .codex-item[data-codex=operating-limits]");

@@ -1,6 +1,6 @@
 # TRP Studio Data Sources
 
-TRP Studio runs on simulated data by default. The Lab page (`studio/lab.html`) adds two experimental live inputs. Both were written against published documentation, but neither could be reached from the build environment, so each needs a short check in a real browser before release. This guide lists what was verified, what was not, and the exact steps to finish each one.
+TRP Studio runs on simulated data by default, and the Connect mode accepts outside evidence as described in [CONNECT.md](CONNECT.md). The Lab page (`studio/lab.html`) adds two experimental live inputs. Both were written against published documentation, but neither could be reached from the build environment, so each needs a short check in a real browser before release. This guide lists what was verified, what was not, and the exact steps to finish each one.
 
 ## Status
 
@@ -27,7 +27,7 @@ TRP Studio runs on simulated data by default. The Lab page (`studio/lab.html`) a
 5. Look at the reported peak joint speed and tracking error, then set the thresholds in `examples/arm-motion/trp.json` to match the dataset's units. The current values are placeholders.
 6. Run `node tests/lerobot_parse.js` and `python3 tests/run_conformance.py`.
 
-**Fallback.** For a demo that cannot depend on the network, download one episode once with the same URL, save it as `studio/packs/lerobot/episode.json` in the `/rows` response format, and point `fetchEpisode` at it.
+**Fallback.** When the API cannot be reached, the Lab and the Studio replay a synthetic SO-101 episode from `TRPLeRobot.synthEpisode`, labeled as synthetic. For a demo on real data with no network, download one episode once with the same URL from a normal browser and replay it through the Studio's Connect, File source.
 
 ## Webcam Distance Sensor
 

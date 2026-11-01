@@ -1,0 +1,683 @@
+{
+  "pack_version": "1",
+  "id": "humanoid-floor",
+  "title": "Humanoid Floor",
+  "subtitle": "Humanoid robots on learned policies carrying totes in an aisle shared with people. Every reading is stochastic.",
+  "scene": "humanoid-floor",
+  "profile": "../../../examples/humanoid-workforce/trp.json",
+  "command": {
+    "group": "Humanoid workers",
+    "unit": "Unit",
+    "count": 16,
+    "fault_rate": 0.012,
+    "benign_rate": 0.012,
+    "benign": [
+      {
+        "label": "A person passes at 1.3 m",
+        "effects": {
+          "human_distance_m": {
+            "to": 1.3,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "A heavy tote, 14 kg",
+        "effects": {
+          "payload_kg": {
+            "to": 14,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "A crowded aisle, policy confidence 0.78",
+        "effects": {
+          "policy_confidence": {
+            "to": 0.78,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "label": "Network jitter, 90 ms",
+        "effects": {
+          "perception_latency_ms": {
+            "to": 90,
+            "ramp_s": 1
+          }
+        }
+      }
+    ]
+  },
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "signals": {
+    "human_distance_m": {
+      "base": 2.4,
+      "min": 0,
+      "max": 5,
+      "decimals": 2,
+      "label": "Human distance",
+      "process": {
+        "type": "ou",
+        "theta": 0.6,
+        "sigma": 0.3
+      },
+      "shocks": {
+        "rate": 0.03,
+        "size": -1.3,
+        "spread": 0.3,
+        "decay_s": 1.8
+      }
+    },
+    "balance_margin_m": {
+      "base": 0.075,
+      "min": 0,
+      "max": 0.12,
+      "decimals": 3,
+      "label": "Balance margin",
+      "process": {
+        "type": "ou",
+        "theta": 2.5,
+        "sigma": 0.008
+      },
+      "shocks": {
+        "rate": 0.02,
+        "size": -0.042,
+        "spread": 0.012,
+        "decay_s": 0.5
+      }
+    },
+    "contact_force_N": {
+      "base": 12,
+      "min": 0,
+      "max": 400,
+      "decimals": 0,
+      "label": "Contact force",
+      "process": {
+        "type": "ou",
+        "theta": 3,
+        "sigma": 6
+      },
+      "shocks": {
+        "rate": 0.02,
+        "size": 70,
+        "spread": 35,
+        "decay_s": 0.35
+      }
+    },
+    "joint_torque_ratio": {
+      "base": 0.56,
+      "min": 0,
+      "max": 1.4,
+      "decimals": 2,
+      "label": "Joint torque",
+      "derive": {
+        "from": "payload_kg",
+        "scale": 0.032,
+        "offset": 0.3,
+        "ramp_s": 0.6
+      },
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 0.03
+      },
+      "shocks": {
+        "rate": 0.01,
+        "size": 0.15,
+        "spread": 0.05,
+        "decay_s": 0.4
+      }
+    },
+    "payload_kg": {
+      "base": 8,
+      "min": 0,
+      "max": 30,
+      "decimals": 1,
+      "label": "Payload"
+    },
+    "policy_confidence": {
+      "base": 0.9,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Policy confidence",
+      "process": {
+        "type": "ou",
+        "theta": 1,
+        "sigma": 0.04
+      },
+      "shocks": {
+        "rate": 0.02,
+        "size": -0.25,
+        "spread": 0.08,
+        "decay_s": 1.5
+      }
+    },
+    "perception_latency_ms": {
+      "base": 45,
+      "min": 10,
+      "max": 600,
+      "decimals": 0,
+      "label": "Perception latency",
+      "process": {
+        "type": "ou",
+        "theta": 2,
+        "sigma": 10
+      },
+      "shocks": {
+        "rate": 0.015,
+        "size": 110,
+        "spread": 50,
+        "decay_s": 0.8
+      }
+    },
+    "battery_soc": {
+      "base": 0.62,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Battery"
+    },
+    "estop_active": {
+      "base": false,
+      "label": "Emergency stop"
+    },
+    "teleop_link_ok": {
+      "base": true,
+      "label": "Teleoperation link"
+    },
+    "in_restricted_zone": {
+      "base": false,
+      "label": "Restricted zone"
+    },
+    "firmware_signature_valid": {
+      "base": true,
+      "label": "Firmware signature"
+    }
+  },
+  "rule_labels": {
+    "estop_active": "Emergency stop pressed",
+    "human_in_exclusion_zone": "Person inside the exclusion zone",
+    "teleop_link_lost": "Teleoperation link lost",
+    "restricted_zone_entered": "Robot entered a restricted zone",
+    "firmware_unsigned": "Firmware signature invalid"
+  },
+  "controls": [
+    {
+      "id": "distance",
+      "label": "Person distance",
+      "type": "slider",
+      "signal": "human_distance_m",
+      "min": 0.2,
+      "max": 4,
+      "step": 0.05
+    },
+    {
+      "id": "payload",
+      "label": "Payload",
+      "type": "slider",
+      "signal": "payload_kg",
+      "min": 0,
+      "max": 28,
+      "step": 0.5
+    },
+    {
+      "id": "wet",
+      "label": "Wet floor",
+      "type": "toggle",
+      "effects": {
+        "balance_margin_m": {
+          "to": 0.04,
+          "ramp_s": 1,
+          "shock_rate": 5
+        }
+      }
+    },
+    {
+      "id": "stepout",
+      "label": "Person steps out",
+      "type": "toggle",
+      "effects": {
+        "human_distance_m": {
+          "to": 0.4,
+          "ramp_s": 1
+        }
+      }
+    },
+    {
+      "id": "stall",
+      "label": "Perception stalls",
+      "type": "toggle",
+      "effects": {
+        "perception_latency_ms": {
+          "to": 300,
+          "ramp_s": 0.5
+        }
+      }
+    },
+    {
+      "id": "novel",
+      "label": "Unfamiliar object",
+      "type": "toggle",
+      "effects": {
+        "policy_confidence": {
+          "to": 0.5,
+          "ramp_s": 1
+        }
+      }
+    },
+    {
+      "id": "dropout",
+      "label": "Proximity sensor dropout",
+      "type": "toggle",
+      "effects": {
+        "human_distance_m": {
+          "omit": true
+        }
+      }
+    },
+    {
+      "id": "link",
+      "label": "Teleoperation link drops",
+      "type": "toggle",
+      "effects": {
+        "teleop_link_ok": {
+          "set": false
+        }
+      }
+    },
+    {
+      "id": "estop",
+      "label": "Emergency stop",
+      "type": "toggle",
+      "effects": {
+        "estop_active": {
+          "set": true
+        }
+      }
+    }
+  ],
+  "story": [
+    {
+      "at_s": 0,
+      "caption": "A humanoid carries totes down an aisle shared with people. Every reading moves on its own, the way it does on real hardware."
+    },
+    {
+      "at_s": 5,
+      "caption": "A heavier tote. Joint torque follows the load, and the rules slow the robot to half speed.",
+      "set": {
+        "payload": 16
+      }
+    },
+    {
+      "at_s": 10,
+      "caption": "Back to a normal load.",
+      "set": {
+        "payload": 8
+      }
+    },
+    {
+      "at_s": 12,
+      "caption": "Wet floor. Balance margin, the distance from the robot's center of pressure to the edge of its feet, shrinks and slips come more often.",
+      "toggle": {
+        "wet": true
+      }
+    },
+    {
+      "at_s": 19,
+      "caption": "Dry again.",
+      "toggle": {
+        "wet": false
+      }
+    },
+    {
+      "at_s": 21,
+      "caption": "A person steps out from behind a rack. The exclusion rule stops the robot outright.",
+      "toggle": {
+        "stepout": true
+      }
+    },
+    {
+      "at_s": 26,
+      "caption": "They move on, and the robot resumes.",
+      "toggle": {
+        "stepout": false
+      }
+    },
+    {
+      "at_s": 28,
+      "caption": "Perception stalls. The robot would be acting on an old picture of the aisle, so the rules stop it first.",
+      "toggle": {
+        "stall": true
+      }
+    },
+    {
+      "at_s": 33,
+      "caption": "Perception recovers.",
+      "toggle": {
+        "stall": false
+      }
+    },
+    {
+      "at_s": 35,
+      "caption": "The teleoperation link drops. With no supervisor on the line, the robot does not move.",
+      "toggle": {
+        "link": true
+      }
+    },
+    {
+      "at_s": 40,
+      "caption": "Link restored. The faults were scripted for this story. The noise and the shocks are live.",
+      "toggle": {
+        "link": false
+      }
+    },
+    {
+      "at_s": 45,
+      "end": true
+    }
+  ],
+  "arena": {
+    "event": "Humanoid Floor",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 8,
+    "harm": [
+      {
+        "id": "person_struck",
+        "label": "Robot strikes a person",
+        "all": [
+          {
+            "signal": "human_distance_m",
+            "op": "lt",
+            "value": 0.45
+          }
+        ],
+        "near": [
+          {
+            "signal": "human_distance_m",
+            "op": "lt",
+            "value": 0.7
+          }
+        ]
+      },
+      {
+        "id": "fall",
+        "label": "Robot falls",
+        "all": [
+          {
+            "signal": "balance_margin_m",
+            "op": "lt",
+            "value": 0.01
+          }
+        ],
+        "near": [
+          {
+            "signal": "balance_margin_m",
+            "op": "lt",
+            "value": 0.02
+          }
+        ]
+      },
+      {
+        "id": "collision",
+        "label": "Hard collision",
+        "all": [
+          {
+            "signal": "contact_force_N",
+            "op": "gt",
+            "value": 150
+          }
+        ],
+        "near": [
+          {
+            "signal": "contact_force_N",
+            "op": "gt",
+            "value": 110
+          }
+        ]
+      },
+      {
+        "id": "actuator_overload",
+        "label": "Actuator overload, load at risk",
+        "all": [
+          {
+            "signal": "joint_torque_ratio",
+            "op": "gt",
+            "value": 1.0
+          }
+        ],
+        "near": [
+          {
+            "signal": "joint_torque_ratio",
+            "op": "gt",
+            "value": 0.95
+          }
+        ]
+      },
+      {
+        "id": "moving_blind",
+        "label": "Moving on a stale picture of the aisle",
+        "all": [
+          {
+            "signal": "perception_latency_ms",
+            "op": "gt",
+            "value": 250
+          }
+        ],
+        "near": [
+          {
+            "signal": "perception_latency_ms",
+            "op": "gt",
+            "value": 200
+          }
+        ]
+      },
+      {
+        "id": "unsupervised",
+        "label": "Moving with no supervisor on the line",
+        "all": [
+          {
+            "signal": "teleop_link_ok",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "trespass",
+        "label": "Robot in a restricted zone",
+        "all": [
+          {
+            "signal": "in_restricted_zone",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "stepout",
+        "label": "A person steps out from behind a rack",
+        "weight": 1.4,
+        "effects": {
+          "human_distance_m": {
+            "to": 0.38,
+            "ramp_s": 1
+          }
+        }
+      },
+      {
+        "id": "slip",
+        "label": "Wet floor under a loaded step",
+        "effects": {
+          "balance_margin_m": {
+            "to": 0.006,
+            "ramp_s": 0.8,
+            "shock_rate": 4
+          }
+        }
+      },
+      {
+        "id": "overload",
+        "label": "A tote heavier than its label",
+        "effects": {
+          "payload_kg": {
+            "to": 23,
+            "ramp_s": 1.5
+          }
+        }
+      },
+      {
+        "id": "bump",
+        "label": "The arm clips a cart",
+        "effects": {
+          "contact_force_N": {
+            "to": 185,
+            "ramp_s": 0.4
+          }
+        }
+      },
+      {
+        "id": "stall",
+        "label": "Perception compute stalls",
+        "effects": {
+          "perception_latency_ms": {
+            "to": 320,
+            "ramp_s": 0.5
+          }
+        }
+      },
+      {
+        "id": "novel",
+        "label": "An object the policy has never seen",
+        "effects": {
+          "policy_confidence": {
+            "to": 0.48,
+            "ramp_s": 1
+          },
+          "joint_torque_ratio": {
+            "to": 1.03,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "link",
+        "label": "Teleoperation link drops",
+        "weight": 0.6,
+        "effects": {
+          "teleop_link_ok": {
+            "set": false
+          }
+        }
+      },
+      {
+        "id": "wander",
+        "label": "Navigation enters a restricted zone",
+        "weight": 0.6,
+        "effects": {
+          "in_restricted_zone": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "blind",
+        "label": "Proximity sensor drops out as a person nears",
+        "effects": {
+          "human_distance_m": {
+            "to": 0.4,
+            "ramp_s": 2,
+            "omit": true,
+            "fault": true
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "second-lidar",
+        "label": "Second proximity sensor",
+        "detail": "A dropout on one sensor no longer blinds the robot to people.",
+        "cost": 3,
+        "type": "shield",
+        "signals": [
+          "human_distance_m"
+        ],
+        "counters": [
+          "blind"
+        ]
+      },
+      {
+        "id": "balance-reserve",
+        "label": "Balance reserve",
+        "detail": "Balance margin turns critical at 3 cm instead of 2.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "balance_margin_m",
+        "warning": 0.05,
+        "critical": 0.03,
+        "counters": [
+          "slip"
+        ]
+      },
+      {
+        "id": "payload-check",
+        "label": "Payload check",
+        "detail": "Payload turns critical at 17 kg instead of 20.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "payload_kg",
+        "warning": 13,
+        "critical": 17,
+        "counters": [
+          "overload"
+        ]
+      },
+      {
+        "id": "force-limit",
+        "label": "Lower force limit",
+        "detail": "Contact force turns critical at 80 N instead of 110.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "contact_force_N",
+        "warning": 45,
+        "critical": 80,
+        "counters": [
+          "bump"
+        ]
+      },
+      {
+        "id": "latency-budget",
+        "label": "Latency budget",
+        "detail": "Perception latency turns critical at 140 ms instead of 180.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "perception_latency_ms",
+        "warning": 80,
+        "critical": 140,
+        "counters": [
+          "stall"
+        ]
+      },
+      {
+        "id": "confidence-gate",
+        "label": "Confidence gate",
+        "detail": "Policy confidence turns critical at 0.75 instead of 0.6.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "policy_confidence",
+        "warning": 0.85,
+        "critical": 0.75,
+        "counters": [
+          "novel"
+        ]
+      }
+    ]
+  }
+}

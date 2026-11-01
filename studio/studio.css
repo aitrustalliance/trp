@@ -421,6 +421,19 @@ select option { background: var(--bg); }
 .cmd-detail .primary { margin-top: 14px; }
 @media (max-width: 900px) { .command { padding: 24px 16px 48px; } .cmd-hero h1 { font-size: 30px; } .cmd-lower { grid-template-columns: 1fr; } .cmd-books-wrap { align-items: flex-start; } .cmd-book-note { text-align: left; } .cmd-nums { gap: 22px; } .cmd-nums b { font-size: 28px; } }
 
+/* Connect. */
+.cn-status { margin: 14px 0 18px; padding: 12px 14px; border: 1px solid var(--hair); border-radius: 12px; background: var(--glass); font-size: 13.5px; }
+.cn-status b { color: var(--white); font-weight: 500; }
+.cn-now { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.cn-map { margin-top: 8px; display: grid; gap: 4px; }
+.cn-sources { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.cn-src { padding: 14px 16px; border: 1px solid var(--hair); border-radius: 14px; background: var(--glass); display: flex; flex-direction: column; gap: 8px; }
+.cn-src h3 { margin: 0; font-size: 15px; font-weight: 500; color: var(--white); }
+.cn-src p { margin: 0; line-height: 1.5; }
+.cn-src input[type=url], .cn-src input[type=text], .cn-src input[type=number] { width: 100%; box-sizing: border-box; background: var(--glass); border: 1px solid var(--hair-strong); color: var(--white); border-radius: 8px; padding: 7px 9px; font-family: var(--mono); font-size: 12.5px; }
+.cn-src .text-btn { align-self: flex-start; }
+.cn-src code { font-family: var(--mono); font-size: 12px; color: var(--white); }
+
 /* Glossary, rendered by codex.js. */
 .glossary-row { margin-top: 36px; }
 .codex { margin-top: 8px; }

@@ -11,6 +11,8 @@
 
 - To play against another agent, speak the TRP Arena Protocol over standard input and output and run `node studio/match.js --event robot-cell --versus "your command" builtin:greedy`. Messages and limits are in [ARENA_PROTOCOL.md](ARENA_PROTOCOL.md).
 
+- To judge your own evidence, call `TRPStudio.ingest({ signal: value, ... })` in a page that has opened /studio/. It returns the engine result. `TRPStudio.connect(url)` attaches a WebSocket or Server-Sent Events stream, and `TRPStudio.replay(text, name)` replays JSON lines, CSV or OTLP/JSON. From a terminal, `node studio/bridge/evidence-bridge.js --demo humanoid-floor` serves a stochastic evidence stream. See [CONNECT.md](CONNECT.md).
+
 - Nautilus, the game at /studio/nautilus/, exposes `TRPNautilus.play({ seed, policy })` for headless voyages. See [nautilus/README.md](nautilus/README.md).
 
 ## Rules
@@ -27,5 +29,6 @@
 
 - [Studio guide](README.md): packs, scenes and how to build an event
 - [Arena Protocol](ARENA_PROTOCOL.md): messages, limits and match records for agent matches
+- [Connect](CONNECT.md): the evidence contract, the bridge and recipes for LeRobot, ROS 2, OpenTelemetry and MQTT
 - [Specification](https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md): the TRP standard
 - Event rules live in each pack's `arena` section under `studio/packs/`

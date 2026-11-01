@@ -37,6 +37,13 @@ rejects("unknown scene", () => S.checkPack(Object.assign(read("studio/packs/robo
 rejects("bad pack id", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { id: "<x>" })));
 rejects("arena rounds as text", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { arena: Object.assign(read("studio/packs/robot-cell/pack.json").arena, { rounds: "<b>8</b>" }) })));
 rejects("tick too fast", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { tick_ms: 1 })));
+ok("the stochastic humanoid pack passes", () => S.checkPack(read("studio/packs/humanoid-floor/pack.json")));
+const hp = () => read("studio/packs/humanoid-floor/pack.json");
+rejects("runaway shock rate", () => { const pk = hp(); pk.signals.balance_margin_m.shocks.rate = 1e6; S.checkPack(pk); });
+rejects("unknown process type", () => { const pk = hp(); pk.signals.balance_margin_m.process.type = "brownian"; S.checkPack(pk); });
+rejects("derive from an unknown signal", () => { const pk = hp(); pk.signals.joint_torque_ratio.derive.from = "nope"; S.checkPack(pk); });
+rejects("derive from the prototype", () => { const pk = hp(); pk.signals.joint_torque_ratio.derive.from = "__proto__"; S.checkPack(pk); });
+rejects("a Command floor of thousands", () => { const pk = hp(); pk.command.count = 5000; S.checkPack(pk); });
 
 rejects("prototype signal name", () => S.checkProfile(JSON.parse(JSON.stringify(read("examples/manufacturing-safety/trp.json")).replace('"human_distance_m"', '"__proto__"'))));
 rejects("prototype key in pack signals", () => S.checkPack(Object.assign(read("studio/packs/robot-cell/pack.json"), { signals: JSON.parse('{"__proto__": {"base": 1}}') })));

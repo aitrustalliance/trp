@@ -60,6 +60,8 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   harm missed and false stops, and a rule book dial (loose,
   published, tight, tuned by measurement) that shows the trade-off live.
   Packs carry a `command` block with benign excursions.
+- Humanoid Floor, a stochastic use case with humanoid robots on learned policies in an aisle shared with people, with a profile in `examples/humanoid-workforce/`, a scene, an Arena event, a Command group and the Noisy Floor Learn challenge. The simulator gains Ornstein-Uhlenbeck drift, Poisson shocks and coupled signals, with existing packs unchanged.
+- Studio Connect takes outside evidence from JSON lines, CSV, OpenTelemetry OTLP/JSON, WebSocket, Server-Sent Events, rosbridge, the page API `window.TRPStudio.ingest` and LeRobot with a synthetic SO-101 fallback. `studio/bridge/evidence-bridge.js` relays telemetry to the Studio. `studio/CONNECT.md` is the integration guide, and `tests/studio_connect.js` covers it.
 - The Studio header offers Nautilus as coming soon with an early access
   sign-up, in place of a link to the game.
 - TRP Arena Protocol (`studio/ARENA_PROTOCOL.md`) and match runner

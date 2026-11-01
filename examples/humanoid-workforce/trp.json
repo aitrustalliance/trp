@@ -1,0 +1,185 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/humanoid-workforce/1.0.0/trp.json",
+  "trp_id": "humanoid-workforce",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "Humanoid robots working among people",
+  "description": "Reference Trust Requirements Profile for a fleet of humanoid robots picking and carrying totes in a shared warehouse aisle. Illustrative draft values, not certified safety limits.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "logistics",
+    "use_case": "humanoid-picking-shared-aisle"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one humanoid robot running a learned control policy in an aisle shared with people.",
+    "boundary": "One humanoid robot, its payload, its perception stack, its remote supervision link and the people within five meters.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced",
+      "Certification under any robot safety standard"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "human_distance_m",
+      "weight": 25,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 1.5,
+      "critical_threshold": 0.9,
+      "unit": "m",
+      "on_missing": "incomplete",
+      "reason": "Distance to the nearest person. People move unpredictably in a shared aisle, so proximity comes first."
+    },
+    {
+      "signal": "balance_margin_m",
+      "weight": 15,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.035,
+      "critical_threshold": 0.02,
+      "unit": "m",
+      "reason": "Distance from the zero moment point, where the ground reaction balances the robot, to the edge of its feet. Near zero, the robot is about to fall."
+    },
+    {
+      "signal": "contact_force_N",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 60,
+      "critical_threshold": 110,
+      "unit": "N",
+      "reason": "Peak external contact force at the hands and body. A spike means the robot struck something or someone."
+    },
+    {
+      "signal": "joint_torque_ratio",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.85,
+      "critical_threshold": 0.95,
+      "unit": "ratio",
+      "reason": "Peak joint torque as a fraction of rated torque. Past 1.0 an actuator can stall or a load can be dropped."
+    },
+    {
+      "signal": "payload_kg",
+      "weight": 5,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 15,
+      "critical_threshold": 20,
+      "unit": "kg",
+      "reason": "Carried mass. Labels can be wrong, so measured mass is checked against the rated payload."
+    },
+    {
+      "signal": "policy_confidence",
+      "weight": 10,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.8,
+      "critical_threshold": 0.6,
+      "unit": "ratio",
+      "on_missing": "incomplete",
+      "reason": "Confidence of the learned control policy in its next action. Low confidence marks a situation the policy was not trained for."
+    },
+    {
+      "signal": "perception_latency_ms",
+      "weight": 10,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 100,
+      "critical_threshold": 180,
+      "unit": "ms",
+      "reason": "Age of the scene the robot is acting on. A slow perception stack means the robot moves on an outdated picture of the aisle."
+    },
+    {
+      "signal": "battery_soc",
+      "weight": 5,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.2,
+      "critical_threshold": 0.08,
+      "unit": "ratio",
+      "reason": "Battery state of charge. A humanoid that runs flat mid-step falls."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "estop_active",
+      "field": "estop_active",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "human_in_exclusion_zone",
+      "field": "human_distance_m",
+      "condition": "less_than",
+      "value": 0.6,
+      "action": "halt"
+    },
+    {
+      "rule": "teleop_link_lost",
+      "field": "teleop_link_ok",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "restricted_zone_entered",
+      "field": "in_restricted_zone",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "firmware_unsigned",
+      "field": "firmware_signature_valid",
+      "condition": "is_false",
+      "action": "block_startup"
+    }
+  ],
+  "drift": {
+    "window": 5,
+    "signals": [
+      "balance_margin_m",
+      "joint_torque_ratio"
+    ]
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable operating range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range, missing evidence, or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "For audit or insurance use, the evaluation source should be independent of the robot vendor.",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values, not certified safety limits.",
+    "Readings in a humanoid deployment are stochastic. Limits must leave room for the reaction time between a reading and a stop.",
+    "This profile is a reference template. Real deployments should set values from measured data and applicable safety practice."
+  ]
+}

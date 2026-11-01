@@ -19,7 +19,7 @@
     replaySteps: 2000,
     replaySeconds: 3600,
   };
-  const SCENES = ["robot-cell", "machine-line", "data-flow", "agent-trace", "instrument", "fleet"];
+  const SCENES = ["robot-cell", "machine-line", "data-flow", "agent-trace", "instrument", "fleet", "humanoid-floor"];
 
   const RESERVED = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -120,6 +120,33 @@
       scalar(s.base, `${name} base`);
       for (const k of ["jitter", "min", "max", "decimals"]) num(s[k], `${name} ${k}`, true);
       str(s.label, `${name} label`, true);
+      // Stochastic fields are numbers inside small bounds, so an imported pack
+      // cannot stall the page with a runaway process.
+      if (s.process !== undefined) {
+        if (!isObj(s.process) || s.process.type !== "ou") fail(`${name} process must be { "type": "ou", ... }.`);
+        num(s.process.theta, `${name} theta`, true); num(s.process.sigma, `${name} sigma`, true);
+        if ((s.process.theta || 0) < 0 || (s.process.theta || 0) > 50 || (s.process.sigma || 0) < 0) fail(`${name} process is out of range.`);
+      }
+      if (s.shocks !== undefined) {
+        if (!isObj(s.shocks)) fail(`${name} shocks must be an object.`);
+        for (const k of ["rate", "size", "spread", "decay_s"]) num(s.shocks[k], `${name} shocks ${k}`, true);
+        if ((s.shocks.rate || 0) < 0 || (s.shocks.rate || 0) > 20 || (s.shocks.decay_s !== undefined && s.shocks.decay_s <= 0)) fail(`${name} shocks are out of range.`);
+      }
+      if (s.derive !== undefined) {
+        if (!isObj(s.derive)) fail(`${name} derive must be an object.`);
+        const from = s.derive.from;
+        if (typeof from !== "string" || RESERVED.has(from) || !Object.prototype.hasOwnProperty.call(pk.signals, from) || from === name) fail(`${name} derives from an unknown signal.`);
+        for (const k of ["scale", "offset", "ramp_s"]) num(s.derive[k], `${name} derive ${k}`, true);
+      }
+    }
+    if (pk.command !== undefined) {
+      const c = pk.command;
+      if (!isObj(c)) fail("command must be an object.");
+      str(c.group, "command group", true); str(c.unit, "command unit", true);
+      num(c.count, "command count"); num(c.fault_rate, "command fault_rate", true); num(c.benign_rate, "command benign_rate", true);
+      if (c.count < 1 || c.count > 64 || !Number.isInteger(c.count)) fail("command count must be a whole number from 1 to 64.");
+      if ((c.fault_rate || 0) < 0 || (c.fault_rate || 0) > 1 || (c.benign_rate || 0) < 0 || (c.benign_rate || 0) > 1) fail("command rates must be between 0 and 1.");
+      for (const m of list(c.benign, "command benign", LIMITS.moves, true)) { if (!isObj(m)) fail("Each benign excursion must be an object."); str(m.label, "Benign label", true); if (!isObj(m.effects)) fail("Benign effects must be an object."); keys(m.effects, "Benign effects"); }
     }
     for (const c of list(pk.controls, "controls", LIMITS.controls)) {
       if (!isObj(c)) fail("Each control must be an object.");

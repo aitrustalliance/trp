@@ -19,11 +19,13 @@
     try {
       armProfile = armProfile || E.loadProfile(await loadJSON("../examples/arm-motion/trp.json"));
       status.textContent = `Fetching ${dataset}, episode ${episode}.`;
-      const { frames } = await L.fetchEpisode(dataset, episode);
+      const got = await L.fetchEpisode(dataset, episode, { fallback: true });
+      const frames = got.frames;
       const ev = L.toEvidence(frames, 30);
       const results = ev.map((f) => E.evaluate(armProfile, f.evidence));
       const counts = results.reduce((m, r) => (m[r.standing] = (m[r.standing] || 0) + 1, m), {});
-      status.textContent = `${frames.length} frames. ` + Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ") +
+      const source = got.synthetic ? `Synthetic SO-101 episode, Hugging Face not reachable (${got.error}). Faults injected: ${got.faults.map((x) => x.kind).join(", ") || "none"}.\n` : "";
+      status.textContent = source + `${frames.length} frames. ` + Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ") +
         `\nPeak joint speed ${Math.max(...ev.map((f) => f.evidence.peak_joint_speed))}, largest tracking error ${Math.max(...ev.map((f) => f.evidence.tracking_error))}.`;
       animate(results);
     } catch (err) {

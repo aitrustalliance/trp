@@ -6,6 +6,18 @@
  * controls, and carries a small amount of noise from a seeded generator so a
  * replay looks the same every time. Toggles can set a value, ramp it, or omit
  * it from the evidence to show how a TRP treats missing data.
+ *
+ * Signals can also be stochastic. Three optional fields on a signal spec:
+ *   process  { type: "ou", theta, sigma }  Ornstein-Uhlenbeck deviation that
+ *            wanders around the level and reverts at rate theta (1/s) with
+ *            volatility sigma (units per square-root second).
+ *   shocks   { rate, size, spread, decay_s }  Poisson arrivals at `rate` per
+ *            second. Each adds a deviation of `size` plus Gaussian `spread`
+ *            that decays with time constant `decay_s`. An effect may carry
+ *            `shock_rate` to multiply the rate while it is active.
+ *   derive   { from, scale, offset }  The level follows offset + scale times
+ *            the current value of another signal, unless an effect sets it.
+ * Packs without these fields draw the same random sequence as before.
  */
 (function (root) {
   "use strict";
@@ -35,7 +47,15 @@
       this.time = 0;
       this.shielded = null;
       this.extraEffects = null;
-      for (const [name, spec] of Object.entries(pack.signals)) this.values[name] = spec.base;
+      this.level = {};
+      this.ou = {};
+      this.shock = {};
+      this.shocksSeen = 0;
+      for (const [name, spec] of Object.entries(pack.signals)) {
+        this.values[name] = spec.base;
+        this.level[name] = spec.base;
+        if (spec.process || spec.shocks) { this.ou[name] = 0; this.shock[name] = 0; }
+      }
       for (const c of pack.controls) {
         this.controlState[c.id] = c.type === "slider" ? pack.signals[c.signal].base : false;
       }
@@ -50,6 +70,8 @@
       const targets = {};
       const ramps = {};
       const omitted = new Set();
+      const shockRate = {};
+      const fixed = new Set();
       for (const [name, spec] of Object.entries(this.pack.signals)) {
         targets[name] = spec.base;
         ramps[name] = 0.8;
@@ -59,11 +81,13 @@
         if (c.type === "slider") {
           targets[c.signal] = state;
           ramps[c.signal] = c.ramp_s || 1.2;
+          fixed.add(c.signal);
         } else if (state) {
           for (const [name, effect] of Object.entries(c.effects || {})) {
             if (effect.omit) omitted.add(name);
-            if ("set" in effect) { targets[name] = effect.set; ramps[name] = 0; }
-            if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; }
+            if ("set" in effect) { targets[name] = effect.set; ramps[name] = 0; fixed.add(name); }
+            if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; fixed.add(name); }
+            if (typeof effect.shock_rate === "number") shockRate[name] = (shockRate[name] || 1) * effect.shock_rate;
           }
         }
       }
@@ -72,24 +96,50 @@
         const shielded = this.shielded && this.shielded.has(name);
         if (effect.omit && !shielded) omitted.add(name);
         if (shielded && effect.fault) continue;
-        if ("set" in effect) { targets[name] = effect.set; ramps[name] = 0; }
-        if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; }
+        if ("set" in effect) { targets[name] = effect.set; ramps[name] = 0; fixed.add(name); }
+        if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; fixed.add(name); }
+        if (typeof effect.shock_rate === "number") shockRate[name] = (shockRate[name] || 1) * effect.shock_rate;
       }
-      return { targets, ramps, omitted };
+      // Coupled signals follow their source unless something set them.
+      for (const [name, spec] of Object.entries(this.pack.signals)) {
+        const d = spec.derive;
+        if (!d || fixed.has(name) || typeof this.values[d.from] !== "number") continue;
+        targets[name] = (d.offset || 0) + (d.scale || 1) * this.values[d.from];
+        ramps[name] = d.ramp_s || 0.6;
+      }
+      return { targets, ramps, omitted, shockRate };
+    }
+
+    gauss() {
+      const u = Math.max(1e-12, this.random()), v = this.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
 
     step(dt) {
       this.time += dt;
-      const { targets, ramps } = this.plan();
+      const { targets, ramps, shockRate } = this.plan();
       for (const [name, spec] of Object.entries(this.pack.signals)) {
         const target = targets[name];
-        if (typeof target !== "number") { this.values[name] = target; continue; }
+        if (typeof target !== "number") { this.values[name] = target; this.level[name] = target; continue; }
         const ramp = ramps[name];
-        const current = typeof this.values[name] === "number" ? this.values[name] : spec.base;
+        const stochastic = name in this.ou;
+        const current = stochastic ? (typeof this.level[name] === "number" ? this.level[name] : spec.base) : (typeof this.values[name] === "number" ? this.values[name] : spec.base);
         const k = ramp <= 0 ? 1 : 1 - Math.exp(-dt / (ramp / 3));
         let next = current + (target - current) * k;
         const jitter = spec.jitter || 0;
         if (jitter) next += (this.random() + this.random() - 1) * jitter;
+        if (stochastic) {
+          this.level[name] = next;
+          const p = spec.process;
+          if (p && dt > 0) this.ou[name] += -(p.theta || 1) * this.ou[name] * dt + (p.sigma || 0) * Math.sqrt(dt) * this.gauss();
+          const sh = spec.shocks;
+          if (sh && dt > 0) {
+            this.shock[name] *= Math.exp(-dt / (sh.decay_s || 0.5));
+            const rate = (sh.rate || 0) * (shockRate[name] || 1);
+            if (this.random() < 1 - Math.exp(-rate * dt)) { this.shock[name] += (sh.size || 0) + (sh.spread || 0) * this.gauss(); this.shocksSeen += 1; }
+          }
+          next = next + (this.ou[name] || 0) + (this.shock[name] || 0);
+        }
         if (typeof spec.min === "number") next = Math.max(spec.min, next);
         if (typeof spec.max === "number") next = Math.min(spec.max, next);
         this.values[name] = next;

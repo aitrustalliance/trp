@@ -130,7 +130,7 @@
     const labels = (sys.group.pack.arena.harm || []).reduce((m, h) => (m[h.id] = h.label, m), {});
     const what = inc ? inc.harms.map((h) => labels[h] || h).join(", ") : (sys.lastLabel || "");
     incidents.push({ t: clock, sys, kind, what, book, reaction: inc && inc.reaction != null ? inc.reaction : null });
-    if (incidents.length > 400) incidents.shift();
+    if (incidents.length > 20000) incidents.shift();
     renderIncidents();
   }
 

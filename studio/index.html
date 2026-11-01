@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https: wss: ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TRP Studio</title>
@@ -85,6 +85,7 @@
             <button class="mode" type="button" role="tab" data-mode="arena" aria-selected="false">Arena</button>
             <button class="mode" type="button" role="tab" data-mode="stress" aria-selected="false">Stress test</button>
             <button class="mode" type="button" role="tab" data-mode="learn" aria-selected="false">Learn</button>
+            <button class="mode" type="button" role="tab" data-mode="connect" aria-selected="false">Connect</button>
           </div>
           <div class="transport">
             <button id="story-btn" class="text-btn" type="button">Play story</button>
@@ -108,6 +109,7 @@
       <section class="panel" id="arena-panel" aria-label="Arena" hidden></section>
       <section class="panel" id="stress-panel" aria-label="Stress test" hidden></section>
       <section class="panel" id="learn-panel" aria-label="Learn" hidden></section>
+      <section class="panel" id="connect-panel" aria-label="Connect" hidden></section>
     </section>
 
     <aside class="readout" aria-label="Evaluation">
@@ -182,6 +184,8 @@
   <script src="nautilus/config.js"></script>
   <script src="codex.js"></script>
   <script src="command.js"></script>
+  <script src="lerobot.js"></script>
+  <script src="connect.js"></script>
   <script src="early.js"></script>
   <script src="app.js"></script>
 </body>

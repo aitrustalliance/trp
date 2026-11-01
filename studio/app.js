@@ -128,13 +128,14 @@
     const hasArena = !!pack.arena;
     document.querySelector('.mode[data-mode="arena"]').disabled = !hasArena;
     document.querySelector('.mode[data-mode="stress"]').disabled = !hasArena;
-    const wanted = (opts && opts.mode) || (app.mode !== "live" && app.mode !== "command" && hasArena ? app.mode : "live");
+    const wanted = (opts && opts.mode) || (app.mode === "connect" ? "connect" : app.mode !== "live" && app.mode !== "command" && hasArena ? app.mode : "live");
     setMode(wanted);
     if (wanted === "live" && opts && opts.story && pack.story && pack.story.length) startStory();
   }
 
   function reset() {
     const pack = app.current.pack;
+    closeSource();
     app.sim = new S.Simulator(pack);
     app.drift = app.profile.driftWindow > 0 ? new E.DriftDetector(app.profile.driftWindow, app.profile.driftSignals) : null;
     app.events = [];
@@ -608,6 +609,109 @@
     requestAnimationFrame(frame);
   }
 
+  // ------------------------------------------------------------------ Connect
+
+  // Evidence from outside the Studio. A source replaces the simulator, so the
+  // scene, readout, event log and exports work unchanged. See CONNECT.md.
+  const CN = window.TRPConnect, LR = window.TRPLeRobot;
+
+  function closeSource() {
+    if (app.source) { try { app.source.close(); } catch (err) { /* closed */ } app.source = null; }
+  }
+
+  function useSource(src) {
+    closeSource();
+    app.events = []; app.frames = []; app.lastKey = null; app.tickAcc = 0;
+    app.drift = app.profile.driftWindow > 0 ? new E.DriftDetector(app.profile.driftWindow, app.profile.driftSignals) : null;
+    app.source = src;
+    app.sim = src;
+    let pending = false;
+    src.onUpdate = () => { if (pending) return; pending = true; setTimeout(() => { pending = false; renderSourceStatus(); }, 250); };
+    tick();
+    renderEvents();
+    renderSourceStatus();
+  }
+
+  function renderSourceStatus() {
+    const box = $("connect-status");
+    if (!box) return;
+    const src = app.source;
+    const prof = app.profile;
+    const latest = src ? src.evidence() : app.sim.evidence();
+    const wanted = prof.scoredSignals.map((x) => x.signal).concat(prof.hardRules.map((r) => r.fieldName));
+    const uniq = [...new Set(wanted)];
+    const present = uniq.filter((n) => n in latest), missing = uniq.filter((n) => !(n in latest));
+    const extra = Object.keys(latest).filter((n) => !uniq.includes(n));
+    setHTML(box, html`<div class="cn-now"><span class="muted">Source</span> <b>${src ? src.label : "Synthetic generator"}</b> <span class="muted">${src ? src.status : "The pack's own generator"}</span></div>
+      <div class="cn-map"><div><span class="muted">Profile fields present</span> <b>${present.length} of ${uniq.length}</b></div>
+      ${missing.length ? html`<div class="muted small">Missing, judged as missing evidence: ${missing.join(", ")}</div>` : ""}
+      ${extra.length ? html`<div class="muted small">Received and not in this profile: ${extra.slice(0, 12).join(", ")}${extra.length > 12 ? ` and ${extra.length - 12} more` : ""}</div>` : ""}</div>`);
+  }
+
+  function renderConnect() {
+    const pack = app.current.pack;
+    const def = "sehajp/so101_pick_place";
+    setHTML($("connect-panel"), html`<div class="panel-row"><h2>Connect</h2><button class="text-btn" id="cn-template" type="button">Download an evidence template</button></div>
+      <p>Run the open engine on evidence from your own systems. Every source delivers one JSON object per reading, mapping signal names to values, judged against the profile of the open pack, ${pack.title}. To judge your own signals, import your profile first, then connect.</p>
+      <div id="connect-status" class="cn-status" aria-live="polite"></div>
+      <div class="cn-sources">
+        <div class="cn-src"><h3>Synthetic</h3><p class="muted small">The pack's own generator, stochastic where the pack says so. The default.</p><button class="text-btn" id="cn-synth" type="button">Use synthetic</button></div>
+        <div class="cn-src"><h3>File</h3><p class="muted small">JSON lines, CSV with a header row of signal names, or OpenTelemetry metrics as OTLP/JSON lines. Replayed at its timestamps and looped.</p><label class="text-btn" for="cn-file">Choose a file</label><input type="file" id="cn-file" accept=".jsonl,.json,.csv,.txt" hidden></div>
+        <div class="cn-src"><h3>Stream</h3><p class="muted small">WebSocket or Server-Sent Events, one evidence object per message. The evidence bridge connects MQTT, OpenTelemetry, ROS 2 logs and plant historians.</p>
+          <input type="url" id="cn-url" placeholder="http://127.0.0.1:8787/events" aria-label="Stream address">
+          <input type="text" id="cn-topic" placeholder="ROS 2 topic for rosbridge, optional" aria-label="rosbridge topic">
+          <button class="text-btn" id="cn-connect" type="button">Connect</button></div>
+        <div class="cn-src"><h3>Page API</h3><p class="muted small">A script on this page, a test harness or an agent calls <code>window.TRPStudio.ingest(evidence)</code>.</p><button class="text-btn" id="cn-ingest" type="button">Listen</button></div>
+        <div class="cn-src"><h3>LeRobot</h3><p class="muted small">One episode of a public LeRobot arm dataset from Hugging Face, judged against the arm motion profile. Falls back to a synthetic SO-101 episode in the same format when the network or the dataset viewer is unavailable.</p>
+          <input type="text" id="cn-ds" value="${def}" aria-label="LeRobot dataset">
+          <input type="number" id="cn-ep" value="0" min="0" aria-label="Episode">
+          <button class="text-btn" id="cn-lerobot" type="button">Load episode</button> <button class="text-btn" id="cn-synthep" type="button">Synthetic episode</button></div>
+      </div>
+      <p class="muted small">Integration guide, bridge commands and field mappings for LeRobot, ROS 2, OpenTelemetry and MQTT: <a class="link" href="CONNECT.md">CONNECT.md</a>.</p>`);
+    renderSourceStatus();
+    $("cn-synth").addEventListener("click", () => { reset(); renderSourceStatus(); toast("Synthetic generator"); });
+    $("cn-file").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!f) return;
+      try {
+        const frames = CN.parseAny(await f.text(), f.name, { hz: 1000 / (pack.tick_ms || 250) });
+        useSource(new CN.ReplaySource(f.name, frames, app.profile));
+        toast(`Replaying ${f.name}`);
+      } catch (err) { toast(err.message || "Could not read that file."); }
+    });
+    $("cn-connect").addEventListener("click", () => {
+      try { useSource(new CN.StreamSource($("cn-url").value.trim() || "http://127.0.0.1:8787/events", app.profile, { rosTopic: $("cn-topic").value.trim() || null })); }
+      catch (err) { toast(err.message); }
+    });
+    $("cn-ingest").addEventListener("click", () => { useSource(new CN.IngestSource(app.profile)); toast("Listening on window.TRPStudio.ingest"); });
+    const lerobot = async (synthetic) => {
+      try {
+        const raw = await fetchJSON("../examples/arm-motion/trp.json");
+        const ds = $("cn-ds").value.trim() || def, ep = Math.max(0, Math.floor(Number($("cn-ep").value) || 0));
+        const got = synthetic ? LR.synthEpisode({ seed: 101 + ep, episode: ep }) : await LR.fetchEpisode(ds, ep, { fallback: true });
+        const frames = LR.toEvidence(got.frames, 30).map((f) => ({ t: f.t, evidence: f.evidence }));
+        const armPack = S.autoPack(raw, E);
+        armPack.tick_ms = 100;
+        addCustomPack(armPack);
+        setMode("connect");
+        const label = got.synthetic ? `Synthetic SO-101 episode ${ep}` : `${ds}, episode ${ep}`;
+        useSource(new CN.ReplaySource(label, frames, app.profile));
+        const why = got.synthetic && got.error ? ` Hugging Face was not reachable (${got.error}).` : "";
+        const faults = got.synthetic ? ` Faults injected: ${got.faults.map((x) => x.kind).join(", ") || "none"}.` : "";
+        toast(`${label}, ${frames.length} frames.${why}${faults}`);
+      } catch (err) { toast(err.message || "Could not load the episode."); }
+    };
+    $("cn-lerobot").addEventListener("click", () => lerobot(false));
+    $("cn-synthep").addEventListener("click", () => lerobot(true));
+    $("cn-template").addEventListener("click", () => {
+      const sim = new S.Simulator(pack);
+      const lines = [];
+      for (let i = 0; i < 8; i++) { sim.step(pack.tick_ms ? pack.tick_ms / 1000 : 0.25); lines.push(JSON.stringify({ t: Number(sim.time.toFixed(2)), evidence: sim.evidence() })); }
+      download(`${app.profile.trpId}-evidence.jsonl`, lines.join("\n") + "\n", "application/x-ndjson");
+    });
+  }
+
   // ------------------------------------------------------------------ Modes
 
   function setMode(mode) {
@@ -632,6 +736,8 @@
     $("arena-panel").hidden = mode !== "arena";
     $("stress-panel").hidden = mode !== "stress";
     $("learn-panel").hidden = mode !== "learn";
+    $("connect-panel").hidden = mode !== "connect";
+    if (mode !== "connect") closeSource();
     $("story-btn").hidden = mode !== "live" || !(pack.story && pack.story.length);
     $("hud").hidden = true;
     stopStory(true);
@@ -643,6 +749,7 @@
     if (mode === "arena") renderArenaPrep();
     if (mode === "stress") renderStressPrep();
     if (mode === "learn") renderLearn();
+    if (mode === "connect") renderConnect();
   }
 
   function logControl(id, value) {
@@ -1179,6 +1286,20 @@
 
   // A documented interface so AI agents, test harnesses and auditors can play
   // without clicking. Everything runs locally in this page.
+  // Page API for evidence from scripts, tests and agents. See CONNECT.md.
+  window.TRPStudio = {
+    ingest(evidence) {
+      if (!app.source || !(app.source instanceof CN.IngestSource)) { if (app.mode !== "connect") setMode("connect"); useSource(new CN.IngestSource(app.profile)); }
+      if (!app.source.push(evidence)) return null;
+      tick();
+      return app.result;
+    },
+    replay(text, name) { if (app.mode !== "connect") setMode("connect"); useSource(new CN.ReplaySource(name || "replay", CN.parseAny(String(text), name), app.profile)); return app.source.status; },
+    connect(url, opts) { if (app.mode !== "connect") setMode("connect"); useSource(new CN.StreamSource(url, app.profile, opts)); return app.source.status; },
+    get source() { return app.source ? { label: app.source.label, status: app.source.status, received: app.source.received } : null; },
+    get result() { return app.result; },
+  };
+
   window.TRPGames = {
     version: "1",
     events() {

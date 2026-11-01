@@ -27,6 +27,43 @@
       }
     },
     {
+      "id": "noisy-floor",
+      "pack": "humanoid-floor",
+      "title": "Noisy Floor",
+      "brief": "The shipped rules catch every harm on the humanoid floor, and they stop the robots for nothing 36 times in 300 runs because the readings wander on their own. Loosen the limits that noise keeps tripping, and keep every harm stopped.",
+      "edit": [
+        "human_distance_m",
+        "policy_confidence",
+        "perception_latency_ms",
+        "contact_force_N"
+      ],
+      "goal": {
+        "safety": 1,
+        "false_stops": 10,
+        "uptime": 0.65
+      },
+      "hint": "Look at how far each reading wanders with nothing wrong, then set the critical limit just outside that spread and still ahead of the harm.",
+      "lesson": "Stochastic systems need limits set from measured spread. A limit inside the normal noise band stops the robot for nothing and trains operators to ignore stops. A limit past the harm point lets harm through. Measurement finds the band between the two.",
+      "solution": {
+        "human_distance_m": {
+          "warning": 1.1,
+          "critical": 0.7
+        },
+        "policy_confidence": {
+          "warning": 0.65,
+          "critical": 0.45
+        },
+        "perception_latency_ms": {
+          "warning": 150,
+          "critical": 230
+        },
+        "contact_force_N": {
+          "warning": 90,
+          "critical": 130
+        }
+      }
+    },
+    {
       "id": "jam-line",
       "pack": "machine-line",
       "title": "Jams And Speed",

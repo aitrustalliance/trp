@@ -5,6 +5,10 @@
       "path": "robot-cell/pack.json"
     },
     {
+      "id": "humanoid-floor",
+      "path": "humanoid-floor/pack.json"
+    },
+    {
       "id": "machine-line",
       "path": "machine-line/pack.json"
     },
