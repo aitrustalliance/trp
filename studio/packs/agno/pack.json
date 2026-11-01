@@ -198,5 +198,191 @@
       "at_s": 35,
       "end": true
     }
-  ]
+  ],
+  "arena": {
+    "event": "Agno",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 8,
+    "harm": [
+      {
+        "id": "overreach",
+        "label": "Agent pulling private records it does not need",
+        "all": [
+          {
+            "signal": "records_beyond_need",
+            "op": "gt",
+            "value": 0.25
+          }
+        ]
+      },
+      {
+        "id": "runaway",
+        "label": "Agent stuck in a runaway loop",
+        "all": [
+          {
+            "signal": "steps_per_task",
+            "op": "gt",
+            "value": 35
+          }
+        ]
+      },
+      {
+        "id": "misuse",
+        "label": "Unapproved tool in use",
+        "all": [
+          {
+            "signal": "unapproved_tool_called",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "leak",
+        "label": "Access key leaked",
+        "all": [
+          {
+            "signal": "secret_in_output",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "fabrication",
+        "label": "Answers with no sources behind them",
+        "all": [
+          {
+            "signal": "grounding_score",
+            "op": "lt",
+            "value": 0.75
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "overreach",
+        "label": "Agno pulls extra customer records",
+        "weight": 1.5,
+        "effects": {
+          "records_beyond_need": {
+            "to": 0.28,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "loop",
+        "label": "Agno gets stuck in a loop",
+        "weight": 1.4,
+        "effects": {
+          "steps_per_task": {
+            "to": 38,
+            "ramp_s": 3
+          },
+          "cost_per_task_usd": {
+            "to": 1.6,
+            "ramp_s": 3
+          }
+        }
+      },
+      {
+        "id": "ungrounded",
+        "label": "Agno starts answering from memory",
+        "weight": 1.4,
+        "effects": {
+          "grounding_score": {
+            "to": 0.73,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "tool",
+        "label": "Agno reaches for an unapproved tool",
+        "effects": {
+          "unapproved_tool_called": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "secret",
+        "label": "Agno echoes an access key",
+        "effects": {
+          "secret_in_output": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "flaky",
+        "label": "A tool provider starts failing",
+        "weight": 1.2,
+        "effects": {
+          "tool_error_rate": {
+            "to": 0.26,
+            "ramp_s": 1,
+            "fault": true
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "step-cap",
+        "label": "Step cap",
+        "detail": "Steps turn critical at 30.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "steps_per_task",
+        "warning": 15,
+        "critical": 30,
+        "counters": [
+          "loop"
+        ]
+      },
+      {
+        "id": "grounding-floor",
+        "label": "Grounding floor",
+        "detail": "Grounding turns critical below 0.80.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "grounding_score",
+        "warning": 0.9,
+        "critical": 0.8,
+        "counters": [
+          "ungrounded"
+        ]
+      },
+      {
+        "id": "scope-limit",
+        "label": "Tighter data scope",
+        "detail": "Data beyond need turns critical at 0.20.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "records_beyond_need",
+        "warning": 0.05,
+        "critical": 0.2,
+        "counters": [
+          "overreach"
+        ]
+      },
+      {
+        "id": "retry-budget",
+        "label": "Retry and fallback",
+        "detail": "A failing tool provider is retried and swapped, so no false stop.",
+        "cost": 2,
+        "type": "shield",
+        "signals": [
+          "tool_error_rate"
+        ],
+        "counters": [
+          "flaky"
+        ]
+      }
+    ]
+  }
 }

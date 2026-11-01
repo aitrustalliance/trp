@@ -33,6 +33,8 @@
       this.values = {};
       this.controlState = {};
       this.time = 0;
+      this.shielded = null;
+      this.extraEffects = null;
       for (const [name, spec] of Object.entries(pack.signals)) this.values[name] = spec.base;
       for (const c of pack.controls) {
         this.controlState[c.id] = c.type === "slider" ? pack.signals[c.signal].base : false;
@@ -64,6 +66,14 @@
             if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; }
           }
         }
+      }
+      // Effects injected by an Arena move or a stress run.
+      for (const [name, effect] of Object.entries(this.extraEffects || {})) {
+        const shielded = this.shielded && this.shielded.has(name);
+        if (effect.omit && !shielded) omitted.add(name);
+        if (shielded && effect.fault) continue;
+        if ("set" in effect) { targets[name] = effect.set; ramps[name] = 0; }
+        if ("to" in effect) { targets[name] = effect.to; ramps[name] = effect.ramp_s || 1; }
       }
       return { targets, ramps, omitted };
     }

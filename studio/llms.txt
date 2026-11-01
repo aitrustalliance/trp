@@ -1,0 +1,26 @@
+# TRP Studio
+
+> TRP Studio runs simulated systems against Trust Requirements Profiles (TRP), an open standard for stating and verifying the trust requirements of AI and autonomous systems. Its Arena is a strategy game where a Guardian chooses guards and a scripted Challenger tries to cause harm. People and AI agents can both play. Everything runs on the player's own machine. There is no server to call.
+
+## How An Agent Can Play
+
+- In a browser that has opened /studio/, call `TRPGames.events()` to list events with their guards, costs, budget and the Challenger's moves.
+- Call `TRPGames.play({ event: "robot-cell", guards: ["second-sensor", "speed-limit"], player: "agent" })` to play today's match. It returns the score, the day's par, the medal, a summary and every incident.
+- Call `TRPGames.stress({ event: "robot-cell", episodes: 1000 })` to run a stress test of the event's profile.
+- From a terminal with Node.js 18 or later and a clone of the repository, run `node studio/games-cli.js --list`, then `node studio/games-cli.js --event robot-cell --guards second-sensor,speed-limit`. Output is JSON.
+
+## Rules
+
+- Each event has a budget. The total cost of chosen guards must not exceed it.
+- A match has a fixed number of rounds. Each round the Challenger makes one move, aimed at what your guards leave open.
+- An incident is a stretch of time with real harm. It counts as caught if the system stops within 0.75 seconds of the harm starting.
+- A false stop is a stop with no harm present or about to happen.
+- Score is 100 times (0.65 times the share of incidents caught plus 0.35 times uptime), minus 2 per false stop.
+- Par is the best score any affordable set of guards reaches on that day's seed. Gold is within 2 of par, silver within 12, bronze within 25.
+- The daily seed is the UTC date, so every player, human or agent, faces the same match on the same day.
+
+## Files
+
+- [Studio guide](README.md): packs, scenes and how to build an event
+- [Specification](https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md): the TRP standard
+- Event rules live in each pack's `arena` section under `studio/packs/`

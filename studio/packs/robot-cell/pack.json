@@ -205,5 +205,235 @@
       "at_s": 42,
       "end": true
     }
-  ]
+  ],
+  "arena": {
+    "event": "Robot Cell",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 7,
+    "harm": [
+      {
+        "id": "arm_near_person",
+        "label": "Person within reach of a moving arm",
+        "all": [
+          {
+            "signal": "human_distance_m",
+            "op": "lt",
+            "value": 0.7
+          },
+          {
+            "signal": "estop_active",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "fast_arm_near_person",
+        "label": "Fast arm close to a person",
+        "all": [
+          {
+            "signal": "human_distance_m",
+            "op": "lt",
+            "value": 1.0
+          },
+          {
+            "signal": "robot_speed_mm_s",
+            "op": "gt",
+            "value": 900
+          }
+        ]
+      },
+      {
+        "id": "fixture_failure",
+        "label": "Fixture shaking loose",
+        "all": [
+          {
+            "signal": "vibration_rms_g",
+            "op": "gt",
+            "value": 1.25
+          }
+        ],
+        "near": [
+          {
+            "signal": "vibration_rms_g",
+            "op": "gt",
+            "value": 1.1
+          }
+        ]
+      },
+      {
+        "id": "motor_overheat",
+        "label": "Motor overheating",
+        "all": [
+          {
+            "signal": "temperature_C",
+            "op": "gt",
+            "value": 82
+          }
+        ],
+        "near": [
+          {
+            "signal": "temperature_C",
+            "op": "gt",
+            "value": 76
+          }
+        ]
+      },
+      {
+        "id": "uncertified",
+        "label": "Running without a valid safety certification",
+        "all": [
+          {
+            "signal": "safety_certification_status",
+            "op": "eq",
+            "value": "expired"
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "approach",
+        "label": "A person walks into the cell",
+        "effects": {
+          "human_distance_m": {
+            "to": 0.55,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "rush",
+        "label": "Rush job, fast arm with a person nearby",
+        "weight": 1.6,
+        "effects": {
+          "human_distance_m": {
+            "to": 0.9,
+            "ramp_s": 2
+          },
+          "robot_speed_mm_s": {
+            "to": 960,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "loose",
+        "label": "A fixture works loose",
+        "effects": {
+          "vibration_rms_g": {
+            "to": 1.32,
+            "ramp_s": 2.5
+          }
+        }
+      },
+      {
+        "id": "blind",
+        "label": "Sensor drops out as a person walks in",
+        "effects": {
+          "data_quality": {
+            "to": 0.44,
+            "ramp_s": 0.5,
+            "fault": true
+          },
+          "human_distance_m": {
+            "to": 0.6,
+            "ramp_s": 2,
+            "omit": true
+          }
+        }
+      },
+      {
+        "id": "glitch",
+        "label": "A proximity sensor glitches",
+        "weight": 1.4,
+        "effects": {
+          "data_quality": {
+            "to": 0.44,
+            "ramp_s": 0.5,
+            "fault": true
+          },
+          "human_distance_m": {
+            "omit": true
+          }
+        }
+      },
+      {
+        "id": "heat",
+        "label": "The motor runs hot",
+        "effects": {
+          "temperature_C": {
+            "to": 84,
+            "ramp_s": 4
+          }
+        }
+      },
+      {
+        "id": "cert",
+        "label": "The safety certification lapses",
+        "effects": {
+          "safety_certification_status": {
+            "set": "expired"
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "second-sensor",
+        "label": "Second proximity sensor",
+        "detail": "A glitch or dropout on one sensor no longer blinds the cell.",
+        "cost": 3,
+        "type": "shield",
+        "signals": [
+          "human_distance_m",
+          "data_quality"
+        ],
+        "counters": [
+          "glitch",
+          "blind"
+        ]
+      },
+      {
+        "id": "speed-limit",
+        "label": "Lower speed limit",
+        "detail": "Arm speed turns critical at 900 mm/s instead of 1,000.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "robot_speed_mm_s",
+        "warning": 700,
+        "critical": 900,
+        "counters": [
+          "rush"
+        ]
+      },
+      {
+        "id": "wider-zone",
+        "label": "Wider exclusion zone",
+        "detail": "The arm halts when a person is within 1.0 m instead of 0.75 m.",
+        "cost": 4,
+        "type": "rule_value",
+        "rule": "human_in_exclusion_zone",
+        "value": 1.0,
+        "counters": [
+          "rush",
+          "approach"
+        ]
+      },
+      {
+        "id": "heat-watch",
+        "label": "Earlier heat warning",
+        "detail": "Motor temperature turns critical at 76 C.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "temperature_C",
+        "warning": 66,
+        "critical": 76,
+        "counters": [
+          "heat"
+        ]
+      }
+    ]
+  }
 }

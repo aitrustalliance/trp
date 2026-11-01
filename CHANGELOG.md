@@ -17,6 +17,16 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Reference profiles `examples/machine-line/trp.json` and
   `examples/agent-tool-use/trp.json`.
 - GitHub Pages workflow that publishes the Studio.
+- Studio Arena, a daily strategy game in which players defend a system against
+  a scripted Challenger by buying guards, with par, medals, a streak and
+  shareable results. Arena events for all four scenario packs.
+- Studio stress test, explain-a-halt, replay links and scene recording.
+- Fleet pack, which evaluates 144 robot cells every frame.
+- Agent access through `window.TRPGames`, `studio/games-cli.js` and
+  `studio/llms.txt`.
+- Experimental Studio Lab (`studio/lab.html`) with a LeRobot episode replay and
+  a webcam distance sensor, documented in `studio/DATA_SOURCES.md`, and the
+  reference profile `examples/arm-motion/trp.json`.
 
 ## [0.5.2] - 2026-10-31
 

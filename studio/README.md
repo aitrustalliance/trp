@@ -21,8 +21,36 @@ Useful links:
 | `studio/?pack=robot-cell` | A specific pack |
 | `studio/?story=0` | A pack without playing its story |
 | `studio/?profile=<url>` | Any TRP profile at a public URL, built into a live demo |
+| `studio/?pack=robot-cell&mode=arena` | Straight into the Arena |
+| `studio/lab.html` | Experimental live inputs, real robot data and your webcam |
 
 You can also drag any TRP profile or pack file onto the page, or use Import.
+
+## Modes
+
+**Live** lets you change conditions and watch the profile respond. Click any event to see exactly which requirement caused it.
+
+**Arena** is a daily strategy game. A scripted Challenger stages eight rounds of trouble, and you defend the system by spending a fixed budget on guards before the match starts. Each guard shields a signal, tightens a threshold or adds a rule. You score for every incident the system stops within 0.75 seconds and for keeping it running, and you lose points for needless stops. Medals compare your score with par, the best score any affordable set of guards can reach on that day's seed. The seed changes every day, so everyone plays the same match.
+
+**Stress test** runs hundreds of episodes with random faults and reports how many the profile caught, missed or stopped on needlessly.
+
+The **Fleet** pack evaluates 144 robot cells at once, every frame, to show how fast the engine runs.
+
+## Agents Can Play
+
+Everything runs locally, so there is no server to overload. In the browser, `window.TRPGames` exposes `events()`, `play({ event, guards, seed })` and `stress({ event, episodes })`. From a terminal:
+
+```bash
+node studio/games-cli.js --list
+node studio/games-cli.js --event robot-cell --guards second-sensor,speed-limit
+node studio/games-cli.js --event robot-cell --stress 200
+```
+
+`studio/llms.txt` describes the rules for language model agents.
+
+## Sharing
+
+Share copies a link that replays your session. Record saves a video clip of the scene. Arena results come with a share line, a README badge, and links to post the result.
 
 ## Packs
 
@@ -40,6 +68,7 @@ Each example in the Studio is a scenario pack, a JSON file that pairs a TRP prof
 | `rule_labels` | Optional readable names for hard rules |
 | `controls` | What the viewer can change (see below) |
 | `story` | Optional timed script that plays when the pack opens |
+| `arena` | Optional Arena event, with rounds, budget, harm conditions, Challenger moves and guards |
 
 A control is either a slider bound to one signal, or a toggle with effects:
 
@@ -60,6 +89,7 @@ A profile without a pack still works. The Studio builds one automatically, with 
 
 ```bash
 node tests/studio_parity.js
+node tests/lerobot_parse.js
 ```
 
 ## Contributing A Pack

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TRP Studio</title>
   <meta name="description" content="Trust Requirements Profile Studio. Load a profile, run a live system against it, and watch its standing change in real time.">
+  <meta property="og:title" content="TRP Studio">
+  <meta property="og:description" content="Run robots and AI agents against open trust requirements, live in your browser. Then defend them in the Arena.">
+  <meta property="og:image" content="og.png">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="studio.css">
 </head>
 <body>
@@ -19,7 +23,7 @@
       <label class="link" for="file-input">Import</label>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
       <a class="link" href="https://github.com/aitrustalliance/trp/blob/main/spec/trp-spec.md">Spec</a>
-      <a class="link" href="https://github.com/aitrustalliance/trp">GitHub</a>
+      <a class="link" id="star-link" href="https://github.com/aitrustalliance/trp" target="_blank" rel="noopener">Star on GitHub</a>
     </div>
   </header>
 
@@ -30,10 +34,19 @@
           <h1 id="pack-title">Loading</h1>
           <p id="pack-subtitle" class="muted"></p>
         </div>
-        <div class="transport">
-          <button id="story-btn" class="text-btn" type="button">Play story</button>
-          <button id="pause-btn" class="text-btn" type="button" aria-pressed="false">Pause</button>
-          <button id="reset-btn" class="text-btn" type="button">Reset</button>
+        <div class="head-right">
+          <div class="modes" role="tablist" aria-label="Mode">
+            <button class="mode" type="button" role="tab" data-mode="live" aria-selected="true">Live</button>
+            <button class="mode" type="button" role="tab" data-mode="arena" aria-selected="false">Arena</button>
+            <button class="mode" type="button" role="tab" data-mode="stress" aria-selected="false">Stress test</button>
+          </div>
+          <div class="transport">
+            <button id="story-btn" class="text-btn" type="button">Play story</button>
+            <button id="pause-btn" class="text-btn" type="button" aria-pressed="false">Pause</button>
+            <button id="reset-btn" class="text-btn" type="button">Reset</button>
+            <button id="share-btn" class="text-btn" type="button">Share</button>
+            <button id="record-btn" class="text-btn" type="button" aria-pressed="false">Record</button>
+          </div>
         </div>
       </div>
       <div class="scene" id="scene">
@@ -42,9 +55,12 @@
           <div class="halt-word" id="halt-word">Halted</div>
           <div class="halt-why" id="halt-why"></div>
         </div>
+        <div class="hud" id="hud" hidden></div>
         <p class="caption" id="caption" aria-live="polite"></p>
       </div>
       <div class="controls" id="controls" aria-label="Conditions you can change"></div>
+      <section class="panel" id="arena-panel" aria-label="Arena" hidden></section>
+      <section class="panel" id="stress-panel" aria-label="Stress test" hidden></section>
     </section>
 
     <aside class="readout" aria-label="Evaluation">
@@ -80,19 +96,21 @@
           </span>
         </div>
         <ol class="events" id="events"></ol>
+        <div class="explain" id="explain" hidden></div>
       </div>
     </aside>
   </main>
 
   <footer class="foot">
     <span>Evaluated in your browser by the open TRP reference engine. Nothing leaves this page.</span>
-    <span class="muted">Drop any TRP profile here to bring it to life.</span>
+    <span class="muted">Drop any TRP profile here to bring it to life. Agents can play too, see <a class="link" href="llms.txt">llms.txt</a>. Try real robot data and your webcam in the <a class="link" href="lab.html">Lab</a>.</span>
   </footer>
 
   <div class="drop" id="drop" hidden><div>Drop a TRP profile or scenario pack</div></div>
 
   <script src="engine.js"></script>
   <script src="sim.js"></script>
+  <script src="arena.js"></script>
   <script src="scenes.js"></script>
   <script src="app.js"></script>
 </body>

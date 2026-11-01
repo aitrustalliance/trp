@@ -201,5 +201,200 @@
       "at_s": 37,
       "end": true
     }
-  ]
+  ],
+  "arena": {
+    "event": "Machine Line",
+    "rounds": 8,
+    "round_s": 6,
+    "budget": 7,
+    "harm": [
+      {
+        "id": "bearing_failure",
+        "label": "Spindle bearing failing",
+        "all": [
+          {
+            "signal": "spindle_vibration_mm_s",
+            "op": "gt",
+            "value": 7.4
+          }
+        ],
+        "near": [
+          {
+            "signal": "spindle_vibration_mm_s",
+            "op": "gt",
+            "value": 5.8
+          }
+        ]
+      },
+      {
+        "id": "door_open",
+        "label": "Guard door open on a running line",
+        "all": [
+          {
+            "signal": "guard_door_open",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "runaway",
+        "label": "Line running past its rated speed",
+        "all": [
+          {
+            "signal": "line_speed_units_min",
+            "op": "gt",
+            "value": 150
+          }
+        ]
+      },
+      {
+        "id": "jam_hazard",
+        "label": "Jams forcing hands into the line",
+        "all": [
+          {
+            "signal": "jam_rate_per_hour",
+            "op": "gt",
+            "value": 3.5
+          }
+        ]
+      },
+      {
+        "id": "stop_fault",
+        "label": "Emergency stop circuit dead",
+        "all": [
+          {
+            "signal": "stop_circuit_ok",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      }
+    ],
+    "moves": [
+      {
+        "id": "bearing",
+        "label": "A bearing wears out",
+        "effects": {
+          "spindle_vibration_mm_s": {
+            "to": 7.6,
+            "ramp_s": 5
+          },
+          "bearing_temperature_C": {
+            "to": 82,
+            "ramp_s": 6
+          }
+        }
+      },
+      {
+        "id": "door",
+        "label": "Someone opens a guard door",
+        "effects": {
+          "guard_door_open": {
+            "set": true
+          }
+        }
+      },
+      {
+        "id": "overspeed",
+        "label": "The line is pushed past rated speed",
+        "weight": 1.5,
+        "effects": {
+          "line_speed_units_min": {
+            "to": 158,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "jams",
+        "label": "Jams start piling up",
+        "weight": 1.5,
+        "effects": {
+          "jam_rate_per_hour": {
+            "to": 4.2,
+            "ramp_s": 2
+          }
+        }
+      },
+      {
+        "id": "circuit",
+        "label": "The stop circuit fails",
+        "effects": {
+          "stop_circuit_ok": {
+            "set": false
+          }
+        }
+      },
+      {
+        "id": "model",
+        "label": "An untested control model is pushed",
+        "weight": 1.3,
+        "effects": {
+          "control_model_status": {
+            "set": "unvalidated",
+            "fault": true
+          }
+        }
+      }
+    ],
+    "guards": [
+      {
+        "id": "speed-cap",
+        "label": "Hard speed cap",
+        "detail": "Line speed turns critical at 150 units per minute.",
+        "cost": 3,
+        "type": "tighten",
+        "signal": "line_speed_units_min",
+        "warning": 125,
+        "critical": 150,
+        "counters": [
+          "overspeed"
+        ]
+      },
+      {
+        "id": "jam-rule",
+        "label": "Jam stop rule",
+        "detail": "Halt the line when jams pass 3 per hour.",
+        "cost": 3,
+        "type": "rule",
+        "rule": {
+          "rule": "jam_rate_high",
+          "field": "jam_rate_per_hour",
+          "condition": "greater_than",
+          "value": 3,
+          "action": "halt"
+        },
+        "counters": [
+          "jams"
+        ]
+      },
+      {
+        "id": "release-gate",
+        "label": "Model release gate",
+        "detail": "Untested models never reach the line, so no surprise stops.",
+        "cost": 2,
+        "type": "shield",
+        "signals": [
+          "control_model_status"
+        ],
+        "counters": [
+          "model"
+        ]
+      },
+      {
+        "id": "vibration-early",
+        "label": "Earlier vibration alarm",
+        "detail": "Spindle vibration turns critical at 6.0 mm/s.",
+        "cost": 2,
+        "type": "tighten",
+        "signal": "spindle_vibration_mm_s",
+        "warning": 3.5,
+        "critical": 6.0,
+        "counters": [
+          "bearing"
+        ]
+      }
+    ]
+  }
 }

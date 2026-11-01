@@ -1,0 +1,104 @@
+{
+  "pack_version": "1",
+  "id": "fleet",
+  "title": "Fleet",
+  "subtitle": "A factory floor of robot cells, every one evaluated live against the same profile.",
+  "scene": "fleet",
+  "profile": "../../../examples/manufacturing-safety/trp.json",
+  "tick_ms": 250,
+  "cycle_s": 4,
+  "fleet": {
+    "rows": 8,
+    "cols": 18,
+    "fault_rate": 0.035
+  },
+  "signals": {
+    "human_distance_m": {
+      "base": 2.6,
+      "jitter": 0.02,
+      "min": 0,
+      "max": 4,
+      "decimals": 2,
+      "label": "Human distance"
+    },
+    "robot_speed_mm_s": {
+      "base": 600,
+      "jitter": 8,
+      "min": 0,
+      "max": 1400,
+      "decimals": 0,
+      "label": "Arm speed"
+    },
+    "vibration_rms_g": {
+      "base": 0.34,
+      "jitter": 0.02,
+      "min": 0,
+      "max": 2,
+      "decimals": 2,
+      "label": "Vibration"
+    },
+    "temperature_C": {
+      "base": 52,
+      "jitter": 0.3,
+      "min": 20,
+      "max": 100,
+      "decimals": 1,
+      "label": "Motor temperature"
+    },
+    "model_confidence": {
+      "base": 0.94,
+      "jitter": 0.01,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Model confidence"
+    },
+    "data_quality": {
+      "base": 0.98,
+      "jitter": 0.005,
+      "min": 0,
+      "max": 1,
+      "decimals": 2,
+      "label": "Data quality"
+    },
+    "estop_active": {
+      "base": false,
+      "label": "Emergency stop"
+    },
+    "safety_certification_status": {
+      "base": "valid",
+      "label": "Safety certification"
+    }
+  },
+  "rule_labels": {
+    "estop_active": "Emergency stop pressed",
+    "human_in_exclusion_zone": "Person inside the exclusion zone",
+    "safety_certification_expired": "Safety certification expired",
+    "critical_data_quality": "Data quality critically low"
+  },
+  "controls": [
+    {
+      "id": "shift",
+      "label": "Shift change",
+      "type": "toggle",
+      "effects": {
+        "human_distance_m": {
+          "to": 1.2,
+          "ramp_s": 2
+        }
+      }
+    },
+    {
+      "id": "rush",
+      "label": "Rush order",
+      "type": "toggle",
+      "effects": {
+        "robot_speed_mm_s": {
+          "to": 880,
+          "ramp_s": 2
+        }
+      }
+    }
+  ],
+  "story": []
+}

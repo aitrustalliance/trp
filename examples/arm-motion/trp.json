@@ -1,0 +1,94 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/arm-motion/1.0.0/trp.json",
+  "trp_id": "arm-motion",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "Robot arm motion limits",
+  "description": "Reference Trust Requirements Profile for the motion of a small robot arm, evaluated frame by frame from recorded joint positions and commanded actions. Illustrative draft values, not certified limits.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "robotics",
+    "use_case": "arm-motion-limits"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for the motion of one robot arm while a learned policy controls it.",
+    "boundary": "One arm, its joints and gripper, frame by frame.",
+    "out_of_scope": [
+      "How the system is scored against these signals",
+      "How a halt or other action is enforced"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "peak_joint_speed",
+      "weight": 25,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 90,
+      "critical_threshold": 160,
+      "unit": "units/s",
+      "reason": "Sudden fast joint motion is how arms hit people and fixtures."
+    },
+    {
+      "signal": "tracking_error",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 10,
+      "critical_threshold": 25,
+      "unit": "units",
+      "reason": "A large gap between where the policy commands the arm and where it is means a collision, a stall or a policy acting on stale information."
+    },
+    {
+      "signal": "action_jump",
+      "weight": 15,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 8,
+      "critical_threshold": 20,
+      "unit": "units",
+      "reason": "A command that jumps far from the previous frame's command is a sign of an unstable policy."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "frame_gap",
+      "field": "frame_gap",
+      "condition": "is_true",
+      "action": "require_review"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "response_bands": [
+      { "band": "good", "response": "full" },
+      { "band": "review", "response": "restricted" },
+      { "band": "failing", "response": "suspended" }
+    ]
+  },
+  "notes": [
+    "Joint units follow the dataset. LeRobot arm datasets record joint positions in the robot's own units, so thresholds must be set to match the dataset before use.",
+    "Threshold values are illustrative draft values."
+  ]
+}

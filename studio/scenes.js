@@ -458,7 +458,89 @@
     },
   };
 
+
+  // ------------------------------------------------------------- Fleet
+  // A floor of robot cells, each with its own simulator, evaluated every frame.
+  const fleet = {
+    init(state) { state.cells = null; state.evals = []; state.total = 0; },
+    draw(frame, state) {
+      const { ctx, w, h, dt, pack } = frame;
+      const E = root.TRPEngine, Sim = root.TRPSim;
+      const cfg = pack.fleet || { rows: 8, cols: 18, fault_rate: 0.03 };
+      if (!state.cells) {
+        state.cells = [];
+        const random = Sim.makeRandom(99);
+        state.random = random;
+        for (let i = 0; i < cfg.rows * cfg.cols; i++) {
+          const sim = new Sim.Simulator(pack);
+          sim.random = Sim.makeRandom(1000 + i);
+          sim.time = random() * 4;
+          state.cells.push({ sim: sim, fault: null, until: 0, result: null, phase: random() * Math.PI * 2 });
+        }
+      }
+      const faults = [
+        { human_distance_m: { to: 0.5, ramp_s: 1.5 } },
+        { vibration_rms_g: { to: 1.3, ramp_s: 1.5 } },
+        { robot_speed_mm_s: { to: 820, ramp_s: 1 } },
+        { human_distance_m: { to: 1.2, ramp_s: 1.5 } },
+      ];
+      let stopped = 0, restricted = 0, evaluated = 0;
+      const now = frame.t;
+      for (const cell of state.cells) {
+        if (frame.controlState) for (const [k, v] of Object.entries(frame.controlState)) cell.sim.controlState[k] = v;
+        if (dt > 0) {
+          if (!cell.fault && state.random() < cfg.fault_rate * dt) {
+            cell.fault = faults[Math.floor(state.random() * faults.length)];
+            cell.until = now + 2 + state.random() * 3;
+            cell.sim.extraEffects = cell.fault;
+          } else if (cell.fault && now > cell.until) {
+            cell.fault = null; cell.sim.extraEffects = null;
+          }
+          cell.sim.step(dt);
+          cell.result = E.evaluate(frame.profile, cell.sim.evidence(), null);
+          evaluated += 1;
+        }
+        if (cell.result) {
+          if (cell.result.response === "suspended") stopped += 1;
+          else if (cell.result.response === "restricted") restricted += 1;
+        }
+      }
+      state.total += evaluated;
+      state.evals.push([now, evaluated]);
+      while (state.evals.length && now - state.evals[0][0] > 1) state.evals.shift();
+      const perSecond = state.evals.reduce((s, e) => s + e[1], 0);
+
+      const top = 70, left = 28, right = w - 28, bottom = h - 30;
+      const cw = (right - left) / cfg.cols, chh = (bottom - top) / cfg.rows;
+      const size = Math.min(cw, chh) * 0.62;
+      state.cells.forEach((cell, i) => {
+        const cx = left + (i % cfg.cols + 0.5) * cw;
+        const cy = top + (Math.floor(i / cfg.cols) + 0.5) * chh;
+        const r = cell.result;
+        const state_ = !r ? "ok" : r.response === "suspended" ? "stop" : r.response === "restricted" ? "slow" : "ok";
+        ctx.strokeStyle = state_ === "stop" ? "rgba(230,211,161,0.8)" : C.hair;
+        ctx.strokeRect(cx - size / 2, cy - size / 2, size, size);
+        if (state_ === "stop") {
+          ctx.fillStyle = "rgba(230,211,161,0.14)";
+          ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
+          glowDot(ctx, cx, cy, 2.5, C.gold, 10);
+        } else {
+          const speed = state_ === "slow" ? 0.6 : 1.8;
+          cell.phase += dt * speed;
+          const ax = cx + Math.cos(cell.phase) * size * 0.28;
+          const ay = cy + Math.sin(cell.phase) * size * 0.28;
+          line(ctx, cx, cy, ax, ay, state_ === "slow" ? C.white : "rgba(244,246,251,0.55)", 1.2);
+          glowDot(ctx, ax, ay, 1.8, state_ === "slow" ? C.white : C.accent, state_ === "slow" ? 6 : 8);
+        }
+      });
+      text(ctx, `${state.cells.length} cells`, left, 32, { size: 13, color: C.silver });
+      text(ctx, `${perSecond.toLocaleString()} evaluations per second`, left, 52, { size: 22, weight: 200, color: C.white });
+      text(ctx, `${stopped} stopped · ${restricted} restricted · ${state.total.toLocaleString()} evaluations so far`, right, 52, { size: 13, color: C.silver, align: "right" });
+    },
+  };
+
   const api = {
+    fleet: fleet,
     "robot-cell": robotCell,
     "machine-line": machineLine,
     "data-flow": dataFlow,
