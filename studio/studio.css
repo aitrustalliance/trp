@@ -376,7 +376,7 @@ select option { background: var(--bg); }
 /* Command, the first screen. */
 .command { max-width: 1480px; margin: 0 auto; padding: 36px 36px 60px; }
 .command[hidden] { display: none; }
-.cmd-hero h1 { margin: 0 0 8px; font-size: 40px; font-weight: 300; letter-spacing: -0.01em; color: var(--white); }
+.cmd-hero h1 { margin: 0 0 10px; max-width: 980px; font-size: 36px; line-height: 1.2; font-weight: 300; letter-spacing: -0.01em; color: var(--white); }
 .cmd-sub { margin: 0; max-width: 760px; font-size: 16px; line-height: 1.55; color: var(--silver); }
 .cmd-bar { display: flex; justify-content: space-between; align-items: flex-end; gap: 28px; flex-wrap: wrap; margin: 30px 0 10px; padding: 18px 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
 .cmd-nums { display: flex; gap: 36px; flex-wrap: wrap; }

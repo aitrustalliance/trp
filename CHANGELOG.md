@@ -56,7 +56,7 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   test, in which players fix the limits of a profile with a gap in it. Each
   challenge ships the limits that solve it, as `solution`.
 - Studio Command, the first screen: a floor of fifty-six systems from every
-  pack, each judged live by the engine, with a bar that counts harm caught,
+  pack, each judged by the engine every tick, with a bar that counts harm caught,
   harm slipped through and stops for nothing, and a rule book dial (loose,
   published, tight, tuned by measurement) that shows the trade-off live.
   Packs carry a `command` block with benign excursions.

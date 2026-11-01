@@ -19,9 +19,9 @@
   const RESPONSE = { full: "Full", restricted: "Half", suspended: "Stop" };
   const BOOKS = {
     loose: { label: "Loose", shift: 1, note: "Every limit a step past where harm begins. The rules ring late or never, and harm slips through." },
-    published: { label: "Published", shift: 0, note: "The reference profiles as published, before anyone measured them against faults." },
+    published: { label: "Published", shift: 0, note: "The reference profiles as published. Nobody has measured these against faults." },
     tight: { label: "Tight", shift: -1, note: "Every limit a step toward safe. Harm is caught, and the floor stops for nothing far more often." },
-    tuned: { label: "Tuned", shift: 0, tuned: true, note: "The same profiles with limits set by measurement, three hundred runs with faults mixed in. Harm is caught and the floor keeps running." },
+    tuned: { label: "Tuned", shift: 0, tuned: true, note: "The same profiles with limits set by measurement in three hundred runs with faults mixed in. Harm is caught and the floor keeps running." },
   };
   const WINDOW_S = 300; // the counters cover the last five minutes
 
@@ -224,7 +224,8 @@
     text("cmd-missed", String(c.missed));
     text("cmd-needless", String(c.needless));
     text("cmd-state", `${c.stopped} stopped · ${c.restricted} at half · ${c.systems - c.stopped - c.restricted} running`);
-    text("cmd-sub", `${c.systems} AI systems across ${groups.length} domains, ${c.parameters.toLocaleString()} live readings, every one judged ${Math.round(1 / tick)} times a second by the open TRP engine against a rule book anyone can read.`);
+    text("cmd-h1", `The open engine judges ${c.systems} AI systems on this floor by rules anyone can read.`);
+    text("cmd-sub", `${groups.length} domains, ${c.parameters.toLocaleString()} live readings, ${Math.round(1 / tick)} checks a second, nothing scripted. Pick a rule book and watch what it catches.`);
   }
 
   function renderIncidents() {
