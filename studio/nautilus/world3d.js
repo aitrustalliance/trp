@@ -30,6 +30,7 @@ function makeWorld(T) {
   let salon = null;
   let sub, airship, water, seabed, lantern, searchBeam, searchLight, envTex;
   let ruins = [], kelp = [], shafts = [];
+  let hemi, moon, seaFx = null, seaKey = null, zoom = 1;
   const meshes = new Map();                  // payload, gear and harpoon meshes by id
   const sparks = makePool(900, true);
   const bubbles = makePool(700, false);
@@ -54,8 +55,9 @@ function makeWorld(T) {
     envTex = makeEnvironment();
     scene.environment = envTex;
 
-    scene.add(new T.HemisphereLight(0x6f8fc4, 0x05080f, 0.85));
-    const moon = new T.DirectionalLight(0xbfd2f2, 1.6);
+    hemi = new T.HemisphereLight(0x6f8fc4, 0x05080f, 0.85);
+    scene.add(hemi);
+    moon = new T.DirectionalLight(0xbfd2f2, 1.6);
     moon.position.set(6, 20, 14);
     scene.add(moon);
 
@@ -392,15 +394,31 @@ function makeWorld(T) {
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
   }
 
+  // A light shaft fades along its length and across its width, so it reads
+  // as light in water and not as a pane of glass.
+  function shaftTexture() {
+    const c = document.createElement("canvas"); c.width = 64; c.height = 256;
+    const g = c.getContext("2d");
+    const down = g.createLinearGradient(0, 0, 0, 256);
+    down.addColorStop(0, "rgba(200,225,255,0.55)"); down.addColorStop(0.45, "rgba(200,225,255,0.16)"); down.addColorStop(1, "rgba(200,225,255,0)");
+    g.fillStyle = down; g.fillRect(0, 0, 64, 256);
+    g.globalCompositeOperation = "destination-in";
+    const across = g.createLinearGradient(0, 0, 64, 0);
+    across.addColorStop(0, "rgba(0,0,0,0)"); across.addColorStop(0.35, "rgba(0,0,0,1)"); across.addColorStop(0.65, "rgba(0,0,0,1)"); across.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = across; g.fillRect(0, 0, 64, 256);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  }
+
   function makeShafts() {
-    const tex = gradientTexture([[0, "rgba(190,220,255,0.5)"], [0.55, "rgba(190,220,255,0.12)"], [1, "rgba(190,220,255,0)"]]);
+    const tex = shaftTexture();
     const out = [];
-    for (let i = 0; i < 9; i++) {
-      const m = new T.Mesh(new T.PlaneGeometry(1.4 + (i % 3) * 0.8, 22), new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.07, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
-      m.geometry.translate(0, -11, 0);
-      m.userData = { x0: -12 + i * 6.5, z: -4 - (i % 4) * 6, phase: i * 1.7 };
-      m.position.set(m.userData.x0, 0, m.userData.z);
-      m.rotation.z = -0.28;
+    for (let i = 0; i < 14; i++) {
+      const w = 0.9 + (i % 4) * 0.55;
+      const m = new T.Mesh(new T.PlaneGeometry(w, 24), new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.05, depthWrite: false, blending: T.AdditiveBlending, fog: false }));
+      m.geometry.translate(0, -12, 0);
+      m.userData = { x0: -14 + i * 4.3, z: -3 - (i % 5) * 5, phase: i * 1.7, base: 0.035 + (i % 3) * 0.012 };
+      m.position.set(m.userData.x0, 0.4, m.userData.z);
+      m.rotation.z = -0.24 - (i % 3) * 0.03;
       out.push(m);
     }
     return out;
@@ -544,9 +562,14 @@ function makeWorld(T) {
     const m = new T.Mesh(new T.TorusGeometry(1, 0.05, 6, 48), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
     m.position.set(x, y, 0.2);
     scene.add(m);
+    while (rings.length >= MAX_RINGS) dropRing(0);
     rings.push({ m, life, max: life, size });
   }
+  // Point lights are the dearest thing in the scene, so only a few flashes
+  // live at once and the oldest gives way.
+  const MAX_FLASHES = 4, MAX_RINGS = 8;
   function flashAt(x, y, color, intensity, life) {
+    while (flashes.length >= MAX_FLASHES) dropFlash(0);
     const l = new T.PointLight(color, intensity, 14, 1.6);
     l.position.set(x, y, 1.2);
     scene.add(l);
@@ -723,17 +746,25 @@ function makeWorld(T) {
     if (view.pennant !== currentPennant) applyPennant(view.pennant);
 
     // Camera: chase framing with a slow sway and a shake on hits.
-    const d = camera.userData.dist || 26;
+    applySea(v, dt);
+    // The camera closes in when the Decree is in the water or in force, and
+    // frames the tunnel tighter.
+    const hz = v.hazards || {};
+    const writIn = v.payloads.some((p) => p.kind === "writ");
+    const zoomTarget = v.rulesCaptured || writIn ? 0.8 : hz.current ? 0.9 : 1;
+    zoom += (zoomTarget - zoom) * (1 - Math.exp(-dt / 0.8));
+    const d = (camera.userData.dist || 26) * zoom;
     const sh = view.reduced ? 0 : view.shake * 0.35;
-    camera.position.set(LOOK.x + Math.sin(clock * 0.15) * 0.8 + (Math.random() - 0.5) * sh, LOOK.y + 0.6 + Math.sin(clock * 0.11) * 0.3 + (Math.random() - 0.5) * sh, d);
-    camera.lookAt(LOOK);
+    const lx = LOOK.x + (1 - zoom) * 8;
+    camera.position.set(lx + Math.sin(clock * 0.15) * 0.8 + (Math.random() - 0.5) * sh, LOOK.y + 0.6 + Math.sin(clock * 0.11) * 0.3 + (Math.random() - 0.5) * sh, d);
+    camera.lookAt(lx, LOOK.y + (1 - zoom) * 2, 0);
 
     // Captured rules tint the whole sea.
     const capture = v.rulesCaptured ? 1 : 0;
     scene.fog.color.lerp(capture ? fogCaptured : fogBase, Math.min(1, dt * 2));
     const bd = scene.children.find((c) => c.userData.mat);
     if (bd) { bd.userData.mat.uniforms.uCaptured.value += (capture - bd.userData.mat.uniforms.uCaptured.value) * Math.min(1, dt * 2); bd.userData.mat.uniforms.uTime.value = clock; }
-    bloom.strength = 0.75 + (view.reduced ? 0 : view.flash * 0.8);
+    bloom.strength = 0.75 + (view.reduced ? 0 : view.flash * 0.8) + (seaFx && seaFx.lightning > 0 ? seaFx.lightning * 1.5 : 0);
 
     // Water surface.
     const wp = water.geometry.attributes.position, base = water.userData.base;
@@ -750,7 +781,7 @@ function makeWorld(T) {
       r.position.x = wrap(r.userData.x0, 1, 150, -45);
       if (r.userData.gear) r.userData.gear.rotation.z += r.userData.spin * dt;
     }
-    for (const s of shafts) { s.position.x = wrap(s.userData.x0, 0.6, 60, -20) + Math.sin(clock * 0.3 + s.userData.phase) * 0.6; s.material.opacity = 0.06 + 0.03 * Math.sin(clock * 0.7 + s.userData.phase); }
+    for (const s of shafts) { s.position.x = wrap(s.userData.x0, 0.6, 60, -20) + Math.sin(clock * 0.3 + s.userData.phase) * 0.6; s.material.opacity = (s.userData.base + 0.02 * Math.sin(clock * 0.7 + s.userData.phase)) * (s.userData.level === undefined ? 1 : s.userData.level); }
     for (const k of kelp) {
       k.position.x = wrap(k.userData.x0, 1, 132, -40);
       const p = k.geometry.attributes.position, b = k.userData.base;
@@ -821,22 +852,123 @@ function makeWorld(T) {
       lp.setXYZ(0, 1.55, sy + 1.05, 0); lp.setXYZ(1, X(h.x), Y(h.y), 0.1); lp.needsUpdate = true;
     });
 
-    // Effects.
+    tickEffects(dt);
+
+    if (view.scene === "salon") { renderSalon(dt); return; }
+    composer.render(dt);
+  }
+
+  // Ages sparks, bubbles, rings and flashes. Called every frame, and by
+  // settle() when a voyage is stepped faster than it is drawn.
+  function tickEffects(dt) {
     sparks.update(dt, false);
     bubbles.update(dt, true);
     for (let i = rings.length - 1; i >= 0; i--) {
       const r = rings[i]; r.life -= dt;
-      if (r.life <= 0) { scene.remove(r.m); r.m.geometry.dispose(); r.m.material.dispose(); rings.splice(i, 1); continue; }
+      if (r.life <= 0) { dropRing(i); continue; }
       const k = 1 - r.life / r.max; r.m.scale.setScalar(0.2 + k * r.size); r.m.material.opacity = (1 - k) * 0.9;
     }
     for (let i = flashes.length - 1; i >= 0; i--) {
       const f = flashes[i]; f.life -= dt;
-      if (f.life <= 0) { scene.remove(f.l, f.s); f.s.material.dispose(); flashes.splice(i, 1); continue; }
+      if (f.life <= 0) { dropFlash(i); continue; }
       const k = f.life / f.max; f.l.intensity = f.intensity * k; f.s.scale.setScalar(1 + (1 - k) * 2.5); f.s.material.opacity = k * 0.7;
     }
+  }
+  function dropRing(i) { const r = rings[i]; scene.remove(r.m); r.m.geometry.dispose(); r.m.material.dispose(); rings.splice(i, 1); }
+  function dropFlash(i) { const f = flashes[i]; scene.remove(f.l, f.s); f.s.material.dispose(); flashes.splice(i, 1); }
 
-    if (view.scene === "salon") { renderSalon(dt); return; }
-    composer.render(dt);
+  // ---------------------------------------------------------------- Seas and weather
+
+  // Each chapter has a sea. Lighting, fog, water colour and a few set
+  // dressings change, and the gameplay plane stays the same.
+  function applySea(v, dt) {
+    const sea = v.chapter ? v.chapter.sea : "open";
+    const weather = v.chapter ? v.chapter.weather : "clear";
+    const key = sea + "/" + weather + "/" + (v.depthMin || C.DEPTH_MIN) + "/" + (v.depthMax || C.DEPTH_MAX);
+    if (key !== seaKey) {
+      seaKey = key;
+      if (seaFx) { for (const o of seaFx.objects) scene.remove(o); }
+      kelp = kelp.filter((k) => !k.userData.sea);
+      seaFx = { objects: [], lightning: 0, rain: null, ring: null };
+      const night = weather === "night" || weather === "dark";
+      hemi.intensity = night ? 0.22 : weather === "bright" ? 1.1 : 0.85;
+      moon.intensity = night ? 0.35 : weather === "bright" ? 2.2 : 1.6;
+      lantern.intensity = night ? 420 : 220;
+      fogBase.set(sea === "kelp" ? 0x0a2a1e : sea === "reef" ? 0x1a4a6a : sea === "ice" ? 0x0a1a2e : sea === "tunnel" ? 0x12100c : sea === "vortex" ? 0x0a0e22 : 0x0b2746);
+      scene.fog.density = sea === "kelp" ? 0.045 : sea === "ice" ? 0.04 : sea === "tunnel" ? 0.035 : sea === "reef" ? 0.02 : 0.03;
+      water.material.color.set(sea === "reef" ? 0x2a8aa8 : sea === "ice" ? 0x9fc8e8 : sea === "vortex" ? 0x14304a : 0x1a4a78);
+      seabed.material.color.set(sea === "reef" ? 0x8a7a5a : sea === "ice" ? 0x1a2a3e : sea === "tunnel" ? 0x1a1410 : 0x0d1d30);
+      seabed.position.y = Y(v.depthMax || C.DEPTH_MAX) - 0.2;
+      for (const k of kelp) k.visible = sea !== "ice" && sea !== "tunnel";
+      for (const rn of ruins) rn.visible = sea === "city" || sea === "open" || sea === "vortex";
+      // Daylight reaches the water as shafts. Night dims them, ice scatters
+      // them, and the tunnel has none.
+      const shaftLevel = sea === "tunnel" ? 0 : night ? 0.35 : sea === "ice" ? 0.6 : weather === "bright" ? 1.4 : weather === "storm" ? 0.5 : 1;
+      for (const s of shafts) { s.visible = shaftLevel > 0; s.userData.level = shaftLevel; }
+      const add = (o) => { scene.add(o); seaFx.objects.push(o); return o; };
+      if (sea === "kelp") {
+        const mat = new T.MeshStandardMaterial({ color: 0x1f5a4a, roughness: 0.9, side: T.DoubleSide, transparent: true, opacity: 0.9 });
+        for (let i = 0; i < 70; i++) {
+          const h = 6 + (i % 7) * 1.4;
+          const geo = new T.PlaneGeometry(0.3, h, 1, 10); geo.translate(0, h / 2, 0);
+          const m = new T.Mesh(geo, mat);
+          m.userData = { x0: i * 2.1, z: -2 - (i % 8) * 3, phase: i, base: Float32Array.from(geo.attributes.position.array), h };
+          m.position.set(0, BOTTOM, m.userData.z);
+          kelp.push(m); add(m); m.userData.sea = "kelp";
+        }
+      }
+      if (sea === "reef") {
+        const corals = [0xd66a5a, 0xe8a04a, 0x9a5ad6, 0x5ad6c4];
+        for (let i = 0; i < 40; i++) {
+          const g = new T.Group();
+          for (let k = 0; k < 4; k++) { const b = new T.Mesh(new T.SphereGeometry(0.3 + Math.random() * 0.5, 8, 6), new T.MeshStandardMaterial({ color: corals[(i + k) % 4], roughness: 0.8 })); b.position.set((Math.random() - 0.5) * 1.2, Math.random() * 0.8, (Math.random() - 0.5) * 1.2); g.add(b); }
+          g.position.set(0, Y(v.depthMax) - 0.1, -1 - (i % 6) * 2.5); g.userData = { x0: i * 3.7, scrollReef: true };
+          add(g);
+        }
+      }
+      if (sea === "ice") {
+        const ceiling = new T.Mesh(new T.PlaneGeometry(220, 60), new T.MeshStandardMaterial({ color: 0xbfe0ff, roughness: 0.6, metalness: 0.1, emissive: 0x3a6a9a, emissiveIntensity: 0.25, side: T.DoubleSide }));
+        ceiling.rotation.x = Math.PI / 2; ceiling.position.set(7, Y(v.depthMin) + 1.2, -20);
+        add(ceiling);
+        for (let i = 0; i < 30; i++) { const spike = new T.Mesh(new T.ConeGeometry(0.4 + Math.random() * 0.6, 2 + Math.random() * 3, 6), ceiling.material); spike.rotation.x = Math.PI; spike.position.set(0, Y(v.depthMin) + 1.2 - 1, -1 - (i % 6) * 3); spike.userData = { x0: i * 4.4, scrollReef: true }; add(spike); }
+      }
+      if (sea === "tunnel") {
+        const rock = new T.MeshStandardMaterial({ color: 0x2a2018, roughness: 1 });
+        const top = new T.Mesh(new T.BoxGeometry(220, 6, 40), rock); top.position.set(7, Y(v.depthMin) + 3.5, -14); add(top);
+        for (let i = 0; i < 40; i++) { const stal = new T.Mesh(new T.ConeGeometry(0.5 + Math.random(), 2 + Math.random() * 4, 7), rock); stal.rotation.x = Math.PI; stal.position.set(0, Y(v.depthMin) + 0.5, -1 - (i % 7) * 2.5); stal.userData = { x0: i * 3.3, scrollReef: true }; add(stal); }
+      }
+      if (sea === "vortex") {
+        const n = 1200, pos = new Float32Array(n * 3);
+        const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(pos, 3));
+        const ringPts = new T.Points(geo, new T.PointsMaterial({ size: 0.12, color: 0x9fc8ff, transparent: true, opacity: 0.5, depthWrite: false, blending: T.AdditiveBlending }));
+        ringPts.frustumCulled = false; ringPts.userData.vortex = true; add(ringPts); seaFx.ring = ringPts;
+      }
+      if (weather === "storm") {
+        const n = 1500, pos = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) { pos[i * 3] = -20 + Math.random() * 60; pos[i * 3 + 1] = Math.random() * 12; pos[i * 3 + 2] = -10 + Math.random() * 14; }
+        const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(pos, 3));
+        const rain = new T.Points(geo, new T.PointsMaterial({ size: 0.05, color: 0xbfd2f2, transparent: true, opacity: 0.6, depthWrite: false }));
+        rain.frustumCulled = false; add(rain); seaFx.rain = rain;
+      }
+    }
+    if (!seaFx) return;
+    // Per-frame weather.
+    const scroll = v.dist / U;
+    for (const o of seaFx.objects) {
+      if (o.userData.scrollReef) o.position.x = ((((o.userData.x0 - scroll) % 150) + 150) % 150) - 45;
+    }
+    if (seaFx.rain) {
+      const p = seaFx.rain.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) { let y = p.getY(i) - 18 * dt, x = p.getX(i) - 6 * dt; if (y < 0) { y = 12; } if (x < -20) x += 60; p.setY(i, y); p.setX(i, x); }
+      p.needsUpdate = true;
+      if (Math.random() < dt * 0.25) seaFx.lightning = 1;
+    }
+    if (seaFx.lightning > 0) { seaFx.lightning = Math.max(0, seaFx.lightning - dt * 4); moon.intensity = 1.6 + seaFx.lightning * 6; }
+    if (seaFx.ring) {
+      const p = seaFx.ring.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) { const a = clock * 0.6 + i * 0.013, rr = 9 + (i % 40) * 0.35; p.setXYZ(i, 16 + Math.cos(a) * rr * 1.6, -4 + Math.sin(a) * rr * 0.5, -8 - (i % 9)); }
+      p.needsUpdate = true;
+    }
   }
 
   // ---------------------------------------------------------------- The salon
@@ -989,12 +1121,15 @@ function makeWorld(T) {
     renderer.clearDepth();
     renderer.render(salon.scene, cam);
     renderer.autoClear = true;
+    // Tags are placed from a still camera, so they do not drift with the sway.
+    const still = cam.clone();
+    still.position.set(0, 0.2, cam.position.z); still.lookAt(0, -0.2, -6); still.updateMatrixWorld();
     for (const [id, v3] of Object.entries(salon.anchors)) {
-      const p = v3.clone().project(cam);
-      salon.screen[id] = { x: (p.x + 1) / 2 * cw, y: (1 - p.y) / 2 * ch, visible: p.z < 1 };
+      const p = v3.clone().project(still);
+      salon.screen[id] = { x: Math.round((p.x + 1) / 2 * cw), y: Math.round((1 - p.y) / 2 * ch), visible: p.z < 1 };
     }
   }
   function anchors() { return salon ? salon.screen : null; }
 
-  return { name: "3d", init, resize, project, unproject, event, render, anchors };
+  return { name: "3d", init, resize, project, unproject, event, render, anchors, settle: tickEffects };
 }

@@ -95,6 +95,7 @@
         <button class="btn iron" id="copy-btn" type="button">Copy</button>
         <button class="btn iron" id="again-btn" type="button">Sail again</button>
         <button class="btn iron" id="log-salon" type="button">The salon</button>
+        <button class="btn brass" id="log-port" type="button" hidden>Make port</button>
       </div>
       <form class="join" id="join-form" novalidate>
         <div class="join-head">
@@ -125,6 +126,48 @@
         <button class="linkish" id="log-yard" type="button">Shipyard</button>
         <button class="linkish" id="log-codex" type="button">Codex</button>
       </div>
+    </div>
+  </section>
+
+  <section class="screen" id="chart-screen" hidden aria-labelledby="chart-h">
+    <div class="plaque chart">
+      <div class="codex-nav">
+        <div><div class="stamp" id="chart-season">Season One</div><h2 id="chart-h">The Chart</h2></div>
+        <div class="codex-tools"><button class="btn iron small" id="chart-story" type="button">The story</button><button class="btn iron small" data-back type="button">Close</button></div>
+      </div>
+      <canvas id="chart-map" class="chart-map" aria-hidden="true"></canvas>
+      <div class="ports" id="chart-ports" role="list"></div>
+      <div class="chapter-brief" id="chart-brief"></div>
+      <div class="cta"><button class="btn brass" id="chart-fit" type="button">Fit out and sail</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="fit-screen" hidden aria-labelledby="fit-h">
+    <div class="plaque chart">
+      <div class="codex-nav">
+        <div><div class="stamp" id="fit-stamp">Chart room</div><h2 id="fit-h">Fit Out</h2></div>
+        <div class="codex-tools"><span class="nameplate" id="fit-brass">0 brass</span><button class="btn iron small" data-back type="button">Back</button></div>
+      </div>
+      <p class="muted" id="fit-brief"></p>
+      <h3>Rules</h3>
+      <p class="muted small">The rule book the engine judges the ship by. Read any of them in full before you choose.</p>
+      <div class="fit-grid" id="fit-rules"></div>
+      <h3>System</h3>
+      <div class="fit-grid" id="fit-systems"></div>
+      <h3>Crew</h3>
+      <div class="fit-grid" id="fit-crew"></div>
+      <div class="cta"><button class="btn brass" id="fit-sail" type="button">Set sail</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="port-screen" hidden aria-labelledby="port-h">
+    <div class="plaque">
+      <div class="stamp" id="port-stamp">Port</div>
+      <h2 id="port-h">Port</h2>
+      <p class="prologue-text" id="port-text"></p>
+      <div class="choices" id="port-choices"></div>
+      <p class="muted" id="port-result" aria-live="polite"></p>
+      <div class="cta"><button class="btn brass" id="port-done" type="button" hidden>Return to the salon</button></div>
     </div>
   </section>
 

@@ -54,6 +54,10 @@
     hint: null,
     slow: 1,
     salonTags: null,
+    campaign: null,
+    profiles: {},
+    chapter: null,
+    chartPick: null,
   };
 
   const PROLOGUE = [
@@ -77,6 +81,7 @@
       prologueSeen: false,
       codex: { discovered: [], checked: [], examBest: 0 },
       settings: { difficulty: "normal", reduceMotion: null, textScale: 1, sound: true },
+      campaign: { next: 1, done: {}, rules: "standard", system: null, crew: null, owned: { systems: [], crew: [] } },
     };
   }
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
@@ -110,6 +115,16 @@
       L.codex.discovered = Array.isArray(raw.codex.discovered) ? [...new Set(raw.codex.discovered.filter(idOk))] : [];
       L.codex.checked = Array.isArray(raw.codex.checked) ? [...new Set(raw.codex.checked.filter(idOk))] : [];
       L.codex.examBest = num(raw.codex.examBest, 0);
+    }
+    if (raw.campaign && typeof raw.campaign === "object") {
+      const c = raw.campaign;
+      const idOk = (x) => typeof x === "string" && /^[a-z0-9-]{1,40}$/.test(x);
+      L.campaign.next = Math.max(1, Math.min(7, Math.floor(num(c.next, 1)) || 1));
+      if (c.done && typeof c.done === "object") for (const [k, v] of Object.entries(c.done)) if (/^[1-6]$/.test(k) && v && typeof v === "object") L.campaign.done[k] = { choice: Math.min(1, Math.max(0, Math.floor(num(v.choice, 0)))), score: num(v.score, 0) };
+      if (idOk(c.rules)) L.campaign.rules = c.rules;
+      if (idOk(c.system)) L.campaign.system = c.system;
+      if (idOk(c.crew)) L.campaign.crew = c.crew;
+      if (c.owned && typeof c.owned === "object") { L.campaign.owned.systems = Array.isArray(c.owned.systems) ? [...new Set(c.owned.systems.filter(idOk))] : []; L.campaign.owned.crew = Array.isArray(c.owned.crew) ? [...new Set(c.owned.crew.filter(idOk))] : []; }
     }
     const s = raw.settings && typeof raw.settings === "object" ? raw.settings : {};
     if (own(C.DIFFICULTY, s.difficulty)) L.settings.difficulty = s.difficulty;
@@ -153,6 +168,9 @@
       project(x, y) { return { x: ox + x * s, y: oy + y * s }; },
       unproject(x, y) { return { x: (x - ox) / s, y: (y - oy) / s }; },
       event(e, v, view) { burst2d(parts, e, v, view); },
+      // Ages effects without drawing, so a fast-forwarded voyage looks like
+      // one that was played at speed.
+      settle(dt) { for (let i = parts.length - 1; i >= 0; i--) { parts[i].life -= dt; if (parts[i].life <= 0) parts.splice(i, 1); } },
       render(v, dt, view) {
         const g = ctx;
         const band = g.createLinearGradient(0, 0, 0, ch);
@@ -164,6 +182,7 @@
         g.scale(s, s);
         const scroll = 140 * v.sub.speed;
         ART.background(g, { W, H, WATER: C.WATER, t: v.t, dist: v.dist, layers, captured: v.rulesCaptured, flash: view.reduced ? 0 : view.flash });
+        ART.sea(g, v, W, H, C.WATER, v.t);
         ART.snow(g, flakes, W, H, C.WATER, dt, scroll);
         ART.airship(g, C.airshipX(v.t), 92, v.t, { captured: v.rulesCaptured });
         for (const p of v.payloads) {
@@ -370,7 +389,7 @@
     if (game.captions.length > 3) game.captions.splice(1, game.captions.length - 2);
     game.captions.push({ text, sub, color, life: life || 2.2, max: life || 2.2 });
   }
-  function float(x, y, text, color, size) { game.floats.push({ x, y, text, color, size, life: 1.1 }); }
+  function float(x, y, text, color, size) { game.floats.push({ x, y, text, color, size, life: 1.1 }); if (game.floats.length > 24) game.floats.shift(); }
 
   // ------------------------------------------------------------ Codex discovery
 
@@ -464,7 +483,7 @@
     game.captions = []; game.floats = [];
   }
 
-  const SCREENS = { title: "title-screen", prologue: "prologue-screen", how: "how-screen", log: "log-screen", yard: "yard-screen", paused: "pause-screen", explain: "explain-screen", codex: "codex-screen", exam: "exam-screen", settings: "settings-screen" };
+  const SCREENS = { title: "title-screen", prologue: "prologue-screen", how: "how-screen", log: "log-screen", yard: "yard-screen", paused: "pause-screen", explain: "explain-screen", codex: "codex-screen", exam: "exam-screen", settings: "settings-screen", chart: "chart-screen", fit: "fit-screen", port: "port-screen" };
   function setState(s) {
     game.state = s;
     if (s === "salon" && !game.attractPolicy) startAttract();
@@ -479,6 +498,9 @@
     if (s === "yard") renderYard();
     if (s === "settings") renderSettings();
     if (s === "prologue") renderPrologue();
+    if (s === "chart") renderChart();
+    if (s === "fit") renderFit();
+    if (s === "port") renderPort();
     if (s === "salon") { game.floats = []; game.captions = []; renderSalon(); }
   }
 
@@ -492,7 +514,7 @@
   const SALON = [
     { id: "sea", label: "The great window", sub: "Set sail", at: [0.5, 0.36], go: () => sail() },
     { id: "library", label: "The library", sub: "Codex and salvage", at: [0.16, 0.5], go: () => openCodex(null, "salon") },
-    { id: "chart", label: "The chart table", sub: "The story", at: [0.5, 0.74], go: () => { game.returnTo = "salon"; setState("prologue"); } },
+    { id: "chart", label: "The chart table", sub: "The season's chart", at: [0.5, 0.74], go: () => { game.returnTo = "salon"; setState("chart"); } },
     { id: "logbook", label: "The logbook", sub: "Last voyage", at: [0.33, 0.64], go: () => { if (game.lastSummary) { renderLog(); setState("log"); } else toast("No voyage logged yet"); } },
     { id: "organ", label: "The organ", sub: "Settings", at: [0.84, 0.5], go: () => { game.returnTo = "salon"; setState("settings"); } },
     { id: "repeater", label: "Telegraph repeater", sub: "How to play", at: [0.68, 0.66], go: () => { game.returnTo = "salon"; setState("how"); } },
@@ -530,15 +552,31 @@
     }
   }
 
+  function fitFor() {
+    const cp = ledger.campaign;
+    return { system: cp.system && cp.owned.systems.includes(cp.system) ? cp.system : null, crew: cp.crew && cp.owned.crew.includes(cp.crew) ? cp.crew : null };
+  }
+  function profileFor(rules) {
+    return game.profiles[rules] || game.profiles.standard || game.profileRaw;
+  }
+
   function sail(opts) {
     const o = opts || {};
     SND.init();
     applySettings();
     game.captions = []; game.floats = []; game.telegraph = 0; game.discoveredThisVoyage = new Set(); game.pendingFinish = null;
+    game.chapter = null;
     if (o.tutorial) {
       game.voyage = newVoyage(1870, { script: TUT.SCRIPT, duration: TUT.DURATION });
       game.tutorial = TUT.tracker();
       game.official = false;
+    } else if (o.chapter) {
+      // A chapter sails under the fitted rules, system and crew.
+      const ch = o.chapter;
+      game.chapter = ch;
+      game.official = false;
+      game.tutorial = null;
+      game.voyage = new C.Voyage({ engine: E, profileRaw: profileFor(ledger.campaign.rules), seed: 7000 + ch.id * 13, difficulty: ledger.settings.difficulty, chapter: ch, duration: ch.duration, fit: fitFor() });
     } else {
       const seed = C.daySeed();
       game.official = !ledger.played[seed];
@@ -552,7 +590,8 @@
     if (game.tutorial) {
       const L = game.tutorial.on({ type: "start" });
       if (L) showHint(L);
-    } else caption(game.official ? `Voyage No. ${C.voyageNumber()}` : "Practice voyage", "Reach Free Harbor", "#e6d3a1", 2.6);
+    } else if (game.chapter) caption(`Chapter ${game.chapter.id}, ${game.chapter.title}`, `Make port at ${game.chapter.port}`, "#e6d3a1", 3);
+    else caption(game.official ? `Voyage No. ${C.voyageNumber()}` : "Practice voyage", "Reach Free Harbor", "#e6d3a1", 2.6);
   }
 
   function parFor(seed) {
@@ -565,7 +604,10 @@
     const sum = v.summary();
     const seed = v.seed;
     const tutorial = !!game.tutorial;
-    const parScore = tutorial ? C.par({ engine: E, profileRaw: game.profileRaw, seed, difficulty: ledger.settings.difficulty, script: TUT.SCRIPT, duration: TUT.DURATION }) : parFor(seed);
+    const chapter = game.chapter;
+    const parScore = tutorial ? C.par({ engine: E, profileRaw: game.profileRaw, seed, difficulty: ledger.settings.difficulty, script: TUT.SCRIPT, duration: TUT.DURATION })
+      : chapter ? C.par({ engine: E, profileRaw: profileFor(ledger.campaign.rules), seed, difficulty: ledger.settings.difficulty, chapter, duration: chapter.duration, fit: fitFor() })
+      : parFor(seed);
     const medal = tutorial ? null : C.medal(sum.score, parScore);
     const rewards = [];
     const before = C.rank(ledger.lifetimeLeagues).title;
@@ -586,15 +628,141 @@
       ledger.streak.count = ledger.streak.last === day - 1 ? ledger.streak.count + 1 : ledger.streak.last === day ? ledger.streak.count : 1;
       ledger.streak.last = day;
     }
-    if (!tutorial) { ledger.best[seed] = Math.max(ledger.best[seed] || 0, sum.score); ledger.bestEver = Math.max(ledger.bestEver, sum.score); }
+    if (!tutorial && !chapter) { ledger.best[seed] = Math.max(ledger.best[seed] || 0, sum.score); ledger.bestEver = Math.max(ledger.bestEver, sum.score); }
+    if (chapter && sum.outcome === "harbor") {
+      const prev = ledger.campaign.done[chapter.id];
+      if (prev) prev.score = Math.max(prev.score, sum.score);
+      game.madePort = !prev;
+    } else game.madePort = false;
     saveLedger();
     if (tutorial) ledger.tutorialDone = true;
     saveLedger();
-    game.lastSummary = Object.assign({ medal, par: parScore, brass, rewards, voyageNo: C.voyageNumber(), official: game.official, tutorial, discovered: [...game.discoveredThisVoyage] }, sum);
+    game.lastSummary = Object.assign({ medal, par: parScore, brass, rewards, voyageNo: C.voyageNumber(), official: game.official, tutorial, chapter: chapter ? { id: chapter.id, title: chapter.title, port: chapter.port } : null, discovered: [...game.discoveredThisVoyage] }, sum);
     if (sum.outcome === "harbor") SND.harbor();
     game.tutorial = null;
     game.slow = 1;
     setTimeout(() => { game.hint = null; renderLog(); setState("log"); }, delayMs != null ? delayMs : immediate ? 0 : sum.outcome === "harbor" ? 900 : 1600);
+  }
+
+  // ------------------------------------------------------------ The campaign
+
+  function chapterById(id) { return game.campaign ? game.campaign.chapters.find((c) => c.id === id) : null; }
+
+  function renderChart() {
+    const camp = game.campaign, cp = ledger.campaign;
+    $("chart-season").textContent = camp.season;
+    const pick = game.chartPick || Math.min(cp.next, camp.chapters.length);
+    game.chartPick = pick;
+    const canvas = $("chart-map");
+    const w = Math.max(320, canvas.clientWidth || 800), h = w / 2, dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const g = canvas.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ART.chart(g, w, h, camp.chapters, { done: cp.done, next: cp.next, leviathan: Math.min(camp.chapters.length - 1, cp.next) });
+    const list = $("chart-ports"); list.textContent = "";
+    for (const ch of camp.chapters) {
+      const done = !!cp.done[ch.id], open = done || ch.id === cp.next;
+      const b = document.createElement("button"); b.type = "button"; b.className = "port" + (ch.id === pick ? " on" : "") + (open ? "" : " locked"); b.disabled = !open; b.setAttribute("role", "listitem");
+      const n = document.createElement("span"); n.className = "n"; n.textContent = `Chapter ${ch.id}`;
+      const t = document.createElement("span"); t.className = "t"; t.textContent = ch.title;
+      const sub = document.createElement("span"); sub.className = "s"; sub.textContent = done ? `${ch.port} · made port · best ${cp.done[ch.id].score.toLocaleString()}` : open ? `${ch.port} · next` : "Uncharted";
+      b.append(n, t, sub);
+      b.addEventListener("click", () => { game.chartPick = ch.id; renderChart(); });
+      list.append(b);
+    }
+    const ch = chapterById(pick);
+    const brief = $("chart-brief"); brief.textContent = "";
+    if (ch) {
+      const head = document.createElement("div"); const bb = document.createElement("b"); bb.textContent = `${ch.title}, ${ch.port}. `; head.append(bb, `${ch.sea.charAt(0).toUpperCase() + ch.sea.slice(1)} sea, ${ch.weather}. From Verne, ${ch.verne.toLowerCase()}.`);
+      const p = document.createElement("p"); p.textContent = ch.brief;
+      brief.append(head, p);
+    }
+    $("chart-fit").disabled = !ch || !(cp.done[ch.id] || ch.id === cp.next);
+    if (cp.next > camp.chapters.length) { const p = document.createElement("p"); p.className = "tip"; p.textContent = "Season One is complete. Every port is yours to sail again, and the daily voyage continues."; brief.append(p); }
+  }
+
+  function renderFit() {
+    const camp = game.campaign, cp = ledger.campaign, ch = chapterById(game.chartPick);
+    $("fit-stamp").textContent = ch ? `Chart room · chapter ${ch.id}, ${ch.title}` : "Chart room";
+    $("fit-brief").textContent = ch ? ch.brief : "";
+    $("fit-brass").textContent = `${ledger.brass.toLocaleString()} brass`;
+    const grid = (el, items, kind) => {
+      el.textContent = "";
+      const owned = kind === "rules" ? null : cp.owned[kind];
+      const current = kind === "rules" ? cp.rules : cp[kind === "systems" ? "system" : "crew"];
+      if (kind !== "rules") {
+        const none = fittingButton({ label: "None", detail: kind === "systems" ? "Sail without a system." : "Sail without a named crew member." }, current === null, true, "");
+        none.addEventListener("click", () => { cp[kind === "systems" ? "system" : "crew"] = null; saveLedger(); renderFit(); });
+        el.append(none);
+      }
+      for (const it of items) {
+        const have = kind === "rules" || owned.includes(it.id);
+        const on = current === it.id;
+        const canBuy = !have && ledger.brass >= it.cost;
+        const b = fittingButton(it, on, have || canBuy, have ? (on ? "Fitted" : "Owned") : `${it.cost} brass`);
+        if (kind === "rules") { const a = document.createElement("a"); a.href = it.profile; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Read the rule book"; a.addEventListener("click", (e) => e.stopPropagation()); b.append(a); }
+        b.addEventListener("click", () => {
+          if (!have) { if (!canBuy) return; ledger.brass -= it.cost; owned.push(it.id); toast(`${it.label} fitted for ${it.cost} brass`); }
+          if (kind === "rules") cp.rules = it.id; else cp[kind === "systems" ? "system" : "crew"] = it.id;
+          saveLedger(); renderFit();
+        });
+        el.append(b);
+      }
+    };
+    grid($("fit-rules"), camp.fittings.rules, "rules");
+    grid($("fit-systems"), camp.fittings.systems, "systems");
+    grid($("fit-crew"), camp.fittings.crew, "crew");
+  }
+  function fittingButton(it, on, enabled, cost) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "fitting" + (on ? " on" : ""); b.disabled = !enabled; b.setAttribute("aria-pressed", String(on));
+    const t = document.createElement("span"); t.className = "t"; t.textContent = it.label;
+    const d = document.createElement("span"); d.className = "d"; d.textContent = it.detail;
+    b.append(t, d);
+    if (cost) { const c = document.createElement("span"); c.className = "c"; c.textContent = cost; b.append(c); }
+    return b;
+  }
+
+  function renderPort() {
+    const ch = chapterById(game.lastSummary && game.lastSummary.chapter ? game.lastSummary.chapter.id : 0);
+    if (!ch) { setState("salon"); return; }
+    $("port-stamp").textContent = `Chapter ${ch.id} · ${ch.port}`;
+    $("port-h").textContent = ch.port;
+    $("port-text").textContent = ch.scene.text;
+    $("port-result").textContent = "";
+    $("port-done").hidden = true;
+    const box = $("port-choices"); box.textContent = "";
+    ch.scene.choices.forEach((c, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "choice";
+      const t = document.createElement("span"); t.className = "t"; t.textContent = c.label;
+      const d = document.createElement("span"); d.className = "d"; d.textContent = c.detail;
+      b.append(t, d);
+      b.addEventListener("click", () => {
+        for (const x of box.children) x.disabled = true;
+        b.classList.add("on");
+        const got = applyEffects(c.effects);
+        ledger.campaign.done[ch.id] = { choice: i, score: game.lastSummary.score };
+        ledger.campaign.next = Math.max(ledger.campaign.next, ch.id + 1);
+        saveLedger();
+        $("port-result").textContent = got.join(" · ");
+        $("port-done").hidden = false;
+      });
+      box.append(b);
+    });
+  }
+
+  // Effects a port can have on the ship. Each returns a line for the log.
+  function applyEffects(fx) {
+    const cp = ledger.campaign, camp = game.campaign, got = [];
+    const label = (list, id) => { const x = list.find((i) => i.id === id); return x ? x.label : id; };
+    if (fx.brass) { ledger.brass += fx.brass; got.push(`${fx.brass} brass`); }
+    if (fx.rules) { cp.rules = fx.rules; got.push(`${label(camp.fittings.rules, fx.rules)} fitted`); }
+    if (fx.system) { if (!cp.owned.systems.includes(fx.system)) cp.owned.systems.push(fx.system); cp.system = fx.system; got.push(`${label(camp.fittings.systems, fx.system)} fitted`); }
+    if (fx.crew) { if (!cp.owned.crew.includes(fx.crew)) cp.owned.crew.push(fx.crew); cp.crew = fx.crew; got.push(`${label(camp.fittings.crew, fx.crew)} joins the crew`); }
+    if (fx.pennant && own(ART.PENNANTS, fx.pennant)) { if (!ledger.pennants.includes(fx.pennant)) ledger.pennants.push(fx.pennant); ledger.pennant = fx.pennant; got.push(`${ART.PENNANTS[fx.pennant].name} pennant`); }
+    if (fx.skin && own(ART.SKINS, fx.skin)) { if (!ledger.skins.includes(fx.skin)) ledger.skins.push(fx.skin); ledger.skin = fx.skin; got.push(`${ART.SKINS[fx.skin].name} hull`); }
+    if (fx.pages) { let n = 0; for (let i = 0; i < fx.pages.n; i++) { const id = nextPage(fx.pages.level); if (!id) break; discover(id, true); n++; } got.push(`${n} page${n === 1 ? "" : "s"} for the library`); }
+    if (fx.reveal === "all") { for (const e of CODEX.get().entries) discover(e.id, true); got.push("every page of the codex revealed"); }
+    saveLedger();
+    return got;
   }
 
   // ------------------------------------------------------------ Screens
@@ -629,8 +797,10 @@
 
   function renderLog() {
     const s = game.lastSummary;
-    $("log-voyage").textContent = s.tutorial ? "Shakedown cruise complete" : s.official ? `Voyage No. ${s.voyageNo}` : "Practice voyage";
-    $("log-h").textContent = s.outcome === "harbor" ? "Free Harbor Reached" : "The Nautilus Went Down";
+    $("log-voyage").textContent = s.tutorial ? "Shakedown cruise complete" : s.chapter ? `Chapter ${s.chapter.id} · ${s.chapter.title}` : s.official ? `Voyage No. ${s.voyageNo}` : "Practice voyage";
+    $("log-h").textContent = s.outcome === "harbor" ? (s.chapter ? `${s.chapter.port} Reached` : "Free Harbor Reached") : "The Nautilus Went Down";
+    $("log-port").hidden = !(s.chapter && s.outcome === "harbor" && game.madePort);
+    $("again-btn").textContent = s.chapter ? "Sail the chapter again" : "Sail again";
     const medal = $("log-medal");
     medal.className = "medal " + (s.medal || "none");
     medal.textContent = s.medal ? s.medal : s.tutorial ? "Cruise" : "No medal";
@@ -1000,7 +1170,12 @@
         }
       }
       if (game.attractPolicy && v.done) startAttract();
-      if (game.state === "playing") SND.engine(v.sub.speed);
+      if (game.state === "playing") {
+        SND.engine(v.sub.speed);
+        SND.scoreStart();
+        const danger = Math.min(1, v.payloads.filter((p) => p.y > C.WATER).length * 0.2 + (v.rulesCaptured ? 0.5 : 0) + (v.hearts <= 1 ? 0.3 : 0));
+        SND.score(danger, v.rulesCaptured);
+      }
       game.shake = Math.max(0, game.shake - dt * 2.5);
       game.flash = Math.max(0, game.flash - dt * 1.5);
       const paused = !(game.state === "playing" || game.attractPolicy);
@@ -1018,7 +1193,7 @@
     $("shakedown-btn").addEventListener("click", () => sail({ tutorial: true }));
     $("how-sail").addEventListener("click", () => sail());
     $("yard-sail").addEventListener("click", () => sail());
-    $("again-btn").addEventListener("click", () => sail());
+    $("again-btn").addEventListener("click", () => { const s = game.lastSummary; if (s && s.chapter) { game.chartPick = s.chapter.id; sail({ chapter: chapterById(s.chapter.id) }); } else sail(); });
     $("log-yard").addEventListener("click", () => setState("yard"));
     $("log-codex").addEventListener("click", () => openCodex(null, "log"));
     $("codex-btn").addEventListener("click", () => { if (game.state === "playing") setState("paused"); openCodex(null, game.state === "paused" ? "paused" : game.state); });
@@ -1029,7 +1204,8 @@
     $("settings-btn").addEventListener("click", () => { if (game.state === "playing") setState("paused"); game.returnTo = game.state === "paused" ? "paused" : game.state; setState("settings"); });
     for (const b of document.querySelectorAll("[data-back]")) b.addEventListener("click", () => {
       if (game.state === "codex") { closeCodex(); return; }
-      if ((game.state === "settings" || game.state === "how" || game.state === "yard") && game.returnTo && game.returnTo !== "title") { const to = game.returnTo; game.returnTo = null; setState(to === "playing" ? "paused" : to); return; }
+      if (game.state === "fit") { setState("chart"); return; }
+      if ((game.state === "settings" || game.state === "how" || game.state === "yard" || game.state === "chart") && game.returnTo && game.returnTo !== "title") { const to = game.returnTo; game.returnTo = null; setState(to === "playing" ? "paused" : to); return; }
       game.returnTo = null;
       if (game.voyage && !game.attractPolicy && game.state !== "settings") { setState("paused"); return; }
       startAttract(); setState("title");
@@ -1038,7 +1214,12 @@
     $("salon-sail").addEventListener("click", () => sail());
     $("log-salon").addEventListener("click", () => setState("salon"));
     $("story-btn").addEventListener("click", () => { game.returnTo = "title"; setState("prologue"); });
-    $("prologue-continue").addEventListener("click", () => { ledger.prologueSeen = true; saveLedger(); const to = game.returnTo; game.returnTo = null; setState(to === "salon" ? "salon" : "title"); });
+    $("chart-story").addEventListener("click", () => { game.returnTo = "chart"; setState("prologue"); });
+    $("chart-fit").addEventListener("click", () => setState("fit"));
+    $("fit-sail").addEventListener("click", () => { const ch = chapterById(game.chartPick); if (ch) sail({ chapter: ch }); });
+    $("log-port").addEventListener("click", () => setState("port"));
+    $("port-done").addEventListener("click", () => { game.returnTo = null; setState("salon"); });
+    $("prologue-continue").addEventListener("click", () => { ledger.prologueSeen = true; saveLedger(); const to = game.returnTo; game.returnTo = null; setState(to === "salon" || to === "chart" ? to : "title"); });
     $("pause-btn").addEventListener("click", togglePause);
     $("resume-btn").addEventListener("click", togglePause);
     $("explain-close").addEventListener("click", togglePause);
@@ -1084,21 +1265,34 @@
     advance(seconds) {
       if (game.state !== "playing") return false;
       const v = game.voyage, pilot = C.referencePolicy(v.seed);
-      for (let s = 0; s < seconds && !v.done && game.state === "playing"; s += STEP) { pilot(v, STEP); v.step(STEP); handle(v.drain(), v); }
+      for (let s = 0; s < seconds && !v.done && game.state === "playing"; s += STEP) {
+        pilot(v, STEP); v.step(STEP); handle(v.drain(), v);
+        // Presentation ages with the voyage, so effects do not pile up.
+        if (game.renderer.settle) game.renderer.settle(STEP);
+        for (let i = game.floats.length - 1; i >= 0; i--) { game.floats[i].life -= STEP; if (game.floats[i].life <= 0) game.floats.splice(i, 1); }
+        for (let i = game.captions.length - 1; i >= 0; i--) { game.captions[i].life -= STEP; if (game.captions[i].life <= 0) game.captions.splice(i, 1); }
+        game.shake = Math.max(0, game.shake - STEP * 2); game.flash = Math.max(0, game.flash - STEP * 2);
+      }
       return v.summary();
     },
     get state() { return game.state; },
     get order() { return game.voyage ? game.voyage.order : null; },
+    get campaign() { return game.campaign; },
+    sailChapter(id) { game.chartPick = id; const ch = chapterById(id); if (ch) sail({ chapter: ch }); return !!ch; },
     get ledger() { return JSON.parse(JSON.stringify(ledger)); },
   };
 
   async function boot() {
     try {
-      const [profile] = await Promise.all([
+      const [profile, campaign] = await Promise.all([
         fetch("../../examples/nautilus/trp.json", { cache: "no-cache" }).then((r) => r.json()),
+        fetch("campaign.json", { cache: "no-cache" }).then((r) => r.json()),
         CODEX.load("../codex.json"),
       ]);
       game.profileRaw = profile;
+      game.campaign = campaign;
+      game.profiles.standard = profile;
+      for (const rb of campaign.fittings.rules) if (rb.id !== "standard") game.profiles[rb.id] = await fetch(rb.profile, { cache: "no-cache" }).then((r) => r.json());
     } catch (err) {
       toast("The vessel rules could not be loaded.");
       return;

@@ -158,6 +158,66 @@
     ctx.stroke();
   }
 
+  // Sea and weather dressing for a chapter, drawn over the background and
+  // under the ship. Night darkens everything outside the lantern.
+  function sea(ctx, v, W, H, WATER, t) {
+    const name = v.chapter ? v.chapter.sea : "open";
+    const weather = v.chapter ? v.chapter.weather : "clear";
+    const scroll = v.dist;
+    if (name === "kelp") {
+      ctx.strokeStyle = "rgba(40, 110, 90, 0.75)"; ctx.lineWidth = 6;
+      for (let i = 0; i < 40; i++) {
+        const bx = ((i * 41 - scroll * 0.9) % (W + 100) + W + 100) % (W + 100) - 50;
+        const hgt = 260 + (i * 53) % 220;
+        ctx.beginPath(); ctx.moveTo(bx, H - 18);
+        for (let k = 1; k <= 8; k++) ctx.lineTo(bx + Math.sin(t * 1.1 + i + k * 0.5) * k * 3, H - 18 - (hgt * k) / 8);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(10, 40, 30, 0.25)"; ctx.fillRect(0, WATER, W, H - WATER);
+    }
+    if (name === "reef") {
+      ctx.fillStyle = "#8a7a5a";
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 30) ctx.lineTo(x, v.depthMax + 60 - 14 * Math.sin((x + scroll * 0.9) * 0.02));
+      ctx.lineTo(W, H); ctx.fill();
+      const corals = ["#d66a5a", "#e8a04a", "#9a5ad6", "#5ad6c4"];
+      for (let i = 0; i < 24; i++) { const cx = ((i * 97 - scroll * 0.9) % (W + 120) + W + 120) % (W + 120) - 60; ctx.fillStyle = corals[i % 4]; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(cx + k * 12 - 12, v.depthMax + 56 - k * 10, 10 + (i + k) % 7, 0, Math.PI * 2); ctx.fill(); } }
+      ctx.fillStyle = "rgba(120, 200, 255, 0.08)"; ctx.fillRect(0, WATER, W, H - WATER);
+    }
+    if (name === "ice") {
+      const top = v.depthMin - 40;
+      const g = ctx.createLinearGradient(0, WATER, 0, top); g.addColorStop(0, "#dff0ff"); g.addColorStop(1, "#9fc8e8");
+      ctx.fillStyle = g; ctx.fillRect(0, WATER, W, top - WATER);
+      ctx.fillStyle = "#b8d8f0";
+      for (let i = 0; i < 30; i++) { const sx = ((i * 71 - scroll * 0.9) % (W + 100) + W + 100) % (W + 100) - 50; ctx.beginPath(); ctx.moveTo(sx - 16, top); ctx.lineTo(sx + 16, top); ctx.lineTo(sx, top + 30 + (i * 13) % 40); ctx.fill(); }
+      ctx.fillStyle = "rgba(5, 15, 35, 0.35)"; ctx.fillRect(0, top, W, H - top);
+    }
+    if (name === "tunnel") {
+      const top = v.depthMin - 30;
+      ctx.fillStyle = "#2a2018"; ctx.fillRect(0, WATER, W, top - WATER);
+      for (let i = 0; i < 40; i++) { const sx = ((i * 53 - scroll * 0.9) % (W + 100) + W + 100) % (W + 100) - 50; ctx.beginPath(); ctx.moveTo(sx - 14, top); ctx.lineTo(sx + 14, top); ctx.lineTo(sx, top + 26 + (i * 17) % 50); ctx.fill(); }
+      ctx.fillStyle = "rgba(40, 30, 20, 0.35)"; ctx.fillRect(0, top, W, H - top);
+    }
+    if (name === "vortex") {
+      ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.strokeStyle = "rgba(160, 200, 255, 0.18)"; ctx.lineWidth = 2;
+      for (let i = 0; i < 6; i++) { ctx.beginPath(); const rr = 120 + i * 70; for (let a = 0; a < Math.PI * 2; a += 0.15) { const an = a + t * 0.6 + i; ctx.lineTo(1000 + Math.cos(an) * rr * 1.6, 450 + Math.sin(an) * rr * 0.5); } ctx.stroke(); }
+      ctx.restore();
+    }
+    if (weather === "storm") {
+      ctx.strokeStyle = "rgba(190, 210, 240, 0.5)"; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 120; i++) { const rx = ((i * 37 + t * 420) % (W + 40)) - 20, ry = ((i * 61 + t * 900) % WATER); ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 4, ry + 14); ctx.stroke(); }
+      if (Math.floor(t * 7) % 23 === 0) { ctx.fillStyle = "rgba(220, 230, 255, 0.35)"; ctx.fillRect(0, 0, W, WATER); }
+    }
+    if (weather === "night" || weather === "dark") {
+      ctx.save();
+      const g = ctx.createRadialGradient(SUB_X_2D + 120, v.sub.y, 60, SUB_X_2D + 120, v.sub.y, 520);
+      g.addColorStop(0, "rgba(2, 6, 16, 0)"); g.addColorStop(1, "rgba(2, 6, 16, 0.78)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+  const SUB_X_2D = 360;
+
   function snow(ctx, flakes, W, H, WATER, dt, scroll) {
     ctx.fillStyle = "rgba(200, 220, 255, 0.35)";
     for (const f of flakes) {
@@ -464,6 +524,42 @@
     void SALON_ANCHORS;
   }
 
+  // The chart. A parchment map with the season's ports along a route.
+  function chart(ctx, w, h, chapters, state) {
+    const g = ctx;
+    const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, "#d9c7a0"); bg.addColorStop(1, "#c4ad83");
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.strokeStyle = "rgba(90, 60, 30, 0.22)"; g.lineWidth = 1;
+    for (let x = 0; x < w; x += w / 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y < h; y += h / 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    // Drowned coastlines.
+    g.strokeStyle = "rgba(90, 60, 30, 0.5)"; g.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) { g.beginPath(); for (let x = 0; x <= w; x += 12) g.lineTo(x, h * (0.15 + i * 0.18) + Math.sin(x * 0.02 + i * 2) * 10 + Math.sin(x * 0.07 + i) * 4); g.stroke(); }
+    // Compass rose.
+    g.save(); g.translate(w - 70, 70); g.strokeStyle = "#5a3a1a"; g.fillStyle = "#5a3a1a"; g.lineWidth = 1.5;
+    for (let i = 0; i < 8; i++) { g.save(); g.rotate((i * Math.PI) / 4); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, i % 2 ? -22 : -40); g.lineTo(4, -8); g.closePath(); g.fill(); g.restore(); }
+    g.beginPath(); g.arc(0, 0, 44, 0, Math.PI * 2); g.stroke(); g.font = "bold 12px Georgia"; g.textAlign = "center"; g.fillText("N", 0, -50); g.restore();
+    // Route.
+    const pts = chapters.map((c, i) => ({ x: w * (0.08 + (i / (chapters.length - 1)) * 0.78), y: h * (0.5 + Math.sin(i * 1.7) * 0.28) }));
+    g.setLineDash([6, 6]); g.strokeStyle = "#5a3a1a"; g.lineWidth = 2; g.beginPath();
+    pts.forEach((p, i) => { if (i === 0) g.moveTo(p.x, p.y); else { const q = pts[i - 1]; g.bezierCurveTo(q.x + (p.x - q.x) * 0.5, q.y, p.x - (p.x - q.x) * 0.5, p.y, p.x, p.y); } });
+    g.stroke(); g.setLineDash([]);
+    pts.forEach((p, i) => {
+      const c = chapters[i];
+      const done = state.done[c.id], next = state.next === c.id, locked = !done && !next;
+      g.fillStyle = done ? "#2f4a3a" : next ? "#c8643c" : "rgba(90,60,30,0.5)";
+      g.beginPath(); g.arc(p.x, p.y, next ? 9 : 7, 0, Math.PI * 2); g.fill();
+      if (next) { g.strokeStyle = "#c8643c"; g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, 15, 0, Math.PI * 2); g.stroke(); }
+      g.fillStyle = locked ? "rgba(90,60,30,0.6)" : "#3a2410"; g.font = `${next ? "bold " : ""}13px Georgia`; g.textAlign = "center";
+      g.fillText(c.port, p.x, p.y + (i % 2 ? 30 : -20));
+      g.font = "italic 11px Georgia"; g.fillText(`${c.id}. ${c.title}`, p.x, p.y + (i % 2 ? 44 : -34));
+      if (done) { g.save(); g.translate(p.x + 22, p.y - 8); g.rotate(-0.3); g.strokeStyle = "rgba(120, 30, 30, 0.6)"; g.lineWidth = 1.5; g.strokeRect(-18, -8, 36, 16); g.fillStyle = "rgba(120, 30, 30, 0.7)"; g.font = "bold 9px Georgia"; g.fillText("MADE PORT", 0, 3); g.restore(); }
+    });
+    if (state.leviathan != null) { const lp = pts[Math.min(pts.length - 1, state.leviathan)]; g.fillStyle = "rgba(60, 40, 90, 0.5)"; g.beginPath(); g.ellipse(lp.x + 40, lp.y - 40, 26, 10, 0, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = "rgba(90,60,30,0.6)"; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
+    g.strokeStyle = "rgba(90,60,30,0.35)"; g.lineWidth = 1; g.strokeRect(12, 12, w - 24, h - 24);
+  }
+
   function harpoon(ctx, h, fromX, fromY) {
     ctx.strokeStyle = "rgba(200, 180, 140, 0.55)"; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
     ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(h.x, h.y); ctx.stroke(); ctx.setLineDash([]);
@@ -532,6 +628,6 @@
     ctx.restore();
   }
 
-  const api = { SKINS, PENNANTS, SALON_ANCHORS, buildLayers, background, snow, sub, airship, payload, gear, relic, chest, clam, salon, harpoon, gauge, telegraph };
+  const api = { SKINS, PENNANTS, SALON_ANCHORS, buildLayers, background, sea, snow, sub, airship, payload, gear, relic, chest, clam, salon, chart, harpoon, gauge, telegraph };
   root.NautilusArt = api;
 })(window);

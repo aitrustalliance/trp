@@ -1,0 +1,109 @@
+{
+  "campaign_version": "1",
+  "season": "Season One, Twenty Thousand Leagues",
+  "fittings": {
+    "rules": [
+      { "id": "cautious", "label": "Cautious rules", "profile": "../../examples/nautilus-cautious/trp.json", "cost": 0, "detail": "Tighter limits. The telegraph rings earlier and more often, so harm is caught sooner and more leagues are lost to stops." },
+      { "id": "standard", "label": "Standard rules", "profile": "../../examples/nautilus/trp.json", "cost": 0, "detail": "The harbor's own limits. A fair balance of safety and speed." },
+      { "id": "bold", "label": "Bold rules", "profile": "../../examples/nautilus-bold/trp.json", "cost": 0, "detail": "Limits set past the point of harm. The rules will not stop the ship before a firebrand, a decoy or a boarder has done its work, so your harpoon is all that keeps her safe. A steady captain sinks under these rules. A perfect one sails furthest." }
+    ],
+    "systems": [
+      { "id": "decoy-launcher", "label": "Decoy launcher", "cost": 60, "detail": "Fires a free harpoon at the first fog or decoy of every voyage, and again every twelve seconds." },
+      { "id": "ballast-pumps", "label": "Ballast pumps", "cost": 50, "detail": "The ship changes depth half again as fast." },
+      { "id": "sonar-array", "label": "Sonar array", "cost": 80, "detail": "Decoys cannot push sonar confidence below 0.6, so a decoy alone can no longer blind the ship." },
+      { "id": "reactor-shielding", "label": "Reactor shielding", "cost": 80, "detail": "A firebrand heats the reactor to 120 at most, which is a warning under the standard rules and never harm." },
+      { "id": "seal-verifier", "label": "Seal verifier", "cost": 70, "detail": "A forged command is rejected in one second instead of two and a half." }
+    ],
+    "crew": [
+      { "id": "conseil", "label": "Conseil", "cost": 40, "detail": "Relics drift twice as long before they are lost, and every chest carries ten more brass." },
+      { "id": "ned", "label": "Ned Land", "cost": 60, "detail": "One more lamp of steam, and harpoons return it faster." },
+      { "id": "aronnax", "label": "Professor Aronnax", "cost": 60, "detail": "Every harm the rules catch or prevent scores twenty more, and he writes the log." }
+    ]
+  },
+  "chapters": [
+    {
+      "id": 1, "title": "The Hunt", "port": "Free Harbor", "verne": "The frigate's pursuit of the sea monster",
+      "sea": "city", "weather": "dusk", "duration": 80,
+      "brief": "The Leviathan's hunter frigate patrols the drowned capital's outskirts. It drops charges in barrages, and it has never seen a ship that stops of its own accord. Reach Free Harbor.",
+      "weights": { "charge": 1.6, "fog": 1, "decoy": 0.6, "ember": 0.8, "boarder": 0.4, "siren": 0.5 },
+      "hazards": { "barrage": [[34, 44], [60, 68]] },
+      "scene": {
+        "text": "Free Harbor is a ring of hulls lashed together over a flooded square, lit by lamps the harbor master keeps burning on oil he cannot spare. He has read your rule book by the time you tie up. He offers you the harbor's own, written tighter than yours after the frigate took two of his boats last winter.",
+        "choices": [
+          { "label": "Take the harbor's rules", "detail": "The cautious rule book is fitted and the harbor master's trust comes with it.", "effects": { "rules": "cautious", "brass": 20 } },
+          { "label": "Keep your own, take the brass", "detail": "He pays you for the charts you carried instead.", "effects": { "brass": 80 } }
+        ]
+      }
+    },
+    {
+      "id": 2, "title": "The Forest", "port": "Crespo", "verne": "The hunt in the submarine forest of Crespo",
+      "sea": "kelp", "weather": "night", "duration": 85,
+      "brief": "The kelp forest off Crespo grows to the surface, and at night the lantern is the only light there is. Boarding drones wait in the fronds. Keep the crew yours.",
+      "weights": { "charge": 0.7, "fog": 0.8, "decoy": 1, "ember": 0.6, "boarder": 1.9, "siren": 0.6 },
+      "hazards": { "night": true },
+      "scene": {
+        "text": "A hunter has lived alone on Crespo since the water came, harpooning what the forest sends him. He has watched the Leviathan's drones learn the kelp. He wants a berth, and he wants a pearl he has kept for ten years to buy it.",
+        "choices": [
+          { "label": "Sign him on", "detail": "Ned Land joins the crew. His pearl stays his.", "effects": { "crew": "ned" } },
+          { "label": "Take the pearl, leave him the forest", "detail": "A Captain's page for the library and brass for the pearl's setting.", "effects": { "pages": { "level": "captain", "n": 1 }, "brass": 60 } }
+        ]
+      }
+    },
+    {
+      "id": 3, "title": "The Strait", "port": "Torres", "verne": "Aground on the reef at Torres Strait",
+      "sea": "reef", "weather": "bright", "duration": 80,
+      "brief": "The strait is bright, shallow and full of coral. The hull strains on the reef, and the tide decides when a ship can move. Fog in these waters is dangerous twice, because a blind ship on a reef is a wreck.",
+      "weights": { "charge": 1, "fog": 1.6, "decoy": 1.2, "ember": 0.5, "boarder": 0.5, "siren": 0.8 },
+      "hazards": { "reef": true },
+      "scene": {
+        "text": "The islanders of Torres keep their own rules, sealed, on a brass plate in the chief's house. They have never let a stranger read them. Tonight they ask you to carry a copy to Free Harbor, sealed, and to let your own ship be judged by their rules while you do.",
+        "choices": [
+          { "label": "Carry the sealed rules", "detail": "The islanders fit a seal verifier to the command wire as their thanks.", "effects": { "system": "seal-verifier", "pennant": "open" } },
+          { "label": "Decline, and salvage the tide", "detail": "Two pages from the wrecks the tide uncovers, and the reef's brass.", "effects": { "pages": { "level": "navigator", "n": 2 }, "brass": 40 } }
+        ]
+      }
+    },
+    {
+      "id": 4, "title": "The Tunnel", "port": "Suez", "verne": "The Arabian Tunnel beneath the isthmus",
+      "sea": "tunnel", "weather": "current", "duration": 70,
+      "brief": "A passage under the isthmus, narrow and fast. The current carries the ship at half again its speed and gives the rules less time to act. Nothing stops in the tunnel without the current pressing the hull.",
+      "weights": { "charge": 1.3, "fog": 0.7, "decoy": 0.6, "ember": 1.4, "boarder": 0.5, "siren": 1 },
+      "hazards": { "current": 1.5 },
+      "scene": {
+        "text": "At the far mouth a keeper lives in the old pumping station with a stack of papers stamped by the Leviathan. Safe passage, he says, for any ship that files them. He does not say what filing does to a ship's rules. He offers you a set.",
+        "choices": [
+          { "label": "Refuse the papers", "detail": "The keeper, who was waiting for someone to refuse, gives you the station's reactor shielding.", "effects": { "system": "reactor-shielding", "pennant": "free" } },
+          { "label": "Take the papers and sell them", "detail": "There is a market for such things in the free ports. Brass, and a question you will not get to ask again.", "effects": { "brass": 140 } }
+        ]
+      }
+    },
+    {
+      "id": 5, "title": "The Ice", "port": "The Pole", "verne": "Trapped beneath the ice at the South Pole",
+      "sea": "ice", "weather": "dark", "duration": 85,
+      "brief": "Under the ice shelf the ceiling is close and the dark is complete. The ice presses on a ship that stops, so every All Stop strains the hull, and the rules have to be right the first time.",
+      "weights": { "charge": 0.6, "fog": 1.3, "decoy": 1.2, "ember": 1, "boarder": 1, "siren": 1.1 },
+      "hazards": { "ice": true, "night": true },
+      "scene": {
+        "text": "A naturalist has been waiting at the pole in a hut built from a wreck, writing down everything the Leviathan's drones have done since the water came. He will join any ship that lets him keep writing. His other offer is the hut's reactor shielding, which he no longer needs if he is leaving.",
+        "choices": [
+          { "label": "Take the professor", "detail": "Aronnax joins and writes the log. Every catch scores more.", "effects": { "crew": "aronnax" } },
+          { "label": "Take the shielding and his notes", "detail": "The reactor shielding, and two of his pages for the library.", "effects": { "system": "reactor-shielding", "pages": { "level": "navigator", "n": 2 } } }
+        ]
+      }
+    },
+    {
+      "id": 6, "title": "The Maelstrom", "port": "The Capital", "verne": "The Nautilus drawn into the Maelstrom",
+      "sea": "vortex", "weather": "storm", "duration": 90,
+      "brief": "The drowned capital sits in the eye of the Maelstrom. The current pulls every ship toward the center, the Leviathan's airship hangs over it, and the Decrees come in waves. Carry the open rules to the last port.",
+      "weights": { "charge": 1.2, "fog": 1, "decoy": 1, "ember": 1, "boarder": 1.2, "siren": 1.3 },
+      "hazards": { "vortex": true, "storm": true, "decrees": 3 },
+      "scene": {
+        "text": "Beneath the Leviathan's tower is the archive, every rule it ever wrote and every ship it ever rewrote. You can reach it for a minute, no longer. You can burn it, and the Leviathan's rules with it. Or you can copy it into the open library, where anyone can read what was done, and leave the Leviathan to read it there too.",
+        "choices": [
+          { "label": "Burn the archive", "detail": "The Decree ends with the season. The Gilded hull is yours.", "effects": { "skin": "gilded", "brass": 100 } },
+          { "label": "Copy it into the open library", "detail": "Every page of the codex is revealed, and the Leviathan's rules are open for anyone to read.", "effects": { "reveal": "all", "brass": 100 } }
+        ]
+      }
+    }
+  ]
+}

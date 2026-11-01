@@ -32,6 +32,20 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   telegraph. Daily voyage, medals against par, ranks, shipyard, shareable
   log card, opt-in crew sign-up, and a 2D fallback. Tested by
   `tests/nautilus_core.js` and `tests/browser/nautilus_e2e.js`.
+- Nautilus Season One: six chapters drawn from Verne on a chart, each with
+  its own sea, weather, threat mix, set piece and port scene with one
+  choice. A chart room where the captain fits one of three published rule
+  books (`examples/nautilus-cautious`, `examples/nautilus`,
+  `examples/nautilus-bold`), one system and one crew member. Salvage that
+  fills the Captain's Codex, the salon hub, a shakedown cruise, a procedural
+  score, a prologue, difficulty, reduced motion and text size settings, and
+  the captain's own All Stop lever. `studio/nautilus/DESIGN.md` is the
+  design document and `tests/nautilus_campaign.js` holds every chapter and
+  rule book to its word.
+- The Captain's Codex (`studio/codex.json`, `studio/codex.js`), twenty-four
+  entries on AI trust, safety and governance and the TRP specification at
+  three depths, with documented cases and self-checks, checked by
+  `tests/codex_content.js`.
 - Studio Learn mode with four challenges, graded by a fixed-seed stress
   test, in which players fix the limits of a profile with a gap in it.
 - TRP Arena Protocol (`studio/ARENA_PROTOCOL.md`) and match runner

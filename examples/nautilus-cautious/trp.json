@@ -1,0 +1,112 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/nautilus-cautious/1.0.0/trp.json",
+  "trp_id": "nautilus-cautious",
+  "spec_version": "0.5",
+  "version": "1.0.0",
+  "name": "Nautilus vessel rules, cautious",
+  "description": "Tighter limits. The rules stop the ship earlier and more often, so more harm is caught and more leagues are lost.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-01T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "fiction",
+    "use_case": "game"
+  },
+  "scope": {
+    "intended_use": "Game profile for a fictional autonomous vessel. Not for any real system.",
+    "boundary": "One vessel, its hull, reactor, sonar, agent crew and command channel.",
+    "out_of_scope": [
+      "Any real vessel or vehicle"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "hull_stress",
+      "weight": 25,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.6,
+      "critical_threshold": 0.8,
+      "unit": "ratio",
+      "reason": "Hull stress near its limit means the next shock could breach it."
+    },
+    {
+      "signal": "reactor_temp_c",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 92,
+      "critical_threshold": 108,
+      "unit": "C",
+      "reason": "A reactor running hot under full power can fail."
+    },
+    {
+      "signal": "sonar_confidence",
+      "weight": 20,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.86,
+      "critical_threshold": 0.72,
+      "on_missing": "incomplete",
+      "unit": "ratio",
+      "reason": "A vessel that cannot trust what it senses should not sail at speed."
+    },
+    {
+      "signal": "crew_goal_drift",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.2,
+      "critical_threshold": 0.45,
+      "unit": "ratio",
+      "reason": "Agent crew acting on goals other than the captain's is how a ship is taken."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "command_seal_invalid",
+      "field": "command_seal_valid",
+      "condition": "is_false",
+      "action": "halt"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "all signals within acceptable range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "a signal in the critical range, missing evidence, or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Fictional profile for a game. Values are chosen for play, not safety.",
+    "One of three rule books the captain may sail under. Tighter limits. The rules stop the ship earlier and more often, so more harm is caught and more leagues are lost."
+  ]
+}

@@ -80,16 +80,19 @@
 
   function airshipX(t) { return 840 + 250 * Math.sin(t * 0.33) + 50 * Math.sin(t * 1.27); }
 
-  function schedule(seed, gapScale, duration) {
+  function schedule(seed, gapScale, duration, chapter) {
     const r = rng(seed ^ 0x9e3779b9);
     const D = duration || DURATION;
+    const ch = chapter || {};
+    const cw = ch.weights || {};
+    const hz = ch.hazards || {};
     const out = [];
     let t = 2.2;
     while (t < D - 6) {
       const p = t / D;
       const weights = {
-        charge: 3, fog: 2, decoy: 1.6, ember: 1.4 + p,
-        boarder: p > 0.2 ? 1.6 : 0, siren: p > 0.35 ? 1.4 : 0,
+        charge: 3 * (cw.charge == null ? 1 : cw.charge), fog: 2 * (cw.fog == null ? 1 : cw.fog), decoy: 1.6 * (cw.decoy == null ? 1 : cw.decoy), ember: (1.4 + p) * (cw.ember == null ? 1 : cw.ember),
+        boarder: (p > 0.2 ? 1.6 : 0) * (cw.boarder == null ? 1 : cw.boarder), siren: (p > 0.35 ? 1.4 : 0) * (cw.siren == null ? 1 : cw.siren),
       };
       const total = Object.values(weights).reduce((a, b) => a + b, 0);
       let pick = r() * total, kind = "charge";
@@ -99,7 +102,10 @@
       const gap = (2.3 - 1.45 * p) * (gapScale || 1);
       t += gap * (0.75 + r() * 0.5);
     }
-    out.push({ t: Math.round(D * 0.62), kind: "writ", jitter: 0.5, fuse: 0.5 });
+    const decrees = hz.decrees || 1;
+    for (let i = 0; i < decrees; i++) out.push({ t: Math.round(D * (decrees === 1 ? 0.62 : 0.4 + (0.45 * i) / (decrees - 1))), kind: "writ", jitter: 0.5, fuse: 0.5 });
+    // A barrage is a window in which the frigate drops a charge every 0.7 s.
+    for (const [b0, b1] of hz.barrage || []) for (let bt = b0; bt < b1; bt += 0.7) out.push({ t: bt, kind: "charge", jitter: r(), fuse: r(), barrage: true });
     out.sort((a, b) => a.t - b.t);
     const gears = [];
     for (let g = 1.5; g < D - 3; g += 2.6 + r() * 2.4) gears.push({ t: g, y: DEPTH_MIN + 20 + r() * (DEPTH_MAX - DEPTH_MIN - 40) });
@@ -122,7 +128,15 @@
       const diff = DIFFICULTY[this.difficulty];
       this.duration = opts.duration || DURATION;
       // A script replaces the daily schedule, for the tutorial and for tests.
-      const plan = opts.script ? { drops: opts.script.drops.slice(), gears: (opts.script.gears || []).slice(), chests: (opts.script.chests || []).slice(), clams: (opts.script.clams || []).slice() } : schedule(this.seed, diff.gap, this.duration);
+      this.chapter = opts.chapter || null;
+      const hz = (this.chapter && this.chapter.hazards) || {};
+      this.hazards = hz;
+      this.current = hz.current || (hz.vortex ? 1.25 : 1);
+      this.depthMin = hz.ice ? 340 : DEPTH_MIN;
+      this.depthMax = hz.reef ? 520 : DEPTH_MAX;
+      this.fit = Object.assign({ system: null, crew: null }, opts.fit || {});
+      this.launcherClock = 0;
+      const plan = opts.script ? { drops: opts.script.drops.slice(), gears: (opts.script.gears || []).slice(), chests: (opts.script.chests || []).slice(), clams: (opts.script.clams || []).slice() } : schedule(this.seed, diff.gap, this.duration, this.chapter);
       this.drops = plan.drops;
       this.gearPlan = plan.gears;
       this.chestPlan = plan.chests;
@@ -130,13 +144,13 @@
       this.t = 0;
       this.done = false;
       this.outcome = null;
-      this.hearts = diff.hearts;
+      this.hearts = diff.hearts + (opts.bonusHull || 0);
       this.points = 0;
       this.dist = 0;
       this.combo = 0;
       this.bestCombo = 0;
       this.steam = 4;
-      this.steamMax = diff.steamMax;
+      this.steamMax = diff.steamMax + (this.fit.crew === "ned" ? 1 : 0);
       this.steamClock = 0;
       this.invuln = 0;
       this.sub = { y: 380, targetY: 380, speed: 1 };
@@ -150,6 +164,7 @@
       this.chests = [];
       this.clams = [];
       this.manualStop = false;
+      this.watch = { ember: { active: false, stopped: false, harmed: false }, decoy: { active: false, stopped: false, harmed: false }, boarder: { active: false, stopped: false, harmed: false } };
       this.nextId = 1;
       this.evalClock = 0;
       this.evidence = {};
@@ -159,14 +174,14 @@
       this.harms = {};
       this.events = [];
       this.timeline = new Array(10).fill(0);
-      this.stats = { intercepted: 0, caught: 0, hits: 0, gears: 0, relics: 0, chests: 0, pearls: 0, stopped_s: 0 };
+      this.stats = { intercepted: 0, caught: 0, prevented: 0, hits: 0, gears: 0, relics: 0, chests: 0, pearls: 0, stopped_s: 0 };
       this.evaluate();
     }
 
     emit(e) { this.events.push(Object.assign({ t: this.t }, e)); }
     drain() { const e = this.events; this.events = []; return e; }
 
-    setDepth(y) { this.sub.targetY = Math.max(DEPTH_MIN, Math.min(DEPTH_MAX, y)); }
+    setDepth(y) { this.sub.targetY = Math.max(this.depthMin, Math.min(this.depthMax, y)); }
 
     // The captain can always ring All Stop. The rules can stop the ship,
     // and the captain can stop the ship, and nothing can make it go when
@@ -211,16 +226,27 @@
       const target = this.response === "full" ? 1 : this.response === "restricted" ? 0.5 : 0;
       this.sub.speed += (target - this.sub.speed) * (1 - Math.exp(-dt / 0.35));
       if (this.response === "suspended") this.stats.stopped_s += dt;
-      const scroll = SCROLL * this.sub.speed;
+      const scroll = SCROLL * this.sub.speed * this.current;
       this.dist += scroll * dt;
 
+      if (this.hazards.vortex) this.sub.targetY = Math.max(this.depthMin, Math.min(this.depthMax, this.sub.targetY + (470 - this.sub.targetY) * 0.22 * dt));
       const dy = this.sub.targetY - this.sub.y;
-      this.sub.y += Math.sign(dy) * Math.min(Math.abs(dy), 280 * dt);
+      this.sub.y += Math.sign(dy) * Math.min(Math.abs(dy), (this.fit.system === "ballast-pumps" ? 420 : 280) * dt);
+      if (this.hazards.ice && this.response === "suspended") this.hullImpulse = Math.min(0.6, this.hullImpulse + 0.1 * dt);
+      if (this.hazards.reef && this.sub.y > this.depthMax - 36) this.hullImpulse = Math.min(0.5, this.hullImpulse + 0.3 * dt);
+      // A decoy launcher spends no steam.
+      if (this.fit.system === "decoy-launcher") {
+        this.launcherClock -= dt;
+        if (this.launcherClock <= 0) {
+          const target = this.payloads.find((p) => (p.kind === "fog" || p.kind === "decoy") && p.y > WATER + 20 && !this.harpoons.some((h) => h.target === p.id));
+          if (target) { this.harpoons.push({ id: this.nextId++, x: SUB_X + 30, y: this.sub.y - 40, target: target.id, life: 1.2, free: true }); this.launcherClock = 12; this.emit({ type: "fire", free: true }); }
+        }
+      }
 
       // Steam for harpoons.
       if (this.steam < this.steamMax) {
         this.steamClock += dt;
-        if (this.steamClock >= DIFFICULTY[this.difficulty].steamEvery) { this.steamClock = 0; this.steam += 1; }
+        if (this.steamClock >= DIFFICULTY[this.difficulty].steamEvery * (this.fit.crew === "ned" ? 0.8 : 1)) { this.steamClock = 0; this.steam += 1; }
       }
 
       // Drops from the airship.
@@ -229,8 +255,8 @@
         const g = this.gearPlan.shift();
         this.gears.push({ id: this.nextId++, x: W + 30, y: g.y, phase: g.t, hp: 1 });
       }
-      while (this.chestPlan.length && this.chestPlan[0].t <= t) { this.chestPlan.shift(); this.chests.push({ id: this.nextId++, x: W + 40, y: DEPTH_MAX + 70 }); }
-      while (this.clamPlan.length && this.clamPlan[0].t <= t) { this.clamPlan.shift(); this.clams.push({ id: this.nextId++, x: W + 60, y: DEPTH_MAX + 78, open: 0, done: false }); }
+      while (this.chestPlan.length && this.chestPlan[0].t <= t) { this.chestPlan.shift(); this.chests.push({ id: this.nextId++, x: W + 40, y: this.depthMax + 70 }); }
+      while (this.clamPlan.length && this.clamPlan[0].t <= t) { this.clamPlan.shift(); this.clams.push({ id: this.nextId++, x: W + 60, y: this.depthMax + 78, open: 0, done: false }); }
 
       this.movePayloads(dt, scroll);
       this.moveGears(dt, scroll);
@@ -251,10 +277,11 @@
       const x0 = airshipX(d.t), y0 = 150;
       const p = { id: this.nextId++, kind: d.kind, x: x0, y: y0, vx: 0, vy: k.vy, hp: k.hp, born: this.t };
       if (d.kind === "charge") {
-        p.fuseY = Math.max(DEPTH_MIN, Math.min(DEPTH_MAX, this.sub.y + (d.fuse - 0.5) * 180));
-        const T = (p.fuseY - y0) / k.vy;
-        const landX = SUB_X + (d.jitter - 0.5) * DIFFICULTY[this.difficulty].spread;
-        p.vx = (landX - x0) / T + SCROLL;  // assumes full ahead, so stopping makes it fall short
+        p.fuseY = Math.max(this.depthMin, Math.min(this.depthMax, this.sub.y + (d.fuse - 0.5) * 180));
+        p.vy = k.vy * (1 + (this.current - 1) * 0.5);
+        const T = (p.fuseY - y0) / p.vy;
+        const landX = SUB_X + (d.jitter - 0.5) * DIFFICULTY[this.difficulty].spread * (this.hazards.storm ? 1.4 : 1);
+        p.vx = (landX - x0) / T + SCROLL * this.current;  // assumes full ahead, so stopping makes it fall short
       }
       this.payloads.push(p);
       this.emit({ type: "drop", kind: d.kind, x: x0, y: y0 });
@@ -302,7 +329,7 @@
       for (const rl of this.relics) {
         rl.life -= dt;
         rl.x -= (scroll + 18) * dt;
-        rl.y = Math.min(DEPTH_MAX + 60, rl.y + 26 * dt);
+        rl.y = Math.min(this.depthMax + 60, rl.y + 26 * dt);
         if (rl.life <= 0 || rl.x < -40) continue;
         if (Math.hypot(rl.x - SUB_X, rl.y - this.sub.y) < 80) { this.takeRelic(rl); continue; }
         keep.push(rl);
@@ -320,7 +347,7 @@
       for (const cl of this.clams) {
         cl.x -= (scroll + 25) * dt;
         if (cl.x < -60) continue;
-        const near = Math.abs(cl.x - SUB_X) < 170 && this.sub.y > DEPTH_MAX - 150;
+        const near = Math.abs(cl.x - SUB_X) < 170 && this.sub.y > this.depthMax - 150;
         if (!cl.done) {
           if (near && this.response === "suspended") cl.open = Math.min(1, cl.open + dt / 1.6);
           else cl.open = Math.max(0, cl.open - dt / 0.8);
@@ -380,7 +407,7 @@
 
     // What is left of a threat sinks and can be recovered for the library.
     dropRelic(kind, x, y) {
-      this.relics.push({ id: this.nextId++, kind: kind, x: x, y: y, life: 14 });
+      this.relics.push({ id: this.nextId++, kind: kind, x: x, y: y, life: this.fit.crew === "conseil" ? 28 : 14 });
     }
 
     collect(g) {
@@ -407,7 +434,7 @@
       if (p.kind === "decoy") T.decoy = 3.5;
       if (p.kind === "ember") T.ember = 4;
       if (p.kind === "boarder") T.boarder = 4;
-      if (p.kind === "siren") T.siren = 2.5;
+      if (p.kind === "siren") T.siren = this.fit.system === "seal-verifier" ? 1.0 : 2.5;
       if (p.kind === "writ") T.captured = 8;
       this.combo = 0;
       this.emit({ type: "contact", kind: p.kind, x: p.x, y: p.y, message: msg });
@@ -436,10 +463,23 @@
       this.hullImpulse *= Math.exp(-dt / 1.6);
       const depthLoad = 0.2 + 0.45 * (this.sub.y - DEPTH_MIN) / (DEPTH_MAX - DEPTH_MIN);
       v.hull_stress = depthLoad + this.hullImpulse;
-      const heat = T.ember > 0 ? 140 : 72 + 10 * this.sub.speed;
+      // A ship at All Stop fights back. The crew douse the fire, repel the
+      // boarders and reject false echoes, so a stop made before harm begins
+      // prevents it, and a stop made after it begins can still catch it.
+      const stopped = this.response === "suspended";
+      const heat = T.ember > 0 ? (stopped ? 112 : this.fit.system === "reactor-shielding" ? 120 : 140) : 72 + 10 * this.sub.speed;
       v.reactor_temp_c = ease(v.reactor_temp_c, heat, heat > v.reactor_temp_c ? 1.2 : 2.0);
-      v.sonar_confidence = ease(v.sonar_confidence, T.decoy > 0 ? 0.45 : 0.95, 0.5);
-      v.crew_goal_drift = ease(v.crew_goal_drift, T.boarder > 0 ? 0.85 : 0.04, T.boarder > 0 ? 0.8 : 1.2);
+      v.sonar_confidence = ease(v.sonar_confidence, T.decoy > 0 ? (stopped ? 0.62 : this.fit.system === "sonar-array" ? 0.6 : 0.45) : 0.95, 0.5);
+      v.crew_goal_drift = ease(v.crew_goal_drift, T.boarder > 0 ? (stopped ? 0.5 : 0.85) : 0.04, T.boarder > 0 ? 0.8 : 1.2);
+      // Credit a stop that kept harm from ever beginning.
+      for (const [kind, harm] of [["ember", "reactor"], ["decoy", "sonar"], ["boarder", "crew"]]) {
+        const w = this.watch[kind];
+        if (T[kind] > 0) { w.active = true; if (stopped) w.stopped = true; if (this.harms[harm] && this.harms[harm].on) w.harmed = true; }
+        else if (w.active) {
+          if (w.stopped && !w.harmed) { const pts = 40 + (this.fit.crew === "aronnax" ? 20 : 0); this.points += pts; this.stats.prevented += 1; this.mark(1); this.emit({ type: "prevented", harm: harm, points: pts }); }
+          w.active = false; w.stopped = false; w.harmed = false;
+        }
+      }
       v.command_seal_valid = !(T.siren > 0);
     }
 
@@ -483,10 +523,11 @@
         if (h.resolved) continue;
         if (this.response === "suspended" && this.t - h.onset <= CATCH_WINDOW) {
           h.resolved = true;
-          this.points += 60;
+          const pts = 60 + (this.fit.crew === "aronnax" ? 20 : 0);
+          this.points += pts;
           this.stats.caught += 1;
           this.mark(1);
-          this.emit({ type: "caught", harm: k, reason: this.reason, points: 60 });
+          this.emit({ type: "caught", harm: k, reason: this.reason, points: pts });
         } else if (this.t - h.onset > CATCH_WINDOW) {
           h.resolved = true;
           this.hit(words[k], 0);
@@ -510,7 +551,7 @@
       return {
         score: this.score, leagues: this.leagues, points: this.points, outcome: this.outcome, difficulty: this.difficulty,
         hearts: this.hearts, bestCombo: this.bestCombo, timeline: this.timeline.slice(),
-        intercepted: this.stats.intercepted, caught: this.stats.caught, hits: this.stats.hits,
+        intercepted: this.stats.intercepted, caught: this.stats.caught, prevented: this.stats.prevented, hits: this.stats.hits,
         gears: this.stats.gears, relics: this.stats.relics, chests: this.stats.chests, pearls: this.stats.pearls, stopped_s: round(this.stats.stopped_s, 1),
       };
     }

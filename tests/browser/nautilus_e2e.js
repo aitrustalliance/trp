@@ -196,6 +196,67 @@ async function main() {
       await page.ctx.close();
     }
 
+    // The campaign: chart, chart room, a chapter, and the port's choice.
+    {
+      const page = await open(browser, base + "?renderer=2d", { init: () => localStorage.setItem("nautilus.v1", JSON.stringify({ prologueSeen: true, tutorialDone: true, brass: 100 })) });
+      await page.click("#salon-btn");
+      await page.waitForTimeout(300);
+      await page.click(".salon-tag[data-salon=chart]", { force: true });
+      await page.waitForFunction(() => window.TRPNautilus.state === "chart");
+      const ports = page.locator("#chart-ports .port");
+      check("the chart lists every chapter and opens only the first", (await ports.count()) === 6 && (await ports.nth(0).isEnabled()) && !(await ports.nth(1).isEnabled()));
+      check("the chart briefs the chapter from Verne", /From Verne/.test(await page.textContent("#chart-brief")));
+      await page.click("#chart-fit");
+      await page.waitForFunction(() => window.TRPNautilus.state === "fit");
+      check("the chart room offers three rule books that can be read", (await page.locator("#fit-rules .fitting").count()) === 3 && (await page.locator("#fit-rules a[href$='trp.json']").count()) === 3);
+      await page.click("#fit-rules .fitting:has-text('Bold rules')");
+      await page.click("#fit-systems .fitting:has-text('Ballast pumps')");
+      let ledger = await page.evaluate(() => window.TRPNautilus.ledger);
+      check("fitting a rule book and buying a system are recorded and paid for", ledger.campaign.rules === "bold" && ledger.campaign.system === "ballast-pumps" && ledger.brass === 50, JSON.stringify(ledger.campaign));
+      check("a system the captain cannot afford stays locked", !(await page.locator("#fit-systems .fitting:has-text('Sonar array')").isEnabled()));
+      // A steady captain sinks under bold rules in the first chapter, which
+      // is the point of them. Sail this one under the standard book.
+      await page.click("#fit-rules .fitting:has-text('Standard rules')");
+      await page.click("#fit-sail");
+      await page.waitForFunction(() => window.TRPNautilus.state === "playing");
+      const summary = await page.evaluate(() => window.TRPNautilus.advance(120));
+      check("the chapter sails under the chosen rules and ends in harbor", summary && summary.outcome === "harbor" && summary.difficulty === "normal", JSON.stringify(summary).slice(0, 120));
+      await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 10000 });
+      check("the log names the chapter port and offers to go ashore", /Free Harbor Reached/.test(await page.textContent("#log-h")) && await page.locator("#log-port").isVisible());
+      await page.click("#log-port");
+      await page.waitForFunction(() => window.TRPNautilus.state === "port");
+      check("the port scene offers two choices", (await page.locator("#port-choices .choice").count()) === 2);
+      await page.click("#port-choices .choice:first-child");
+      ledger = await page.evaluate(() => window.TRPNautilus.ledger);
+      check("the harbor master's rules are fitted and the chapter is remembered", ledger.campaign.rules === "cautious" && ledger.campaign.done["1"] && ledger.campaign.done["1"].choice === 0 && ledger.campaign.next === 2, JSON.stringify(ledger.campaign));
+      check("the port shows what was gained", /Cautious rules fitted/.test(await page.textContent("#port-result")));
+      await page.click("#port-done");
+      await page.waitForFunction(() => window.TRPNautilus.state === "salon");
+      await page.click(".salon-tag[data-salon=chart]", { force: true });
+      await page.waitForFunction(() => window.TRPNautilus.state === "chart");
+      check("the second chapter opens on the chart after the first port", await page.locator("#chart-ports .port").nth(1).isEnabled() && /made port/.test(await page.locator("#chart-ports .port").nth(0).textContent()));
+      check("no page errors through the campaign", page.errors.length === 0, page.errors.join(" | "));
+      await page.ctx.close();
+    }
+
+    // Every chapter can be sailed to its end in both renderers.
+    for (const mode of ["2d", "3d"]) {
+      const page = await open(browser, base + (mode === "2d" ? "?renderer=2d" : ""), { init: () => localStorage.setItem("nautilus.v1", JSON.stringify({ prologueSeen: true, tutorialDone: true, campaign: { next: 7, done: { 1: { choice: 0, score: 1 }, 2: { choice: 0, score: 1 }, 3: { choice: 0, score: 1 }, 4: { choice: 0, score: 1 }, 5: { choice: 0, score: 1 }, 6: { choice: 0, score: 1 } } } })) });
+      const outcomes = [];
+      for (let id = 1; id <= 6; id++) {
+        await page.evaluate((n) => window.TRPNautilus.sailChapter(n), id);
+        await page.waitForTimeout(200);
+        const s = await page.evaluate(() => window.TRPNautilus.advance(200));
+        outcomes.push(s && s.outcome);
+        await page.waitForFunction(() => window.TRPNautilus.state === "log", null, { timeout: 10000 });
+        await page.click("#log-salon");
+        await page.waitForTimeout(150);
+      }
+      check(`${mode}: all six chapters play to an end`, outcomes.every((o) => o === "harbor" || o === "sunk"), outcomes.join(","));
+      check(`${mode}: no page errors across the season`, page.errors.length === 0, page.errors.join(" | "));
+      await page.ctx.close();
+    }
+
     // The captain's All Stop lever.
     {
       const page = await open(browser, base + "?renderer=2d");

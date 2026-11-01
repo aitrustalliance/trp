@@ -36,8 +36,57 @@
     s.connect(f); f.connect(g); g.connect(master); s.start();
   }
 
+  // A procedural score. A slow pad in a minor mode, a pulse that quickens
+  // with danger, and an arpeggio that climbs as the sea gets rough. The
+  // Decree detunes everything while it is in force.
+  const SCALE = [0, 2, 3, 5, 7, 10, 12, 14, 15];
+  const BASE = 55; // A1
+  let score = null;
+  function startScore() {
+    if (!ctx) return;
+    if (score) { score.bus.gain.setTargetAtTime(1, ctx.currentTime, 1); score.next = Math.max(score.next, ctx.currentTime + 0.2); return; }
+    const bus = ctx.createGain(); bus.gain.value = 0.0; bus.connect(master);
+    const padGain = ctx.createGain(); padGain.gain.value = 0.11; padGain.connect(bus);
+    const padFilter = ctx.createBiquadFilter(); padFilter.type = "lowpass"; padFilter.frequency.value = 500; padFilter.Q.value = 0.7; padFilter.connect(padGain);
+    const pads = [0, 7, 12].map((semi, i) => { const o = ctx.createOscillator(); o.type = i === 1 ? "triangle" : "sawtooth"; o.frequency.value = BASE * Math.pow(2, semi / 12); o.detune.value = (i - 1) * 6; o.connect(padFilter); o.start(); return o; });
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lfoGain = ctx.createGain(); lfoGain.gain.value = 180; lfo.connect(lfoGain); lfoGain.connect(padFilter.frequency); lfo.start();
+    score = { bus, padFilter, pads, next: ctx.currentTime + 0.5, step: 0, level: 0, captured: false };
+    bus.gain.setTargetAtTime(1, ctx.currentTime, 2);
+  }
+  function note(freq, at, dur, type, vol) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(score.bus); o.start(at); o.stop(at + dur + 0.05);
+  }
+  function scoreTick(level, captured) {
+    if (!ctx || !score || muted) return;
+    score.level += (level - score.level) * 0.05;
+    score.captured = captured;
+    const l = score.level;
+    score.padFilter.frequency.setTargetAtTime(380 + l * 900, ctx.currentTime, 0.5);
+    for (const [i, o] of score.pads.entries()) o.detune.setTargetAtTime(captured ? (i - 1) * 35 + 20 : (i - 1) * 6, ctx.currentTime, 0.3);
+    const beat = 0.5 - l * 0.26;
+    while (score.next < ctx.currentTime + 0.3) {
+      const at = score.next;
+      const s = score.step;
+      if (s % 2 === 0) note(BASE, at, 0.25, "sine", 0.12 + l * 0.12);
+      if (l > 0.15 && s % 4 === 2) note(BASE * 1.5, at, 0.18, "triangle", 0.05 + l * 0.08);
+      if (l > 0.35 || s % 8 === 0) {
+        const deg = SCALE[(s * 2 + Math.floor(l * 5)) % SCALE.length] + (captured ? 1 : 0);
+        note(BASE * 4 * Math.pow(2, deg / 12), at, 0.22, "square", 0.025 + l * 0.04);
+      }
+      score.next += beat;
+      score.step++;
+    }
+  }
+  function stopScore() { if (score) { score.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.6); } }
+
   const api = {
     init,
+    score: scoreTick,
+    scoreStart: startScore,
+    scoreStop: stopScore,
     setMuted(m) { muted = m; if (master) master.gain.value = m ? 0 : 0.5; },
     get muted() { return muted; },
     fire() { tone(220, 0.12, "triangle", 0.18, 90); noise(0.05, 0.15, 3000); },
@@ -51,7 +100,7 @@
     alarm() { tone(300, 0.4, "sawtooth", 0.15, 220); setTimeout(() => tone(300, 0.4, "sawtooth", 0.15, 220), 450); },
     harbor() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.5, "triangle", 0.12), i * 140)); },
     engine(speed) { if (humGain) humGain.gain.setTargetAtTime(0.05 + speed * 0.07, ctx.currentTime, 0.2); if (hum) hum.frequency.setTargetAtTime(36 + speed * 18, ctx.currentTime, 0.3); },
-    silence() { if (humGain) humGain.gain.setTargetAtTime(0, ctx.currentTime, 0.2); },
+    silence() { if (humGain) humGain.gain.setTargetAtTime(0, ctx.currentTime, 0.2); stopScore(); },
   };
   root.NautilusAudio = api;
 })(window);
