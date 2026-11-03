@@ -34,6 +34,24 @@ the others cover: given that we know who this entity is and what it is
 allowed to do, does it meet the trust requirements for this interaction in
 this domain?
 
+## Working Adapters
+
+The adapters in `adapters/` put a TRP profile in the path of a running AI agent today. Each one connects a framework's own tool interception point to one shared gate in `adapters/gate/trp_gate.py`, which judges every tool call before it runs and every tool result before the model sees it, with the reference evaluator. A refused call never runs, and the model reads the reason as the tool's result.
+
+| System | Interception Point | Adapter | Checked With |
+|---|---|---|---|
+| Any MCP client and server on stdio | A proxy the client starts in place of the server | `adapters/mcp/trp_mcp_checkpoint.py` | Official MCP Python SDK 2.3.0, official filesystem server 2.1.0 and fetch server 2026.10.28, protocol revision 2026-07-28 |
+| LangChain | `AgentMiddleware.wrap_tool_call` | `adapters/frameworks/langchain_trp.py` | langchain 1.4.8 with a scripted model |
+| LangGraph | `ToolNode(wrap_tool_call=...)` | `adapters/frameworks/langchain_trp.py` | langgraph 1.2.19 |
+| OpenAI Agents SDK | Tool input and output guardrails | `adapters/frameworks/openai_agents_trp.py` | openai-agents 0.24.0 with a scripted model |
+| Google ADK (Agent Development Kit) | Before and after tool callbacks | `adapters/frameworks/google_adk_trp.py` | google-adk 2.13.0 with a scripted model |
+| CrewAI | Before and after tool call hooks | `adapters/frameworks/crewai_trp.py` | crewai 1.15.34 with a scripted model |
+| AG2 | Tool execution middleware | `adapters/frameworks/ag2_trp.py` | ag2 1.2.2 with a scripted model |
+
+The reference profile `adapters/mcp/profiles/mcp-tool-checkpoint.trp.json` covers unapproved tools, paths outside the workspace, unapproved domains, credentials in outbound arguments, sensitive data leaving the session, writes that need approval, credentials in tool results and planted instructions in tool results. Four scored signals set the session's standing, and a restricted session keeps reads and pauses writes, outbound calls and commands.
+
+Every adapter writes to the same decision log, one line of canonical JSON per decision, each line carrying the SHA-256 of the line before it. One session file can span several MCP servers and several frameworks, so content read through one cannot leave through another. `adapters/mcp/README.md` and `adapters/frameworks/README.md` give the setup for each.
+
 ## SPIFFE / SPIRE
 
 SPIFFE assigns a cryptographic identity to every workload, a URI like
@@ -43,7 +61,7 @@ question from which human logged in.
 
 TRP consumes SPIFFE identity as evidence. A hard rule can require that the
 calling workload present a valid SVID before the interaction proceeds. A
-scored signal can track certificate freshness:
+scored signal can track certificate freshness, as below.
 
 ```json
 {
@@ -82,7 +100,7 @@ The protocol explicitly notes that "missions are not a policy language"
 humans or AI. TRP provides the machine-readable, deterministic policy
 language that AAuth chose not to build.
 
-The composition is direct: a person server receives an agent's mission,
+The composition is direct. A person server receives an agent's mission,
 fetches the applicable TRP profile, evaluates the agent's evidence against
 it, and approves or denies the mission based on standing. The two protocols
 are complementary by design.
@@ -91,12 +109,12 @@ are complementary by design.
 
 WorkOS publishes auth.md as an open protocol for agent authentication
 discovery. A service places a markdown file at its domain root describing
-how agents should authenticate: OAuth 2.1 flows, ID-JAG token exchange,
-dynamic client registration.
+how agents should authenticate, with OAuth 2.1 flows, ID-JAG token exchange
+and dynamic client registration.
 
 `auth.md` answers how to authenticate. `trust.json` answers what trust
 requirements apply after authentication. Side by side on the same domain,
-they give agents a complete discovery surface:
+they give agents a complete discovery surface.
 
 ```
 1. Agent encounters a service
@@ -114,9 +132,10 @@ See `spec/trust-json-discovery.md` for the full specification.
 
 ## Model Context Protocol (MCP)
 
-MCP is Anthropic's protocol for AI models to invoke tools, access resources,
+MCP is an open protocol for AI models to invoke tools, access resources,
 and receive structured context from external services. An MCP server can
-publish a TRP profile describing what it requires of callers:
+publish a TRP profile describing what it requires of callers, such as the
+following.
 
 ```json
 {
@@ -157,6 +176,10 @@ MCP defines how tools are invoked. TRP defines the conditions under which
 invocation is acceptable. An MCP server evaluates the client's evidence
 before granting tool access.
 
+The MCP checkpoint in `adapters/mcp` enforces a TRP profile from the other
+side, in front of any server, with no change to the client or the server. See
+Working Adapters above.
+
 ## W3C Verifiable Credentials and DIDs
 
 Verifiable Credentials are cryptographically signed claims about a subject,
@@ -165,7 +188,7 @@ or a model evaluation result is a natural evidence artifact for TRP.
 
 The evaluator does not need to understand VC internals. It consumes a value
 extracted from the credential, like the number of days since a HIPAA
-certification was issued:
+certification was issued, as below.
 
 ```json
 {
@@ -189,15 +212,16 @@ across organizational boundaries. When Agent A delegates to Agent B, both
 agents can evaluate each other against published TRP profiles before
 delegation proceeds.
 
-TRP handles the trust contract: under what conditions is Agent A willing to
-delegate to Agent B, and under what conditions is Agent B willing to accept?
+TRP handles the trust contract, meaning the conditions under which Agent A
+will delegate to Agent B and the conditions under which Agent B will accept.
 The profile runs both ways, enabling bilateral trust without manual
 negotiation by either operator.
 
 ## Composing Multiple Evidence Sources
 
 TRP's value shows up when multiple evidence sources feed a single evaluation.
-A profile for an AI agent accessing healthcare data might require:
+A profile for an AI agent accessing healthcare data might require the
+following evidence.
 
 - Workload identity via SPIFFE (is this the production instance?)
 - Authorization via AAuth (has the person approved this mission?)
@@ -210,7 +234,7 @@ them into a single, deterministic trust decision.
 
 ## Building an Integration
 
-To connect a new evidence source to TRP:
+To connect a new evidence source to TRP, follow these steps.
 
 1. Identify the evidence artifact your protocol produces (a certificate, a
    token, a signed claim, a metric).

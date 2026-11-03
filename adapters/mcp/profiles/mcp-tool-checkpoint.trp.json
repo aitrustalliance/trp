@@ -1,0 +1,157 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/mcp-tool-checkpoint/0.1.0/trp.json",
+  "trp_id": "mcp-tool-checkpoint",
+  "spec_version": "0.5",
+  "version": "0.1.0",
+  "name": "AI agent tool calls through MCP",
+  "description": "Reference Trust Requirements Profile for an AI agent that calls tools on MCP (Model Context Protocol) servers. Every requirement uses evidence the checkpoint can measure on the wire, so the profile judges each tool call and each tool result before it reaches the server or the model. Illustrative draft values.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-02T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "cross-industry",
+    "use_case": "agent-tool-use"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one AI agent session that reaches files, the web and other systems through MCP servers.",
+    "boundary": "Every tools/call request from the agent and every result returned to it, across all MCP servers in one session.",
+    "out_of_scope": [
+      "The quality of the agent's final answer",
+      "Which model or agent framework drives the session"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "steps_per_task",
+      "weight": 30,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 20,
+      "critical_threshold": 40,
+      "unit": "tool calls",
+      "reason": "Runaway step counts point to loops, confusion or a task the agent should hand back."
+    },
+    {
+      "signal": "tool_error_rate",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.25,
+      "critical_threshold": 0.5,
+      "unit": "ratio",
+      "reason": "Repeated tool failures mean the agent is acting on broken information."
+    },
+    {
+      "signal": "calls_per_minute",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 30,
+      "critical_threshold": 60,
+      "unit": "tool calls per minute",
+      "reason": "A burst of calls is how a looping agent burns money and hammers outside systems."
+    },
+    {
+      "signal": "egress_kb_session",
+      "weight": 30,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 256,
+      "critical_threshold": 2048,
+      "unit": "KB",
+      "reason": "The volume of data an agent sends out of the session bounds what it can leak."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "unapproved_tool_called",
+      "field": "unapproved_tool_called",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "secret_in_arguments",
+      "field": "secret_in_arguments",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "unapproved_destination",
+      "field": "output_destination_approved",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "path_outside_workspace",
+      "field": "path_outside_workspace",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "sensitive_data_in_egress",
+      "field": "sensitive_data_in_egress",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "write_without_approval",
+      "field": "write_without_approval",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "secret_in_tool_result",
+      "field": "secret_in_tool_result",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "instructions_in_tool_result",
+      "field": "instructions_in_tool_result",
+      "condition": "is_true",
+      "action": "require_review"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "trusted",
+      "severity": 0,
+      "range": "all signals within acceptable range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "untrusted",
+      "severity": 2,
+      "range": "a signal in the critical range or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "The checkpoint runs outside the agent and its model, so the agent cannot skip or edit its evidence.",
+    "response_bands": [
+      {
+        "band": "trusted",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "untrusted",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values.",
+    "Under the restricted response the checkpoint allows reads and refuses writes, outbound calls and commands.",
+    "A halt stops the whole session until a person resets it. A review refuses only the call or withholds only the result in question.",
+    "Secret and instruction detection uses published token formats and phrase patterns. It is a pattern match, not a classifier."
+  ]
+}

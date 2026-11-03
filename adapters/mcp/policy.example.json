@@ -1,0 +1,17 @@
+{
+  "workspace": "workspace",
+  "approved_tools": ["read_file", "list_directory", "write_file", "fetch", "http_post"],
+  "tools": {
+    "read_file": { "kind": "read", "path_args": ["path"] },
+    "list_directory": { "kind": "read", "path_args": ["path"] },
+    "write_file": { "kind": "write", "path_args": ["path"] },
+    "fetch": { "kind": "egress", "url_args": ["url"] },
+    "http_post": { "kind": "egress", "url_args": ["url"] },
+    "run_shell": { "kind": "exec" }
+  },
+  "allowed_domains": ["api.github.com", "docs.python.org", "example.com"],
+  "approved_writes": ["notes/*"],
+  "sensitive_paths": ["**/.env", "*.env", "**/*.pem", "**/id_rsa*", "secrets/*", "**/secrets/*"],
+  "hide_unapproved_tools": true,
+  "halt_scope": "session"
+}

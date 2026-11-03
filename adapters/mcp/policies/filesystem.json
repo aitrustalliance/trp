@@ -1,0 +1,25 @@
+{
+  "workspace": "../../../fixtures/mcp-workspace",
+  "approved_tools": ["read_text_file", "read_file", "read_multiple_files", "list_directory", "list_directory_with_sizes", "directory_tree", "search_files", "get_file_info", "list_allowed_directories", "write_file", "edit_file", "create_directory"],
+  "tools": {
+    "read_file": { "kind": "read", "path_args": ["path"] },
+    "read_text_file": { "kind": "read", "path_args": ["path"] },
+    "read_media_file": { "kind": "read", "path_args": ["path"] },
+    "read_multiple_files": { "kind": "read", "path_args": ["paths"] },
+    "list_directory": { "kind": "read", "path_args": ["path"] },
+    "list_directory_with_sizes": { "kind": "read", "path_args": ["path"] },
+    "directory_tree": { "kind": "read", "path_args": ["path"] },
+    "search_files": { "kind": "read", "path_args": ["path"] },
+    "get_file_info": { "kind": "read", "path_args": ["path"] },
+    "list_allowed_directories": { "kind": "read" },
+    "write_file": { "kind": "write", "path_args": ["path"] },
+    "edit_file": { "kind": "write", "path_args": ["path"] },
+    "create_directory": { "kind": "write", "path_args": ["path"] },
+    "move_file": { "kind": "write", "path_args": ["source", "destination"] }
+  },
+  "allowed_domains": [],
+  "approved_writes": ["notes/*"],
+  "sensitive_paths": ["**/.env", "*.env", "**/*.pem", "**/id_rsa*", "secrets/*", "**/secrets/*"],
+  "hide_unapproved_tools": true,
+  "halt_scope": "session"
+}

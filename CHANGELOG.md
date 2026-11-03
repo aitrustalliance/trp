@@ -4,6 +4,25 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Added
+- `adapters/gate/trp_gate.py`, one TRP gate that judges each AI agent tool
+  call before it runs and each tool result before the model sees it, with a
+  decision log chained by SHA-256 and a session file shared across servers and
+  frameworks.
+- `adapters/mcp/trp_mcp_checkpoint.py`, a TRP checkpoint in front of any MCP
+  server on stdio, with the reference profile
+  `adapters/mcp/profiles/mcp-tool-checkpoint.trp.json` and policies for the
+  official filesystem and fetch servers.
+- Adapters for LangChain, LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI
+  and AG2 in `adapters/frameworks`, each checked by running the real framework
+  with a scripted model.
+
+### Removed
+- A compiled Python file committed by mistake, with a `.gitignore` to keep
+  such files out.
+
 ## [0.5.2] - 2026-10-31
 
 ### Added

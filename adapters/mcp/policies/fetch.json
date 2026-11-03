@@ -1,0 +1,12 @@
+{
+  "workspace": "../../../fixtures/mcp-workspace",
+  "approved_tools": ["fetch"],
+  "tools": {
+    "fetch": { "kind": "egress", "url_args": ["url"] }
+  },
+  "allowed_domains": ["docs.python.org", "modelcontextprotocol.io", "example.com"],
+  "approved_writes": [],
+  "sensitive_paths": [],
+  "hide_unapproved_tools": true,
+  "halt_scope": "session"
+}

@@ -29,6 +29,12 @@ jobs:
       - name: Run conformance test suite
         run: python tests/run_conformance.py --verbose
 
+      - name: Check the TRP checkpoint for MCP
+        run: python tests/mcp_checkpoint_check.py
+
+      - name: Check the MCP checkpoint with the official MCP SDK client
+        run: pip install "mcp==2.3.0" && python tests/mcp_checkpoint_sdk.py
+
       - name: Validate schema is valid JSON Schema
         run: |
           python -c "
@@ -161,3 +167,34 @@ jobs:
           print(f'Cross-evaluator agreement: {passed}/{passed + failed}')
           sys.exit(1 if failed else 0)
           "
+
+  agent-frameworks:
+    name: Agent framework adapters (${{ matrix.framework }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - framework: langchain
+            install: "langchain==1.4.8 langgraph==1.2.19"
+          - framework: openai_agents
+            install: "openai-agents==0.24.0"
+          - framework: google_adk
+            install: "google-adk==2.13.0"
+          - framework: crewai
+            install: "crewai==1.15.34"
+          - framework: ag2
+            install: "ag2==1.2.2"
+    env:
+      OPENAI_API_KEY: unused
+      OTEL_SDK_DISABLED: "true"
+      CREWAI_DISABLE_TELEMETRY: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ${{ matrix.framework }}
+        run: pip install jsonschema ${{ matrix.install }}
+      - name: Run the framework through the TRP gate with a scripted model
+        run: PYTHONPATH=adapters/frameworks python tests/frameworks/${{ matrix.framework }}_check.py

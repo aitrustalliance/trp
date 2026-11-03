@@ -52,13 +52,18 @@ tools/
   evaluate.js                                    reference evaluator (Node.js)
   README.md                                      evaluator documentation and usage
 tests/
-  run_conformance.py                             conformance test suite (27 tests)
+  run_conformance.py                             conformance test suite
   profiles/valid/                                profiles that must pass schema validation
   profiles/invalid/                              profiles that must fail schema validation
   evidence/                                      evidence samples with expected evaluation outcomes
   README.md                                      test suite documentation
+adapters/
+  gate/trp_gate.py                               one TRP gate for AI agent tool calls and results
+  mcp/                                           TRP checkpoint in front of any MCP server, with its profile and policies
+  frameworks/                                    LangChain, LangGraph, OpenAI Agents SDK, Google ADK, CrewAI and AG2 adapters
+tests/mcp_checkpoint_check.py, tests/frameworks/ adapter checks against real frameworks and servers
 .github/workflows/ci.yml                         CI pipeline: runs on every push and PR
-INTEGRATIONS.md                                  integration architecture with SPIFFE, AAuth, MCP, VCs, A2A
+INTEGRATIONS.md                                  working adapters and integration architecture with SPIFFE, AAuth, MCP, VCs, A2A
 docs/
   authoring-guide.md                             step-by-step guide to writing your first TRP profile
 CONTRIBUTING.md                                  how to contribute profiles and spec changes
@@ -72,12 +77,12 @@ LICENSE                                          Apache License 2.0
 
 ## Getting Started
 
-Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across two domains:
+Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across two domains.
 
-- **Manufacturing safety** (`examples/manufacturing-safety/trp.json`): a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone, and certification status.
-- **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`): an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for HIPAA basis, IRB status, and data use agreements.
+- **Manufacturing safety** (`examples/manufacturing-safety/trp.json`) covers a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone, and certification status.
+- **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`) covers an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for HIPAA basis, IRB status, and data use agreements.
 
-To check a profile against the schema, use any standard JSON Schema validator (Draft 2020-12):
+To check a profile against the schema, use any standard JSON Schema validator (Draft 2020-12).
 
 ```bash
 pip install jsonschema
@@ -86,7 +91,7 @@ python -c "import json,jsonschema; jsonschema.Draft202012Validator(json.load(ope
 
 No output means the profile is valid.
 
-To evaluate data against a profile, use the TRP Reference Evaluator:
+To evaluate data against a profile, use the TRP Reference Evaluator.
 
 ```bash
 # Generate a sample with safe default values
@@ -98,11 +103,21 @@ python3 tools/evaluate.py examples/manufacturing-safety/trp.json sample.json
 
 The evaluator loads the profile, checks hard rules, scores signals against thresholds, tracks drift, and assigns a standing from the profile's declared bands. See `tools/README.md` for full documentation.
 
+## Use TRP In A Running Agent
+
+`adapters/` connects a TRP profile to the agent frameworks and protocols teams already run. Put the MCP checkpoint in front of any MCP server, or add the adapter for LangChain, LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI or AG2. Each one judges every tool call before it runs and every tool result before the model sees it. [INTEGRATIONS.md](INTEGRATIONS.md) lists each adapter and the versions it was checked against.
+
+```bash
+python adapters/mcp/trp_mcp_checkpoint.py \
+  --policy adapters/mcp/policies/filesystem.json --log decisions.jsonl \
+  -- npx -y @modelcontextprotocol/server-filesystem@2.1.0 fixtures/mcp-workspace
+```
+
 ## Conformance Testing
 
 Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic, and whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body. A validator does not make that call. See the specification for the full definitions.
 
-The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs:
+The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs.
 
 ```bash
 pip install -r requirements.txt
