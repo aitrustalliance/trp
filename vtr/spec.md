@@ -209,4 +209,4 @@ A receipt carries digests of the evidence and of the inputs, never their content
 
 ## Conformance
 
-An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. The valid vectors include a receipt for each standing result, and each invalid vector names the reason a verifier must report. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.
+An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. The valid vectors include a receipt for each standing result, and they cover every kind and every mode. Each invalid vector names the reason a verifier must report. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.

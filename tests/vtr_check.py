@@ -57,7 +57,10 @@ def main():
             check(f"Python verifier on {key}", reason == t["expect"] and ok == (d == "valid"), reason)
             check(f"Node.js verifier on {key}", node.get(key) == t["expect"], node.get(key))
             count[d] += 1
-    check("at least 22 valid and 17 invalid vectors", count["valid"] >= 22 and count["invalid"] >= 17, count)
+    check("at least 26 valid and 17 invalid vectors", count["valid"] >= 26 and count["invalid"] >= 17, count)
+    valid = [vector_claims(f"valid/{f.name}") for f in (ROOT / "vtr/vectors/valid").glob("*.json")]
+    check("every kind has a valid vector", {c["kind"] for c in valid} == vtr.KINDS, sorted({c["kind"] for c in valid}))
+    check("every mode has a valid vector", {c["mode"] for c in valid} == vtr.MODES, sorted({c["mode"] for c in valid}))
     for name in ("unknown-kid", "missing-subject", "coverage-out-of-range"):
         check(f"the invalid vector {name} exists", (ROOT / "vtr/vectors/invalid" / f"{name}.json").exists())
 

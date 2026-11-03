@@ -103,6 +103,13 @@ def main():
         ("agent-tool-escalate", vtr.sign(tool("write_file", "escalate", "tool_review", trp_clauses=["rule:write_without_approval"]), es), P2, "tool_review", False),
         ("mode-shadow", vtr.sign(c(p1, "estop", mode="shadow"), es), P1, "estop", False),
         ("kind-drill", vtr.sign(c(p1, "estop", kind="drill", details={"app": "robot-cell", "forced_failure": "estop_active", "from": "full", "to": "suspended", "result": "stopped"}), es), P1, "estop", False),
+        ("kind-conformance", vtr.sign(c(p1, "healthy", kind="conformance", details={
+            "suite": {"id": "robot-cell-suite", "version": "3", "digest": vtr.digest({"suite": "robot-cell-suite", "version": "3"})},
+            "outgoing": {"id": "cell-controller", "version": "2.1.0"}, "incoming": {"id": "cell-controller", "version": "2.2.0"},
+            "result": "pass"}), es), P1, "healthy", False),
+        ("kind-variance", vtr.sign(c(p1, "warning", kind="variance", details={"runs": 5, "distinct_standings": 1, "distinct_result_digests": 1}), es), P1, "warning", False),
+        ("mode-test", vtr.sign(c(p1, "healthy", mode="test"), es), P1, "healthy", False),
+        ("mode-observed", vtr.sign(c(p1, "missing", mode="observed"), es), P1, "missing", False),
     ]
     batch = vtr.sign_batch([c(p1, e, sub=f"urn:example:cell:0{i}") for i, e in enumerate(["healthy", "estop", "missing", "warning", "healthy"], 1)], es, ISS, iat=IAT)
     single = vtr.sign_batch([c(p1, "healthy")], es, ISS, iat=IAT)
