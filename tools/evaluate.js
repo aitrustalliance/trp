@@ -225,19 +225,37 @@ class DriftDetector {
   }
 }
 
-// Python's round() uses banker's rounding (round-half-to-even).
-// Match it so moving averages are identical across evaluators.
-function round4(x) {
-  const scaled = x * 10000;
-  const floor = Math.floor(scaled);
-  const diff = scaled - floor;
-  let n;
-  if (Math.abs(diff - 0.5) < Number.EPSILON) {
-    n = floor % 2 === 0 ? floor : floor + 1; // ties to even
-  } else {
-    n = Math.round(scaled);
+// Python's round(x, digits) for a float. It rounds the exact binary value of x
+// to the nearest multiple of 10^-digits, takes the even neighbour on an exact
+// tie, and returns the double nearest that decimal. toFixed takes the larger
+// neighbour on a tie, and scaling by 10^digits first adds an error of its own,
+// so both can differ from Python. This works on the exact value with BigInt.
+function roundHalfEven(x, digits) {
+  if (!Number.isFinite(x) || x === 0) return x;
+  const view = new DataView(new ArrayBuffer(8));
+  view.setFloat64(0, x);
+  const hi = view.getUint32(0);
+  const lo = view.getUint32(4);
+  const biased = (hi >>> 20) & 0x7ff;
+  let mantissa = (BigInt(hi & 0xfffff) << 32n) | BigInt(lo);
+  let exponent = -1074;
+  if (biased !== 0) {
+    mantissa |= 1n << 52n;
+    exponent = biased - 1075;
   }
-  return n / 10000;
+  if (exponent >= 0) return x; // an integer has nothing to round
+  // |x| = mantissa / 2^-exponent, so |x| * 10^digits = mantissa * 10^digits / 2^-exponent
+  const divisor = 1n << BigInt(-exponent);
+  const scaled = mantissa * 10n ** BigInt(digits);
+  let q = scaled / divisor;
+  const twice = 2n * (scaled % divisor);
+  if (twice > divisor || (twice === divisor && (q & 1n) === 1n)) q += 1n;
+  const magnitude = Number(`${q}e-${digits}`);
+  return x < 0 ? -magnitude : magnitude;
+}
+
+function round4(x) {
+  return roundHalfEven(x, 4);
 }
 
 function evaluate(profile, signals, driftDetector) {
@@ -303,8 +321,8 @@ function evaluate(profile, signals, driftDetector) {
       signal: ss.signal,
       value: value,
       unit: ss.unit,
-      severity: Number(sev.toFixed(4)),
-      penalty: Number(penalty.toFixed(4)),
+      severity: round4(sev),
+      penalty: round4(penalty),
       in_warning: inWarning,
       in_critical: inCritical,
     });
@@ -393,9 +411,9 @@ function generateSample(profile) {
   for (const ss of profile.scoredSignals) {
     const lowIsBad = ss.direction === "lower_is_unsafe";
     if (lowIsBad) {
-      sample[ss.signal] = Number((ss.warningThreshold * 1.2).toFixed(4));
+      sample[ss.signal] = round4(ss.warningThreshold * 1.2);
     } else {
-      sample[ss.signal] = Number((ss.warningThreshold * 0.8).toFixed(4));
+      sample[ss.signal] = round4(ss.warningThreshold * 0.8);
     }
   }
 
@@ -487,4 +505,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { loadProfile, profileFromObject, evaluate, generateSample, UnsupportedProfileError };
+module.exports = { loadProfile, profileFromObject, evaluate, generateSample, roundHalfEven, UnsupportedProfileError };

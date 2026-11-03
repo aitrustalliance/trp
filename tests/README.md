@@ -60,6 +60,10 @@ hard-override flag. The suite verifies that:
 - A hard rule whose field is missing, or arrives as the wrong type, is
   inconclusive. The assessment is incomplete, so the standing is `untrusted`
   without hard override, and the rule appears in `hard_rules_inconclusive`.
+- A severity that lands on a tie at four decimal places, and a drift
+  moving average stored just below a tie, round half to even on the exact
+  value. The cross-evaluator check confirms the Node.js evaluator rounds
+  them the same way.
 - The same input always produces the same output (determinism check).
 
 ### 5. Unsupported extends

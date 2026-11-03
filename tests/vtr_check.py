@@ -120,6 +120,7 @@ def main():
     standing_checks()
     result_digest_checks()
     coverage_checks()
+    rounding_checks()
     gate_receipts()
     schema_check()
     print(f"VTR: {passed} checks passed" + (f", {len(failed)} failed" if failed else ""))
@@ -305,6 +306,26 @@ def coverage_checks():
                                                         {"profile": wide, "evidence": {f"f{i:02d}": False for i in range(3)}},
                                                         {"profile": empty, "evidence": {}}])]
     check("coverage rounds half to even at four places and is 1 with no requirements, in both verifiers", py == js == [0.0312, 0.0938, 1.0], (py, js))
+    many = dict(wide, hard_rules=[{"rule": f"r{i:03d}", "field": f"f{i:03d}", "condition": "is_true", "action": "halt"} for i in range(160)])
+    py = vtr.determination(many, {"f000": False})["coverage"]
+    js = node(NODE_DETERMINE, [{"profile": many, "evidence": {"f000": False}}])[0]["coverage"]
+    check("coverage of 1 in 160 rounds the exact value of the double, which lies just above 0.00625, in both verifiers", py == js == 0.0063, (py, js))
+
+
+NODE_ROUND = r"""
+const r = require(process.argv[1]).roundHalfEven; const v = JSON.parse(require("fs").readFileSync(0, "utf8"));
+console.log(JSON.stringify(v.map((x) => r(x, 4))));
+"""
+
+
+def rounding_checks():
+    """The Node.js evaluator rounds every value to four places exactly as Python's round does."""
+    vals = [(k + 0.5) / 100000 for k in range(20000)] + [k / 2 ** 15 for k in range(4000)]
+    vals += [2.675, 1.00005, 0.00015, 0.00625, -0.03125, 5e-324, 1e15 + 0.03125, 123456789.00005, 546.875 / 1500]
+    js = json.loads(subprocess.run(["node", "-e", NODE_ROUND, str(ROOT / "tools/evaluate.js")], input=json.dumps(vals),
+                                   capture_output=True, text=True, check=True).stdout)
+    bad = [(v, j, round(v, 4)) for v, j in zip(vals, js) if j != round(v, 4)]
+    check(f"the Node.js evaluator rounds {len(vals)} ties and near ties as Python does", not bad, bad[:3])
 
 
 def schema_check():

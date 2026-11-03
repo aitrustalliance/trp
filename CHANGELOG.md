@@ -42,6 +42,13 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   and AG2 in `adapters/frameworks`, each checked by running the real framework
   with a scripted model.
 
+### Fixed
+- `tools/evaluate.js` rounds severity, penalty, drift moving averages and
+  generated sample values half to even on the exact value of each number, the
+  way Python's `round` does. It used to round a tie such as 0.03125 up, and
+  near ties such as 0.95075 could round the other way, so the two evaluators
+  could disagree. `tests/evidence/rounding-tie.json` lands on both cases.
+
 ### Removed
 - A compiled Python file committed by mistake, with a `.gitignore` to keep
   such files out.

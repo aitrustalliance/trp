@@ -49,11 +49,7 @@ function thumbprint(jwk) {
   return b64u(sha(Buffer.from(JSON.stringify(Object.fromEntries(req.map((k) => [k, jwk[k]]))), "utf8")));
 }
 
-function round4(x) {  // half to even at four places
-  const s = x * 10000, f = Math.floor(s), d = s - f;
-  const r = Math.abs(d - 0.5) < 1e-9 ? (f % 2 === 0 ? f : f + 1) : Math.round(s);
-  return r / 10000;
-}
+const round4 = (x) => trp.roundHalfEven(x, 4);  // half to even at four places on the exact value, as Python rounds
 
 // The Node.js evaluator's output with no drift history and without its `evaluation` member, which carries the
 // evaluation time, the evaluator's name and its result_hash. Every other member matches the Python evaluator's.
