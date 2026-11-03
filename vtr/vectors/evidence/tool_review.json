@@ -1,0 +1,14 @@
+{
+  "steps_per_task": 5,
+  "tool_error_rate": 0.0,
+  "calls_per_minute": 3,
+  "egress_kb_session": 0.0,
+  "unapproved_tool_called": false,
+  "secret_in_arguments": false,
+  "output_destination_approved": true,
+  "path_outside_workspace": false,
+  "sensitive_data_in_egress": false,
+  "write_without_approval": true,
+  "secret_in_tool_result": false,
+  "instructions_in_tool_result": false
+}

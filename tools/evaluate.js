@@ -38,8 +38,11 @@ function valueType(value) {
 // --- Profile loading --------------------------------------------------------
 
 function loadProfile(filePath) {
-  const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  return profileFromObject(JSON.parse(fs.readFileSync(filePath, "utf-8")), filePath);
+}
 
+// A profile from an already parsed profile document.
+function profileFromObject(raw, filePath = "profile") {
   if (Object.prototype.hasOwnProperty.call(raw, "extends")) {
     throw new UnsupportedProfileError(
       `${filePath}: profile uses 'extends', which this reference evaluator ` +
@@ -482,4 +485,6 @@ function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { loadProfile, profileFromObject, evaluate, generateSample, UnsupportedProfileError };

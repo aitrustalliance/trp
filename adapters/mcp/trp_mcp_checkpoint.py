@@ -55,7 +55,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "gate"))
 from trp_gate import (  # noqa: E402  the shared gate every framework adapter uses
-    DecisionLog, Gate, Policy, Session, canonical, result_texts, verify_log,
+    DecisionLog, Gate, Policy, ReceiptIssuer, Session, canonical, result_texts, verify_log,
 )
 
 VERSION_KEY = "io.modelcontextprotocol/protocolVersion"
@@ -65,8 +65,8 @@ __all__ = ["Checkpoint", "canonical", "verify_log"]
 
 
 class Checkpoint:
-    def __init__(self, profile_path, policy, session, log, server_name="server", out=None):
-        self.gate = Gate(profile_path, policy, session, log, source=server_name)
+    def __init__(self, profile_path, policy, session, log, server_name="server", out=None, receipts=None):
+        self.gate = Gate(profile_path, policy, session, log, source=server_name, receipts=receipts)
         self.policy = policy
         self.out = out or sys.stdout.buffer
         self.out_lock = threading.Lock()
@@ -201,6 +201,9 @@ def main(argv=None):
     ap.add_argument("--log", help="decision log, JSON lines chained by SHA-256")
     ap.add_argument("--server-name", default="server")
     ap.add_argument("--verify-log", metavar="LOG", help="check a decision log's chain and exit")
+    ap.add_argument("--receipts", help="also sign a Verifiable Trust Receipt for every decision, one compact JWS per line")
+    ap.add_argument("--receipt-key", help="ES256 or EdDSA private key in PEM for the receipts")
+    ap.add_argument("--issuer", default="urn:trp:mcp-checkpoint", help="the iss claim of the receipts")
     ap.add_argument("command", nargs=argparse.REMAINDER, help="-- then the MCP server command")
     a = ap.parse_args(argv)
     if a.verify_log:
@@ -210,7 +213,10 @@ def main(argv=None):
     cmd = a.command[1:] if a.command[:1] == ["--"] else a.command
     if not cmd or not a.policy:
         ap.error("give --policy and, after --, the MCP server command")
-    cp = Checkpoint(a.profile, Policy.load(a.policy), Session(a.session), DecisionLog(a.log), a.server_name)
+    if bool(a.receipts) != bool(a.receipt_key):
+        ap.error("give --receipts and --receipt-key together")
+    issuer = ReceiptIssuer(a.receipt_key, a.issuer, a.receipts) if a.receipts else None
+    cp = Checkpoint(a.profile, Policy.load(a.policy), Session(a.session), DecisionLog(a.log), a.server_name, receipts=issuer)
     return cp.run(cmd)
 
 

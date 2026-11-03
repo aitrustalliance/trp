@@ -165,7 +165,12 @@ class Profile:
 def load_profile(path: Path) -> Profile:
     with open(path) as f:
         raw = json.load(f)
+    return profile_from_dict(raw, source=path)
 
+
+def profile_from_dict(raw: dict, source: Any = "profile") -> Profile:
+    """A profile from an already parsed profile document."""
+    path = source
     if "extends" in raw:
         raise UnsupportedProfileError(
             f"{path}: profile uses 'extends', which this reference evaluator "

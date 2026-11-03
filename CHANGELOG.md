@@ -7,6 +7,14 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 ## [Unreleased]
 
 ### Added
+- Verifiable Trust Receipt (VTR) version 0.5 in `vtr/`, with the
+  specification, a JSON Schema, a Python reference library and emitter,
+  independent Python and Node.js verifiers, Merkle batch signing under RFC 9162
+  and 32 test vectors that both verifiers must agree on.
+- The TRP gate signs a VTR for every decision when given a receipt key.
+- `profile_from_dict` in `tools/evaluate.py` and `profileFromObject` in
+  `tools/evaluate.js`, so a parsed profile can be evaluated without a file.
+  The Node.js evaluator can now be loaded as a module.
 - `adapters/gate/trp_gate.py`, one TRP gate that judges each AI agent tool
   call before it runs and each tool result before the model sees it, with a
   decision log chained by SHA-256 and a session file shared across servers and

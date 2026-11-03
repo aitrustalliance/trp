@@ -1,0 +1,9 @@
+{
+  "human_distance_m": 1.8,
+  "robot_speed_mm_s": 600,
+  "temperature_C": 56,
+  "model_confidence": 0.94,
+  "data_quality": 0.97,
+  "estop_active": false,
+  "safety_certification_status": "valid"
+}

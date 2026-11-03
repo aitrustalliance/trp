@@ -32,6 +32,9 @@ jobs:
       - name: Check the TRP checkpoint for MCP
         run: python tests/mcp_checkpoint_check.py
 
+      - name: Check Verifiable Trust Receipts in Python and Node.js
+        run: pip install cryptography && python tests/vtr_check.py
+
       - name: Check the MCP checkpoint with the official MCP SDK client
         run: pip install "mcp==2.3.0" && python tests/mcp_checkpoint_sdk.py
 

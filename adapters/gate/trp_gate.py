@@ -340,6 +340,47 @@ def verify_log(path):
     return True, len(lines), None
 
 
+class ReceiptIssuer:
+    """Signs a Verifiable Trust Receipt (VTR, vtr/spec.md) for every decision the gate makes.
+
+    Each receipt binds the decision to the profile by its digest, carries one result per requirement, the
+    digest of the evidence the gate measured and the digest of the tool call, and chains to the previous
+    receipt for the same subject. Receipts go to `out` as one compact JWS per line.
+    """
+
+    def __init__(self, key_path, iss, out, subject=None, mode="enforced"):
+        sys.path.insert(0, str(ROOT / "vtr" / "tools"))
+        import vtr  # the VTR reference library in vtr/tools/vtr.py
+        self.vtr = vtr
+        self.key = vtr.Key.load(key_path)
+        self.iss = iss
+        self.out = Path(out)
+        self.subject = subject
+        self.mode = mode
+        self.lock = threading.Lock()
+
+    def issue(self, profile_raw, rec, args, state):
+        v = self.vtr
+        verdict = {"allow": "allow", "pass": "allow", "withhold": "escalate"}.get(rec["action"])
+        if verdict is None:
+            verdict = "escalate" if rec["reason"].startswith("Held for a person") else "stop"
+        sub = self.subject or f"urn:trp:session:{state['id']}"
+        opt = {"tool": {"name": rec["tool"], "target": rec["server"]}, "outcome": verdict,
+               "input_digest": v.digest({"tool": rec["tool"], "arguments": args}),
+               "trp_clauses": [f"rule:{r}" for r in rec["rules"]]}
+        prev = state.get("last_receipt", {}).get(sub)
+        if prev:
+            opt["prev"] = prev
+        claims = v.claims_for(profile_raw, rec["evidence"], iss=self.iss, sub=sub, mode=self.mode, **opt)
+        jws = v.sign(claims, self.key)
+        state.setdefault("last_receipt", {})[sub] = v.digest(claims)
+        with self.lock:
+            self.out.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.out, "a", encoding="utf-8") as f:
+                f.write(jws + "\n")
+        return jws
+
+
 class Decision:
     """What the gate decided about one call or one result."""
 
@@ -363,8 +404,10 @@ class Decision:
 
 
 class Gate:
-    def __init__(self, profile_path, policy, session, log, source="agent"):
-        self.profile = trp.load_profile(Path(profile_path))
+    def __init__(self, profile_path, policy, session, log, source="agent", receipts=None):
+        self.profile_raw = json.loads(Path(profile_path).read_text())
+        self.profile = trp.profile_from_dict(self.profile_raw, source=profile_path)
+        self.receipts = receipts  # a ReceiptIssuer, or None for the decision log alone
         self.policy = policy
         self.session = session
         self.log = log
@@ -432,7 +475,10 @@ class Gate:
             "evaluator": r["evaluation"]["evaluator"], "result_hash": r["evaluation"]["result_hash"],
             "facts": {k: v for k, v in facts.items() if k in ("paths", "urls", "secrets", "out_bytes", "sensitive_read", "instruction")},
         }
-        return self.log.append(rec)
+        rec = self.log.append(rec)
+        if self.receipts:
+            rec["receipt"] = self.receipts.issue(self.profile_raw, rec, args, state)
+        return rec
 
     def check_call(self, tool, args, call_id=None):
         """Judges one tool call before it runs. The tool runs only when the decision is allowed."""

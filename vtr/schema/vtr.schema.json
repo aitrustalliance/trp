@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aitrustalliance.com/schema/vtr/0.5/vtr.schema.json",
+  "title": "Verifiable Trust Receipt (VTR) claims, version 0.5",
+  "description": "The JSON object a VTR signs. vtr/spec.md is normative. A verifier also checks the rules this schema cannot state, which are the digests, the sort order of results and the re-run of the evaluation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vtr_version", "iss", "iat", "sub", "kind", "mode", "trp_ref", "standing", "coverage", "results", "evidence_digest", "result_digest", "evaluator"],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "RFC 8785 canonical JSON, then SHA-256, then base64url without padding" },
+    "party": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["scheme", "value"],
+      "properties": { "scheme": { "type": "string" }, "value": { "type": "string" }, "issuer": { "type": "string" } }
+    }
+  },
+  "properties": {
+    "vtr_version": { "const": "0.5" },
+    "iss": { "type": "string", "minLength": 1, "description": "The issuer, resolvable to a key set at /.well-known/jwks.json" },
+    "iat": { "type": "integer", "description": "Issue time in integer Unix seconds" },
+    "sub": { "type": "string", "minLength": 1, "description": "The entity evaluated" },
+    "kind": { "enum": ["evaluation", "conformance", "drill", "variance"] },
+    "mode": { "enum": ["enforced", "test", "shadow", "observed"] },
+    "trp_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": { "id": { "type": "string" }, "version": { "type": "string" }, "digest": { "$ref": "#/$defs/digest" } }
+    },
+    "standing": { "type": ["string", "null"], "description": "A standing band of the profile, or null when no requirement had evidence" },
+    "coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["clause", "outcome"],
+        "properties": {
+          "clause": { "type": "string", "pattern": "^(signal|rule):.+$" },
+          "outcome": { "enum": ["satisfied", "warning", "violated", "inconclusive"] }
+        }
+      }
+    },
+    "evidence_digest": { "$ref": "#/$defs/digest" },
+    "result_digest": { "$ref": "#/$defs/digest" },
+    "evaluator": {
+      "type": "object",
+      "required": ["implementation", "version", "spec_version"],
+      "properties": { "implementation": { "type": "string" }, "version": { "type": "string" }, "spec_version": { "type": "string" } }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": { "start": { "type": "string", "format": "date-time" }, "end": { "type": "string", "format": "date-time" } }
+    },
+    "nonce": { "type": "string" },
+    "prev": { "$ref": "#/$defs/digest", "description": "Digest of the issuer's previous claims for the same sub" },
+    "risk": { "type": ["object", "null"], "maxProperties": 0, "description": "Empty in v0.5. A later version defines its members" },
+    "evaluators": {
+      "type": "array",
+      "items": { "type": "object", "required": ["name", "version"], "properties": { "name": { "type": "string" }, "version": { "type": "string" }, "decision": { "type": "string" } } }
+    },
+    "build": { "type": ["string", "null"], "description": "Digest of the evaluator's build image" },
+    "fallback": {
+      "type": ["object", "null"],
+      "required": ["from", "to"],
+      "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "trp_clause": { "type": "string" } }
+    },
+    "principal": { "$ref": "#/$defs/party" },
+    "on_behalf_of": { "$ref": "#/$defs/party" },
+    "agent": { "type": ["object", "null"], "required": ["id"], "properties": { "id": { "type": "string" }, "version": { "type": "string" } } },
+    "model": { "type": ["object", "null"], "properties": { "provider": { "type": "string" }, "version": { "type": "string" } } },
+    "tool": { "type": ["object", "null"], "required": ["name"], "properties": { "name": { "type": "string" }, "target": { "type": "string" } } },
+    "cost": {
+      "type": ["object", "null"],
+      "properties": {
+        "tokens": { "type": "object", "properties": { "input": { "type": "integer" }, "output": { "type": "integer" } } },
+        "money": { "type": "object", "required": ["amount", "currency"], "properties": { "amount": { "type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$" }, "currency": { "type": "string", "pattern": "^[A-Z]{3}$" } } }
+      }
+    },
+    "outcome": { "enum": ["allow", "stop", "escalate", null] },
+    "trp_clauses": { "type": "array", "items": { "type": "string" } },
+    "policy_digest": { "$ref": "#/$defs/digest" },
+    "input_digest": { "$ref": "#/$defs/digest" },
+    "escalation": {
+      "type": ["object", "null"],
+      "required": ["decided_by", "decision", "decided_at"],
+      "properties": {
+        "decided_by": { "$ref": "#/$defs/party" },
+        "decision": { "enum": ["approved", "denied", "timed_out"] },
+        "decided_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "details": { "type": ["object", "null"], "description": "Required for the kinds conformance, drill and variance" }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "enum": ["conformance", "drill", "variance"] } } }, "then": { "required": ["details"], "properties": { "details": { "type": "object" } } } }
+  ]
+}

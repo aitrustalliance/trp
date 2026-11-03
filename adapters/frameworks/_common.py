@@ -6,15 +6,17 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "gate"))
-from trp_gate import Decision, DecisionLog, Gate, Policy, Session, verify_log  # noqa: E402,F401
+from trp_gate import Decision, DecisionLog, Gate, Policy, ReceiptIssuer, Session, verify_log  # noqa: E402,F401
 
 DEFAULT_PROFILE = Path(__file__).resolve().parents[1] / "mcp" / "profiles" / "mcp-tool-checkpoint.trp.json"
 
 
-def make_gate(policy, session=None, log=None, profile=None, source="agent"):
-    """A gate from a policy file path or a policy dict, with an optional shared session file and decision log."""
+def make_gate(policy, session=None, log=None, profile=None, source="agent", receipts=None, receipt_key=None, issuer="urn:trp:gate"):
+    """A gate from a policy file path or a policy dict, with an optional shared session file and decision log.
+    With receipts and receipt_key, the gate also signs a Verifiable Trust Receipt for every decision."""
     pol = Policy.load(policy) if isinstance(policy, (str, Path)) else Policy(policy, Path.cwd())
-    return Gate(profile or DEFAULT_PROFILE, pol, Session(session), DecisionLog(log), source=source)
+    issuer_ = ReceiptIssuer(receipt_key, issuer, receipts) if receipts else None
+    return Gate(profile or DEFAULT_PROFILE, pol, Session(session), DecisionLog(log), source=source, receipts=issuer_)
 
 
 def parse_args(raw):

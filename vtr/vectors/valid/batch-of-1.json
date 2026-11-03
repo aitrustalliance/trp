@@ -1,0 +1,79 @@
+{
+  "receipt": {
+    "claims": {
+      "vtr_version": "0.5",
+      "iss": "https://evaluator.example.com",
+      "iat": 1793700000,
+      "sub": "urn:example:cell:01",
+      "kind": "evaluation",
+      "mode": "enforced",
+      "trp_ref": {
+        "id": "manufacturing-safety",
+        "version": "1.0.0",
+        "digest": "tIgSQ3O3xGDPoLoe8wyGrL0dAQn7WjTcOyYNJLAAvvw"
+      },
+      "standing": "good",
+      "coverage": 1.0,
+      "results": [
+        {
+          "clause": "rule:critical_data_quality",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "rule:estop_active",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "rule:human_in_exclusion_zone",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "rule:safety_certification_expired",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:data_quality",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:human_distance_m",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:model_confidence",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:robot_speed_mm_s",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:temperature_C",
+          "outcome": "satisfied"
+        },
+        {
+          "clause": "signal:vibration_rms_g",
+          "outcome": "satisfied"
+        }
+      ],
+      "evidence_digest": "6EggRqTgdCZQhh5sOdcCk-m8Q7WWoZ9-r5qhA3uJ3RU",
+      "evaluator": {
+        "implementation": "trp-reference-python",
+        "version": "0.5.2",
+        "spec_version": "0.5"
+      },
+      "result_digest": "2AxMA0v_aC0KWrQinzexDwd65F84NRRClU-zleKawB0"
+    },
+    "proof": {
+      "leaf_index": 0,
+      "tree_size": 1,
+      "path": [],
+      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IlJWY1BneHNpYkp6LTRGUEpvUHZHVGFhMUhGcXdEeXQ1NXkxX0NURVhzUlEiLCJ0cmVlX3NpemUiOjEsInZ0cl92ZXJzaW9uIjoiMC41In0.21SXtYmSPic3GtzPpEWIfmUkyeo5OV8wIp3oLWIFWQgNpgObVopbNK9nEaKWghi6EEcqyJYhcAitbRgMmrjmxA"
+    }
+  },
+  "jwks": "vtr/vectors/keys/jwks.json",
+  "profile": "examples/manufacturing-safety/trp.json",
+  "evidence": "vtr/vectors/evidence/healthy.json",
+  "allow_eddsa": false,
+  "expect": "valid"
+}

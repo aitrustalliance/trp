@@ -57,6 +57,7 @@ tests/
   profiles/invalid/                              profiles that must fail schema validation
   evidence/                                      evidence samples with expected evaluation outcomes
   README.md                                      test suite documentation
+vtr/                                             Verifiable Trust Receipt v0.5: spec, schema, signer, verifiers, test vectors
 adapters/
   gate/trp_gate.py                               one TRP gate for AI agent tool calls and results
   mcp/                                           TRP checkpoint in front of any MCP server, with its profile and policies
