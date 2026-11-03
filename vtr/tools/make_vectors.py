@@ -61,6 +61,7 @@ def main():
         "estop": dict(healthy, estop_active=True),
         "missing": {x: y for x, y in healthy.items() if x != "vibration_rms_g"},
         "warning": dict(healthy, robot_speed_mm_s=1100),
+        "mistyped": dict(healthy, safety_certification_status=1),  # a number where the rule compares a string
     }
     gate = {"steps_per_task": 3, "tool_error_rate": 0.0, "calls_per_minute": 3, "egress_kb_session": 0.0,
             "unapproved_tool_called": False, "secret_in_arguments": False, "output_destination_approved": True,
@@ -86,6 +87,7 @@ def main():
         ("es256-healthy", vtr.sign(first, es), P1, "healthy", False),
         ("es256-hard-rule-violated", vtr.sign(c(p1, "estop"), es), P1, "estop", False),
         ("es256-missing-signal-lowers-coverage", vtr.sign(c(p1, "missing"), es), P1, "missing", False),
+        ("es256-mistyped-rule-field", vtr.sign(c(p1, "mistyped"), es), P1, "mistyped", False),
         ("es256-warning", vtr.sign(c(p1, "warning"), es), P1, "warning", False),
         ("es256-window", vtr.sign(c(p1, "healthy", window=window), es), P1, "healthy", False),
         ("es256-nonce", vtr.sign(c(p1, "healthy", nonce="b3J2WkFWb3ZqZWhR"), es), P1, "healthy", False),
@@ -105,7 +107,8 @@ def main():
     valid += [("batch-of-5-leaf-0", batch[0], P1, "healthy", False), ("batch-of-5-leaf-2", batch[2], P1, "missing", False),
               ("batch-of-5-leaf-4", batch[4], None, None, False), ("batch-of-1", single[0], P1, "healthy", False)]
 
-    healthy_jws = valid[0][1]
+    by_name = {v[0]: v[1] for v in valid}
+    healthy_jws = by_name["es256-healthy"]
     bad_sig = healthy_jws[:-4] + ("AAAA" if healthy_jws[-4:] != "AAAA" else "BBBB")
     wrong_typ = healthy_jws.split(".")
     hdr = {"alg": "ES256", "kid": es.jwk()["kid"], "typ": "JWT"}
@@ -115,6 +118,12 @@ def main():
     swapped["proof"]["path"] = batch[3]["proof"]["path"]
     lied_size = copy.deepcopy(batch[2])
     lied_size["proof"]["tree_size"] = 4
+    hdr = {"alg": "ES256", "kid": vtr.digest({"kid": "not in the key set"}), "typ": "vtr+jwt"}
+    si = vtr.b64u(vtr.canonical(hdr).encode()) + "." + healthy_jws.split(".")[1]
+    unknown_kid = si + "." + vtr.b64u(es.sign(si.encode()))
+    missing_jws = by_name["es256-missing-signal-lowers-coverage"]
+    failing = {"result": "does_not_meet", "band": "failing", "response": "suspended"}
+    meets = {"result": "meets", "band": "good", "response": "full"}
     invalid = [
         ("bad-signature", bad_sig, P1, "healthy", False, "bad signature"),
         ("wrong-typ", wrong_typ, P1, "healthy", False, "typ must be vtr+jwt"),
@@ -122,10 +131,14 @@ def main():
         ("evidence-digest-mismatch", healthy_jws, P1, "estop", False, "evidence_digest does not match the supplied evidence"),
         ("missing-required-claim", resign(healthy_jws, es, lambda x: x.pop("coverage")), P1, "healthy", False, "missing required claim coverage"),
         ("unknown-kind", resign(healthy_jws, es, lambda x: x.update(kind="audit")), P1, "healthy", False, "unknown kind audit"),
-        ("altered-standing", resign(healthy_jws, es, lambda x: (x.update(standing="untrusted"), x.update(result_digest=vtr.result_digest(x)))), P1, "healthy", False, "standing does not match a re-run of the evaluation"),
+        ("altered-standing", resign(healthy_jws, es, lambda x: x.update(standing=failing)), P1, "healthy", False, "standing does not match a re-run of the evaluation"),
+        ("incomplete-altered-to-meets", resign(missing_jws, es, lambda x: x.update(standing=meets)), P1, "missing", False, "standing does not match a re-run of the evaluation"),
         ("unknown-claim", resign(healthy_jws, es, lambda x: x.update(score=812)), P1, "healthy", False, "unknown claim score"),
-        ("eddsa-not-allowed", valid[8][1], P1, "healthy", False, "EdDSA receipts are refused unless the verifier allows EdDSA"),
-        ("result-digest-mismatch", resign(healthy_jws, es, lambda x: x.update(result_digest=vtr.digest("other"))), None, None, False, "result_digest does not match the determination in the receipt"),
+        ("eddsa-not-allowed", by_name["eddsa-healthy"], P1, "healthy", False, "EdDSA receipts are refused unless the verifier allows EdDSA"),
+        ("result-digest-mismatch", resign(healthy_jws, es, lambda x: x.update(result_digest=vtr.digest("other"))), P1, "healthy", False, "result_digest does not match a re-run of the evaluation"),
+        ("unknown-kid", unknown_kid, P1, "healthy", False, "no key in the key set has this kid"),
+        ("missing-subject", resign(healthy_jws, es, lambda x: x.pop("sub")), P1, "healthy", False, "missing required claim sub"),
+        ("coverage-out-of-range", resign(healthy_jws, es, lambda x: x.update(coverage=1.25)), P1, "healthy", False, "coverage must be a number from 0 to 1"),
         ("batch-proof-for-another-leaf", swapped, P1, "estop", False, "the inclusion proof does not lead to the signed root"),
         ("batch-tree-size-mismatch", lied_size, P1, "missing", False, "tree_size does not match the signed batch"),
     ]

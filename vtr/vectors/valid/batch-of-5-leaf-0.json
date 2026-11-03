@@ -12,7 +12,11 @@
         "version": "1.0.0",
         "digest": "tIgSQ3O3xGDPoLoe8wyGrL0dAQn7WjTcOyYNJLAAvvw"
       },
-      "standing": "good",
+      "standing": {
+        "result": "meets",
+        "band": "good",
+        "response": "full"
+      },
       "coverage": 1.0,
       "results": [
         {
@@ -57,22 +61,22 @@
         }
       ],
       "evidence_digest": "6EggRqTgdCZQhh5sOdcCk-m8Q7WWoZ9-r5qhA3uJ3RU",
+      "result_digest": "_8J1zhG6Quf22JMOqqnVGcdaC9TwUZug2X4gAFdZ7Ck",
       "evaluator": {
         "implementation": "trp-reference-python",
         "version": "0.5.2",
         "spec_version": "0.5"
-      },
-      "result_digest": "2AxMA0v_aC0KWrQinzexDwd65F84NRRClU-zleKawB0"
+      }
     },
     "proof": {
       "leaf_index": 0,
       "tree_size": 5,
       "path": [
-        "OsatxnoL6rPmD5HAR6d7gy2TcnBlDtQOJ1A9OIFJ-jQ",
-        "zxhXfNcH7ySluv4qE6pkQIGfvTfq43tipCc9ZX5x7oo",
-        "vRN8iMWHCMiS1JhABBLBLTBOfZkQlYyg5ZzD9xTKzHk"
+        "bgdt-pscgFrhNGpcsHuqktXfoD0FDmugLg63klvvqiA",
+        "99rEuam7SUUQvNFlQ7jJlqIwAYxgQvYK7_oGfh1oaOE",
+        "CJ5LWIVUY76mYXkgMUXg-jo26bASQLVWMrr0gt3e3cs"
       ],
-      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6InhyRDNYUWJ1bVNCeGZpWEwtSWR3NUl1S1A4bFVMZVU4cVJ4MUNpSVdScHMiLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.Zuoxj4gRhYxuYGPfjgxQvcz6Za_lPbUBud9TuOT5xglxSgOlsyXzTPniLh-fQBT1Nk39aBNxdZzLUrN1GEmVyQ"
+      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkNNWXlNbERGTGNWSjB6bDBHUWVSWGZ3V1N5QnVEdW0wNVhpeWVlc2RMUk0iLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.roCn0TP8uddymEOnNgCSCkwge2jUJWy6fC3zGEbJx_iKT47aNnmY9Qt6QWuMKue8E4RkQ7YE6anvHJGWAcELfQ"
     }
   },
   "jwks": "vtr/vectors/keys/jwks.json",

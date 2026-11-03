@@ -12,7 +12,11 @@
         "version": "1.0.0",
         "digest": "tIgSQ3O3xGDPoLoe8wyGrL0dAQn7WjTcOyYNJLAAvvw"
       },
-      "standing": "failing",
+      "standing": {
+        "result": "does_not_meet",
+        "band": "failing",
+        "response": "suspended"
+      },
       "coverage": 1.0,
       "results": [
         {
@@ -57,22 +61,22 @@
         }
       ],
       "evidence_digest": "86O2Y_8UU9m9kdhKFaPqR9G3ENROzgfh3_oDgePICjk",
+      "result_digest": "HOFbpSW4mX9t2_csO52KGcln4-_szw57dPcHwfYhSBQ",
       "evaluator": {
         "implementation": "trp-reference-python",
         "version": "0.5.2",
         "spec_version": "0.5"
-      },
-      "result_digest": "Gf7txGnmv6zGM7-ie8wKf3BYpPv36apcjGp9isX1e6g"
+      }
     },
     "proof": {
       "leaf_index": 1,
       "tree_size": 5,
       "path": [
-        "L8v8SSsQk0yfP2TplKOwmD5uVKho_AcwrSKlM0h8cX0",
-        "Tb95hEzMYPPeCJh8YHum_Za27xZwGZh0ILMos39b6VE",
-        "vRN8iMWHCMiS1JhABBLBLTBOfZkQlYyg5ZzD9xTKzHk"
+        "lj-JpHM0NlgHiRRmLfchohdR-QJ33LDqE7pcICTB1Mc",
+        "BE-lwf-6JZj6qyMSmnptSfcW41do0YD-cbjdzpHiscg",
+        "CJ5LWIVUY76mYXkgMUXg-jo26bASQLVWMrr0gt3e3cs"
       ],
-      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6InhyRDNYUWJ1bVNCeGZpWEwtSWR3NUl1S1A4bFVMZVU4cVJ4MUNpSVdScHMiLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.Zuoxj4gRhYxuYGPfjgxQvcz6Za_lPbUBud9TuOT5xglxSgOlsyXzTPniLh-fQBT1Nk39aBNxdZzLUrN1GEmVyQ"
+      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkNNWXlNbERGTGNWSjB6bDBHUWVSWGZ3V1N5QnVEdW0wNVhpeWVlc2RMUk0iLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.roCn0TP8uddymEOnNgCSCkwge2jUJWy6fC3zGEbJx_iKT47aNnmY9Qt6QWuMKue8E4RkQ7YE6anvHJGWAcELfQ"
     }
   },
   "jwks": "vtr/vectors/keys/jwks.json",

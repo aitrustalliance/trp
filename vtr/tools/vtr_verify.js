@@ -16,6 +16,8 @@ const VTR_VERSION = "0.5";
 const KINDS = new Set(["evaluation", "conformance", "drill", "variance"]);
 const MODES = new Set(["enforced", "test", "shadow", "observed"]);
 const OUTCOMES = new Set(["satisfied", "warning", "violated", "inconclusive"]);
+const RESULTS = new Set(["meets", "does_not_meet", "incomplete"]);
+const RESPONSES = new Set(["full", "restricted", "suspended", "revoked"]);
 const VERDICTS = new Set(["allow", "stop", "escalate"]);
 const REQUIRED = ["vtr_version", "iss", "iat", "sub", "kind", "mode", "trp_ref", "standing", "coverage", "results",
   "evidence_digest", "result_digest", "evaluator"];
@@ -53,29 +55,56 @@ function round4(x) {  // half to even at four places
   return r / 10000;
 }
 
+// The Node.js evaluator's output with no drift history and without its `evaluation` member, which carries the
+// evaluation time, the evaluator's name and its result_hash. Every other member matches the Python evaluator's.
+function evaluatorOutput(profileRaw, evidence) {
+  const { evaluation, ...out } = trp.evaluate(trp.profileFromObject(profileRaw), evidence);
+  return out;
+}
+
+function standingOf(profileRaw, out) {
+  if (out.missing_signals.some((m) => m.on_missing === "incomplete") || (out.hard_rules_inconclusive || []).length > 0) {
+    return { result: "incomplete", band: null, response: null };
+  }
+  const severity = new Map((profileRaw.standing_bands || []).map((b) => [b.band, b.severity]));
+  const band = severity.has(out.standing) ? out.standing : null;
+  const response = RESPONSES.has(out.response) ? out.response : null;
+  const floor = (profileRaw.required_standing || {}).minimum_acceptable_band;
+  const limit = severity.has(floor) ? severity.get(floor) : severity.size ? Math.min(...severity.values()) : null;
+  const meets = band !== null && limit !== null && severity.get(band) <= limit;
+  return { result: meets ? "meets" : "does_not_meet", band, response };
+}
+
 function determination(profileRaw, evidence) {
-  const r = trp.evaluate(trp.profileFromObject(profileRaw), evidence);
+  const out = evaluatorOutput(profileRaw, evidence);
   const results = [];
-  let checked = 0;
-  const bySignal = Object.fromEntries(r.signal_results.map((s) => [s.signal, s]));
+  const bySignal = Object.fromEntries(out.signal_results.map((s) => [s.signal, s]));
   for (const s of profileRaw.scored_signals || []) {
     let outcome = "inconclusive";
-    if (bySignal[s.signal]) { checked++; const x = bySignal[s.signal]; outcome = x.in_critical ? "violated" : x.in_warning ? "warning" : "satisfied"; }
+    if (bySignal[s.signal]) { const x = bySignal[s.signal]; outcome = x.in_critical ? "violated" : x.in_warning ? "warning" : "satisfied"; }
     results.push({ clause: `signal:${s.signal}`, outcome });
   }
-  const triggered = new Set(r.hard_rules_triggered.map((x) => x.rule));
-  const inconclusive = new Set((r.hard_rules_inconclusive || []).map((x) => x.rule));
+  const triggered = new Set(out.hard_rules_triggered.map((x) => x.rule));
+  const inconclusive = new Set((out.hard_rules_inconclusive || []).map((x) => x.rule));
   for (const h of profileRaw.hard_rules || []) {
-    if (Object.prototype.hasOwnProperty.call(evidence, h.field)) checked++;
     results.push({ clause: `rule:${h.rule}`, outcome: inconclusive.has(h.rule) ? "inconclusive" : triggered.has(h.rule) ? "violated" : "satisfied" });
   }
   results.sort((a, b) => (a.clause < b.clause ? -1 : a.clause > b.clause ? 1 : 0));
-  const total = (profileRaw.scored_signals || []).length + (profileRaw.hard_rules || []).length;
-  return { standing: checked ? r.standing : null, coverage: total === 0 ? 1 : round4(checked / total), results };
+  const checked = results.filter((x) => x.outcome !== "inconclusive").length;  // a check is made only when it has an outcome
+  const total = results.length;
+  return { standing: standingOf(profileRaw, out), coverage: total === 0 ? 1 : round4(checked / total), results, result_digest: digest(out) };
 }
 
 const trpRef = (p) => ({ id: p.trp_id, version: p.version, digest: digest(p) });
-const resultDigest = (c) => digest({ trp_ref: c.trp_ref, standing: c.standing, coverage: c.coverage, results: c.results, evidence_digest: c.evidence_digest });
+
+function checkStanding(s) {
+  if (!s || typeof s !== "object" || Array.isArray(s) || Object.keys(s).sort().join() !== "band,response,result") fail("standing must carry exactly result, band and response");
+  if (!RESULTS.has(s.result)) fail("standing result must be meets, does_not_meet or incomplete");
+  if (s.band !== null && (typeof s.band !== "string" || !s.band)) fail("standing band must be a band name or null");
+  if (s.response !== null && !RESPONSES.has(s.response)) fail("standing response must be full, restricted, suspended, revoked or null");
+  if (s.result === "incomplete" && (s.band !== null || s.response !== null)) fail("an incomplete standing carries a null band and a null response");
+  if (s.result !== "incomplete" && s.band === null) fail("a standing of meets or does_not_meet names its band");
+}
 
 function checkClaims(c) {
   if (!c || typeof c !== "object" || Array.isArray(c)) fail("claims must be a JSON object");
@@ -88,7 +117,7 @@ function checkClaims(c) {
   if (!MODES.has(c.mode)) fail(`unknown mode ${c.mode}`);
   const ref = c.trp_ref;
   if (!ref || typeof ref !== "object" || Object.keys(ref).sort().join() !== "digest,id,version") fail("trp_ref must carry exactly id, version and digest");
-  if (c.standing !== null && typeof c.standing !== "string") fail("standing must be a band name or null");
+  checkStanding(c.standing);
   if (typeof c.coverage !== "number" || c.coverage < 0 || c.coverage > 1) fail("coverage must be a number from 0 to 1");
   if (!Array.isArray(c.results) || c.results.some((x) => !x || typeof x !== "object" || Object.keys(x).sort().join() !== "clause,outcome")) fail("each result must carry exactly clause and outcome");
   if (c.results.some((x) => !OUTCOMES.has(x.outcome))) fail("result outcome must be satisfied, warning, violated or inconclusive");
@@ -134,10 +163,10 @@ function open(jws, jwks, typ, allowEdDSA) {
 function checkAgainst(c, profile, evidence) {
   if (profile && canonical(c.trp_ref) !== canonical(trpRef(profile))) fail("trp_ref does not match the supplied profile");
   if (evidence && c.evidence_digest !== digest(evidence)) fail("evidence_digest does not match the supplied evidence");
-  if (c.result_digest !== resultDigest(c)) fail("result_digest does not match the determination in the receipt");
   if (profile && evidence) {
     const d = determination(profile, evidence);
-    if (c.standing !== d.standing) fail("standing does not match a re-run of the evaluation");
+    if (c.result_digest !== d.result_digest) fail("result_digest does not match a re-run of the evaluation");
+    if (canonical(c.standing) !== canonical(d.standing)) fail("standing does not match a re-run of the evaluation");
     if (canonical(c.results) !== canonical(d.results)) fail("results do not match a re-run of the evaluation");
     if (c.coverage !== d.coverage) fail("coverage does not match a re-run of the evaluation");
   }
@@ -181,7 +210,7 @@ function verifyBatched(receipt, jwks, opts = {}) {
   } catch (err) { if (err instanceof VTRError) return [false, err.message]; if (err instanceof TypeError) return [false, `malformed batched receipt (${err.message})`]; throw err; }
 }
 
-module.exports = { canonical, digest, thumbprint, verify, verifyBatched, determination };
+module.exports = { canonical, digest, thumbprint, verify, verifyBatched, determination, evaluatorOutput };
 
 if (require.main === module) {
   const a = process.argv.slice(2);

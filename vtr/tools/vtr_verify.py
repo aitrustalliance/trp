@@ -5,7 +5,7 @@
     python vtr/tools/vtr_verify.py batched.json --jwks jwks.json ...      a receipt from a signed batch
 
 With the profile, the verifier checks trp_ref against it. With the evidence too, it re-runs the evaluation
-and checks standing, results and coverage. The exit code is 0 for valid and 1 otherwise.
+and checks result_digest, standing, results and coverage. The exit code is 0 for valid and 1 otherwise.
 """
 import argparse
 import json

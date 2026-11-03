@@ -35,11 +35,12 @@ The issuer is the party whose key signs the receipt. It MAY be the evaluator or 
 
 | Term | Meaning |
 |---|---|
-| Determination | The standing, coverage and per-requirement results of one evaluation |
+| Determination | The standing, the coverage, the per-requirement results and the result digest of one evaluation |
 | Requirement | One scored signal or one hard rule declared in the profile |
 | Clause | The name of a requirement in a receipt, `signal:<signal>` for a scored signal and `rule:<rule>` for a hard rule |
-| Standing | The standing band the evaluation assigned, a band name declared by the profile |
-| Coverage | The share of the profile's requirements that had evidence to check, from 0 to 1 |
+| Standing | Whether the entity meets the profile, with the band the evaluator assigned and the response the profile declares for that band |
+| Coverage | The share of the profile's requirements the evaluator could check, from 0 to 1 |
+| Evaluator Output | The object a TRP evaluator returns for one evaluation, without its `evaluation` member |
 | Mode | Whether the decision was enforced or only tested, shadowed or observed |
 | Kind | What the receipt records, an evaluation in this version, or a conformance run, a drill or a variance run |
 | Digest | RFC 8785 canonical JSON of a value, hashed with SHA-256, encoded as base64url without padding |
@@ -57,11 +58,11 @@ The receipt payload is a JSON object. It MUST carry every required member and MA
 | `kind` | string | Yes | `evaluation`, `conformance`, `drill` or `variance` |
 | `mode` | string | Yes | `enforced`, `test`, `shadow` or `observed` |
 | `trp_ref` | object | Yes | The profile applied, `{id, version, digest}`, where `digest` is the digest of the profile document |
-| `standing` | string or null | Yes | The standing band, or `null` when no requirement had evidence |
-| `coverage` | number | Yes | The share of requirements with evidence, from 0 to 1 |
+| `standing` | object | Yes | `{result, band, response}`, defined in Determination |
+| `coverage` | number | Yes | The share of requirements checked, from 0 to 1 |
 | `results` | array | Yes | One `{clause, outcome}` per requirement, sorted by `clause` |
 | `evidence_digest` | string | Yes | The digest of the evidence object |
-| `result_digest` | string | Yes | The digest of the determination, defined below |
+| `result_digest` | string | Yes | The digest of the evaluator output, defined in Determination |
 | `evaluator` | object | Yes | `{implementation, version, spec_version}` of the evaluator that ran |
 | `window` | object | When time-based | `{start, end}` in RFC 3339, REQUIRED when any requirement was evaluated over a time window |
 | `nonce` | string | No | A value a challenger supplied, echoed for freshness |
@@ -85,15 +86,38 @@ The receipt payload is a JSON object. It MUST carry every required member and MA
 
 ## Determination
 
-An issuer computes the determination from the profile and the evidence with a conforming TRP evaluator. The reference evaluators in `tools/` are conforming.
+An issuer computes the determination from the profile and the evidence with a conforming TRP evaluator. The reference evaluators in `tools/` are conforming. The issuer runs the evaluator with no drift history.
 
 **Results** Each scored signal produces one result with clause `signal:<signal>`. The outcome is `inconclusive` when the evidence lacks the signal, `violated` when the value is in the critical range, `warning` when it is in the warning range and `satisfied` otherwise. Each hard rule produces one result with clause `rule:<rule>`. The outcome is `inconclusive` when the evaluator reports the rule inconclusive, `violated` when the rule triggered and `satisfied` otherwise. Results MUST be sorted by clause in ascending order of their UTF-16 code units.
 
-**Coverage** The checked count is the number of scored signals present in the evidence plus the number of hard rules whose field is present. The total is the number of scored signals plus the number of hard rules. Coverage is checked divided by total, rounded half to even at four decimal places, and 1 when the total is 0. Coverage is reported apart from standing and MUST NOT change it. Two entities with the same conformance and different instrumentation produce the same standing and different coverage.
+**Coverage** A requirement is checked when the evaluator had the evidence it needs and produced an outcome other than `inconclusive`. A hard rule whose field is present with the wrong type is inconclusive, so it is not checked. The checked count is the number of requirements checked, and the total is the number of scored signals plus the number of hard rules. Coverage is checked divided by total, rounded half to even at four decimal places, and 1 when the total is 0. Coverage is reported beside the standing and MUST NOT change it, so a relying party can require a minimum coverage apart from a minimum band.
 
-**Standing** Standing is the band the evaluator assigned. It is `null` when the checked count is 0.
+**Standing** The standing is an object with exactly these members.
 
-**Result Digest** `result_digest` is the digest of the object `{trp_ref, standing, coverage, results, evidence_digest}` taken from the claims. Anyone who runs the evaluation again computes the same value.
+| Member | Type | Meaning |
+|---|---|---|
+| `result` | string | `meets`, `does_not_meet` or `incomplete` |
+| `band` | string or null | The band the evaluator assigned, which is a band the profile declares, or `null` when the result is `incomplete` |
+| `response` | string or null | The response the profile's `required_standing.response_bands` gives that band, one of `full`, `restricted`, `suspended` or `revoked`, or `null` when the profile gives none or the result is `incomplete` |
+
+The result is `incomplete` when a scored signal is missing from the evidence and its `on_missing` is `incomplete`, which is the default. The result is also `incomplete` when any hard rule is inconclusive, because TRP Section 3.4 gives an inconclusive rule the same outcome. A triggered hard rule does not change an incomplete result, and the triggered rule still appears as `violated` in `results`. An incomplete standing carries a `null` band and a `null` response. When the result is not `incomplete`, it is `meets` when the band is no more severe than the profile's `required_standing.minimum_acceptable_band` and `does_not_meet` when the band is more severe. A profile that declares no minimum acceptable band is met only in its least severe band. A verifier MUST NOT read `incomplete` as `meets` or as `does_not_meet`, and a relying party applies its own policy to an incomplete result. Standing does not depend on coverage.
+
+**Evaluator Output** The evaluator output is the object the TRP reference evaluator returns, with its `evaluation` member removed. The `evaluation` member describes the run itself, and its values change from one run to the next and from one implementation to another. A conforming evaluator MUST produce every other member exactly as the reference evaluators do for the same profile and evidence.
+
+| Member | Meaning |
+|---|---|
+| `trp_id`, `trp_version` | The identifier and version of the profile |
+| `hard_rules_triggered` | Each triggered hard rule as `{rule, action, field, condition}` |
+| `hard_rules_inconclusive` | Each inconclusive hard rule as `{rule, field, condition, reason}` |
+| `signal_results` | Each scored signal present in the evidence as `{signal, value, unit, severity, penalty, in_warning, in_critical}` |
+| `missing_signals` | Each scored signal missing from the evidence as `{signal, on_missing}` |
+| `standing` | The band the evaluator assigned |
+| `hard_override` | Whether a triggered hard rule set the band |
+| `response` | The response for that band, or `unknown` when the profile gives none |
+
+The evaluator runs with no drift history, so the output carries no `drift` member. `tools/README.md` shows an example.
+
+**Result Digest** `result_digest` is the digest of the evaluator output. A verifier that has the profile and the evidence runs either reference evaluator again and compares one digest, so a receipt cannot be detached from the evaluation it describes. A verifier without the evidence cannot recompute `result_digest`, and the issuer's signature binds it to the other claims. `result_digest` is a different value from the evaluator's own `result_hash`, which uses another serialization and is not part of the receipt.
 
 ## Canonical Form And Digests
 
@@ -137,11 +161,10 @@ A verifier MUST perform these checks and report the receipt invalid at the first
 2. Select the key by `kid`, confirm `kid` is its RFC 7638 thumbprint, confirm the key type matches `alg`, and verify the signature.
 3. Confirm the header and payload are in canonical form.
 4. For a batched receipt, recompute the Merkle root from the claims and the inclusion proof and compare it with the signed root.
-5. Check the claims against the Claims section, including the absence of unknown members and the order of `results`.
-6. Recompute `result_digest` from the claims.
-7. When the verifier has the profile, recompute `trp_ref` from it.
-8. When the verifier has the evidence, recompute `evidence_digest` from it.
-9. When the verifier has both, run the evaluation again and confirm that `standing`, `results` and `coverage` equal the receipt's.
+5. Check the claims against the Claims section, including the absence of unknown members and the order of `results`, and check `standing` against the rules in Determination.
+6. When the verifier has the profile, recompute `trp_ref` from it.
+7. When the verifier has the evidence, recompute `evidence_digest` from it.
+8. When the verifier has both, run the evaluation again and confirm that `result_digest`, `standing`, `results` and `coverage` each equal the values the new run produces.
 
 Drift results are not part of the determination in version 0.5 and are not re-derived. A verifier SHOULD treat a receipt with `mode` other than `enforced` as a record of a decision that did not control the action.
 
@@ -180,4 +203,4 @@ A receipt carries digests of the evidence and of the inputs, never their content
 
 ## Conformance
 
-An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.
+An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. The valid vectors include a receipt for each standing result, and each invalid vector names the reason a verifier must report. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.

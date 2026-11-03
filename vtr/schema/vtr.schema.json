@@ -28,8 +28,21 @@
       "required": ["id", "version", "digest"],
       "properties": { "id": { "type": "string" }, "version": { "type": "string" }, "digest": { "$ref": "#/$defs/digest" } }
     },
-    "standing": { "type": ["string", "null"], "description": "A standing band of the profile, or null when no requirement had evidence" },
-    "coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+    "standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "band", "response"],
+      "description": "The result of the evaluation with the band and the response the profile declares for it. An incomplete result carries a null band and a null response",
+      "properties": {
+        "result": { "enum": ["meets", "does_not_meet", "incomplete"] },
+        "band": { "type": ["string", "null"], "minLength": 1, "description": "A standing band the profile declares" },
+        "response": { "enum": ["full", "restricted", "suspended", "revoked", null] }
+      },
+      "if": { "properties": { "result": { "const": "incomplete" } } },
+      "then": { "properties": { "band": { "type": "null" }, "response": { "type": "null" } } },
+      "else": { "properties": { "band": { "type": "string" } } }
+    },
+    "coverage": { "type": "number", "minimum": 0, "maximum": 1, "description": "Requirements checked divided by requirements declared, where a requirement is checked when its outcome is not inconclusive" },
     "results": {
       "type": "array",
       "items": {
@@ -43,7 +56,7 @@
       }
     },
     "evidence_digest": { "$ref": "#/$defs/digest" },
-    "result_digest": { "$ref": "#/$defs/digest" },
+    "result_digest": { "$ref": "#/$defs/digest", "description": "Digest of the evaluator output without its evaluation member" },
     "evaluator": {
       "type": "object",
       "required": ["implementation", "version", "spec_version"],

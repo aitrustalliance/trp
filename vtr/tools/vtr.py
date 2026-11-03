@@ -34,6 +34,8 @@ EVALUATOR = {"implementation": "trp-reference-python", "version": "0.5.2"}
 KINDS = {"evaluation", "conformance", "drill", "variance"}
 MODES = {"enforced", "test", "shadow", "observed"}
 OUTCOMES = {"satisfied", "warning", "violated", "inconclusive"}
+RESULTS = {"meets", "does_not_meet", "incomplete"}
+RESPONSES = {"full", "restricted", "suspended", "revoked"}
 VERDICTS = {"allow", "stop", "escalate"}
 REQUIRED = ["vtr_version", "iss", "iat", "sub", "kind", "mode", "trp_ref", "standing", "coverage", "results",
             "evidence_digest", "result_digest", "evaluator"]
@@ -112,43 +114,62 @@ def digest(v):
 
 # ---------------------------------------------------------------- the determination
 
+def evaluator_output(profile_raw, evidence):
+    """The reference evaluator's output with no drift history and without its `evaluation` member.
+
+    The `evaluation` member carries the evaluation time, the evaluator's name and its `result_hash`, which differ
+    from run to run and between the Python and Node.js evaluators. Every other member is the same in both.
+    """
+    r = trp.evaluate(trp.profile_from_dict(profile_raw), evidence)
+    return {k: v for k, v in r.items() if k != "evaluation"}
+
+
+def standing_of(profile_raw, out):
+    """The standing `{result, band, response}` that follows from one evaluator output."""
+    if any(m["on_missing"] == "incomplete" for m in out["missing_signals"]) or out["hard_rules_inconclusive"]:
+        return {"result": "incomplete", "band": None, "response": None}
+    severity = {b["band"]: b["severity"] for b in profile_raw.get("standing_bands", [])}
+    band = out["standing"] if out["standing"] in severity else None
+    response = out["response"] if out["response"] in RESPONSES else None
+    floor = (profile_raw.get("required_standing") or {}).get("minimum_acceptable_band")
+    limit = severity[floor] if floor in severity else min(severity.values(), default=None)
+    meets = band is not None and limit is not None and severity[band] <= limit
+    return {"result": "meets" if meets else "does_not_meet", "band": band, "response": response}
+
+
 def determination(profile_raw, evidence):
-    """Standing, coverage and one result per declared requirement, from the reference evaluator."""
-    prof = trp.profile_from_dict(profile_raw)
-    r = trp.evaluate(prof, evidence)
-    results, checked = [], 0
-    by_signal = {s["signal"]: s for s in r["signal_results"]}
+    """Standing, coverage, one result per declared requirement and the result digest, from the reference evaluator."""
+    out = evaluator_output(profile_raw, evidence)
+    results = []
+    by_signal = {s["signal"]: s for s in out["signal_results"]}
     for s in profile_raw.get("scored_signals", []):
         name = s["signal"]
         if name not in by_signal:
             outcome = "inconclusive"
         else:
-            checked += 1
             x = by_signal[name]
             outcome = "violated" if x["in_critical"] else "warning" if x["in_warning"] else "satisfied"
         results.append({"clause": f"signal:{name}", "outcome": outcome})
-    triggered = {x["rule"] for x in r["hard_rules_triggered"]}
-    inconclusive = {x["rule"] for x in r["hard_rules_inconclusive"]}
+    triggered = {x["rule"] for x in out["hard_rules_triggered"]}
+    inconclusive = {x["rule"] for x in out["hard_rules_inconclusive"]}
     for h in profile_raw.get("hard_rules", []):
         name = h["rule"]
-        if h["field"] in evidence:
-            checked += 1
         outcome = "inconclusive" if name in inconclusive else "violated" if name in triggered else "satisfied"
         results.append({"clause": f"rule:{name}", "outcome": outcome})
     results.sort(key=lambda x: x["clause"])
-    total = len(profile_raw.get("scored_signals", [])) + len(profile_raw.get("hard_rules", []))
+    checked = sum(1 for x in results if x["outcome"] != "inconclusive")  # a check is made only when it has an outcome
+    total = len(results)
     coverage = 1.0 if total == 0 else float(Decimal(checked / total).quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN))
-    standing = r["standing"] if checked else None
-    return {"standing": standing, "coverage": coverage, "results": results, "response": r["response"]}
+    return {"standing": standing_of(profile_raw, out), "coverage": coverage, "results": results, "result_digest": digest(out)}
 
 
 def trp_ref(profile_raw):
     return {"id": profile_raw["trp_id"], "version": profile_raw["version"], "digest": digest(profile_raw)}
 
 
-def result_digest(claims):
-    """The digest of the determination itself, which any verifier can recompute by re-running the evaluation."""
-    return digest({k: claims[k] for k in ("trp_ref", "standing", "coverage", "results", "evidence_digest")})
+def result_digest(profile_raw, evidence):
+    """The digest of the evaluator output, which any verifier with the profile and evidence recomputes by re-running it."""
+    return digest(evaluator_output(profile_raw, evidence))
 
 
 def claims_for(profile_raw, evidence, iss, sub, kind="evaluation", mode="enforced", iat=None, **optional):
@@ -158,9 +179,8 @@ def claims_for(profile_raw, evidence, iss, sub, kind="evaluation", mode="enforce
         "vtr_version": VTR_VERSION, "iss": iss, "iat": int(iat if iat is not None else time.time()), "sub": sub,
         "kind": kind, "mode": mode, "trp_ref": trp_ref(profile_raw), "standing": d["standing"],
         "coverage": d["coverage"], "results": d["results"], "evidence_digest": digest(evidence),
-        "evaluator": dict(EVALUATOR, spec_version=profile_raw.get("spec_version", "0.5")),
+        "result_digest": d["result_digest"], "evaluator": dict(EVALUATOR, spec_version=profile_raw.get("spec_version", "0.5")),
     }
-    claims["result_digest"] = result_digest(claims)
     for k, v in optional.items():
         if k not in OPTIONAL:
             raise VTRError(f"{k} is not a VTR v0.5 claim")
@@ -195,8 +215,7 @@ def check_claims(c):
     ref = c["trp_ref"]
     if not isinstance(ref, dict) or set(ref) != {"id", "version", "digest"}:
         raise VTRError("trp_ref must carry exactly id, version and digest")
-    if c["standing"] is not None and not isinstance(c["standing"], str):
-        raise VTRError("standing must be a band name or null")
+    check_standing(c["standing"])
     cov = c["coverage"]
     if isinstance(cov, bool) or not isinstance(cov, (int, float)) or not 0 <= cov <= 1:
         raise VTRError("coverage must be a number from 0 to 1")
@@ -216,6 +235,21 @@ def check_claims(c):
         raise VTRError("risk must be empty in VTR v0.5")
     if c["kind"] != "evaluation" and not isinstance(c.get("details"), dict):
         raise VTRError(f"kind {c['kind']} requires a details object")
+
+
+def check_standing(s):
+    if not isinstance(s, dict) or set(s) != {"result", "band", "response"}:
+        raise VTRError("standing must carry exactly result, band and response")
+    if not isinstance(s["result"], str) or s["result"] not in RESULTS:
+        raise VTRError("standing result must be meets, does_not_meet or incomplete")
+    if s["band"] is not None and (not isinstance(s["band"], str) or not s["band"]):
+        raise VTRError("standing band must be a band name or null")
+    if s["response"] is not None and (not isinstance(s["response"], str) or s["response"] not in RESPONSES):
+        raise VTRError("standing response must be full, restricted, suspended, revoked or null")
+    if s["result"] == "incomplete" and (s["band"] is not None or s["response"] is not None):
+        raise VTRError("an incomplete standing carries a null band and a null response")
+    if s["result"] != "incomplete" and s["band"] is None:
+        raise VTRError("a standing of meets or does_not_meet names its band")
 
 
 # ---------------------------------------------------------------- keys and signatures
@@ -358,10 +392,10 @@ def check_against(claims, profile_raw=None, evidence=None):
         raise VTRError("trp_ref does not match the supplied profile")
     if evidence is not None and claims["evidence_digest"] != digest(evidence):
         raise VTRError("evidence_digest does not match the supplied evidence")
-    if claims["result_digest"] != result_digest(claims):
-        raise VTRError("result_digest does not match the determination in the receipt")
     if profile_raw is not None and evidence is not None:
         d = determination(profile_raw, evidence)
+        if claims["result_digest"] != d["result_digest"]:
+            raise VTRError("result_digest does not match a re-run of the evaluation")
         if claims["standing"] != d["standing"]:
             raise VTRError("standing does not match a re-run of the evaluation")
         if claims["results"] != d["results"]:

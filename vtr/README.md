@@ -11,7 +11,7 @@ A Verifiable Trust Receipt is a signed statement that one evaluation against a T
 | `tools/vtr_verify.py` | Python verifier |
 | `tools/vtr_verify.js` | Node.js verifier, written apart from the Python one |
 | `tools/make_vectors.py` | Writes the test vectors |
-| `vectors/` | 20 valid and 12 invalid receipts with their profiles, evidence and test keys |
+| `vectors/` | 21 valid and 16 invalid receipts with their profiles, evidence and test keys |
 
 ## Use
 
@@ -29,4 +29,4 @@ The TRP gate in `adapters/gate` signs a receipt for every tool call and tool res
 
 ## Checks
 
-`python tests/vtr_check.py` runs both verifiers over every vector, confirms they agree, checks Merkle inclusion proofs for every leaf of trees of 1 to 33 receipts, and checks receipts the gate signs.
+`python tests/vtr_check.py` runs both verifiers over every vector and confirms they agree. It confirms both derive the same standing and result digest for every conformance profile and evidence sample, and it checks receipts the gate signs along with Merkle inclusion proofs for every leaf of trees of 1 to 33 receipts.

@@ -343,9 +343,10 @@ def verify_log(path):
 class ReceiptIssuer:
     """Signs a Verifiable Trust Receipt (VTR, vtr/spec.md) for every decision the gate makes.
 
-    Each receipt binds the decision to the profile by its digest, carries one result per requirement, the
-    digest of the evidence the gate measured and the digest of the tool call, and chains to the previous
-    receipt for the same subject. Receipts go to `out` as one compact JWS per line.
+    Each receipt binds the decision to the profile by its digest, carries the standing as a result with its band
+    and response, one result per requirement, the digest of the evidence the gate measured, the digest of the
+    evaluator output and the digest of the tool call, and chains to the previous receipt for the same subject.
+    Receipts go to `out` as one compact JWS per line.
     """
 
     def __init__(self, key_path, iss, out, subject=None, mode="enforced"):

@@ -57,7 +57,9 @@ def main():
             check(f"Python verifier on {key}", reason == t["expect"] and ok == (d == "valid"), reason)
             check(f"Node.js verifier on {key}", node.get(key) == t["expect"], node.get(key))
             count[d] += 1
-    check("at least 20 valid and 10 invalid vectors", count["valid"] >= 20 and count["invalid"] >= 10, count)
+    check("at least 21 valid and 16 invalid vectors", count["valid"] >= 21 and count["invalid"] >= 16, count)
+    for name in ("unknown-kid", "missing-subject", "coverage-out-of-range"):
+        check(f"the invalid vector {name} exists", (ROOT / "vtr/vectors/invalid" / f"{name}.json").exists())
 
     # RFC 8785 numbers: the Python canonical form must equal ECMAScript's for awkward values.
     nums = [0, 1, 1.0, 0.83, 1e-7, 1e21, 1.5e21, 123.456, 0.0001, 1e-6, 2.5e-5, 4.35, 0.1 + 0.2, -12.5, 5e-324, 1.7976931348623157e308, 1e20]
@@ -107,12 +109,17 @@ def main():
         claims = json.loads(vtr.unb64u(jws.split(".")[1]))
         check("the receipt carries no score", "score" not in claims and "aria" not in json.dumps(claims).lower())
         bands = {b["band"] for b in p1["standing_bands"]}
-        check("coverage and standing are separate claims, and standing is a band of the profile", isinstance(claims["coverage"], (int, float)) and claims["standing"] in bands, claims["standing"])
+        check("coverage and standing are separate claims, and the standing names a band of the profile",
+              isinstance(claims["coverage"], (int, float)) and set(claims["standing"]) == {"result", "band", "response"}
+              and claims["standing"]["band"] in bands, claims["standing"])
     finally:
         for f in tmp.iterdir():
             f.unlink()
         tmp.rmdir()
 
+    standing_checks()
+    result_digest_checks()
+    coverage_checks()
     gate_receipts()
     schema_check()
     print(f"VTR: {passed} checks passed" + (f", {len(failed)} failed" if failed else ""))
@@ -163,6 +170,141 @@ def gate_receipts():
         verdicts = [json.loads(vtr.unb64u(j.split(".")[1]))["outcome"] for j in jwss]
         check("gate verdicts map to allow, stop and escalate", verdicts == ["allow", "allow", "stop", "escalate"], verdicts)
         check("each decision log line carries its own receipt under the log's SHA-256 chain", [r["receipt"] for r in recs] == jwss)
+        shapes = [json.loads(vtr.unb64u(j.split(".")[1]))["standing"] for j in jwss]
+        check("every gate receipt carries the standing as result, band and response",
+              all(isinstance(s, dict) and set(s) == {"result", "band", "response"} for s in shapes), shapes)
+        digests = [json.loads(vtr.unb64u(j.split(".")[1]))["result_digest"] for j in jwss]
+        check("every gate receipt's result_digest is the digest of the evaluator output for its logged evidence",
+              digests == [vtr.digest(vtr.evaluator_output(profile, rec["evidence"])) for rec in recs])
+
+
+NODE_DETERMINE = r"""
+const v = require(process.argv[1]); const cases = JSON.parse(require("fs").readFileSync(0, "utf8"));
+console.log(JSON.stringify(cases.map((c) => v.determination(c.profile, c.evidence))));
+"""
+
+NODE_VERIFY = r"""
+const v = require(process.argv[1]); const t = JSON.parse(require("fs").readFileSync(0, "utf8"));
+console.log(JSON.stringify(t.receipts.map((r) => v.verify(r, t.jwks, { profile: t.profile, evidence: t.evidence })[1])));
+"""
+
+
+def node(script, data):
+    return json.loads(subprocess.run(["node", "-e", script, str(ROOT / "vtr/tools/vtr_verify.js")], input=json.dumps(data),
+                                     capture_output=True, text=True, check=True).stdout)
+
+
+def vector_claims(name):
+    r = json.loads((ROOT / "vtr/vectors" / name).read_text())["receipt"]
+    return json.loads(vtr.unb64u(r.split(".")[1])) if isinstance(r, str) else r["claims"]
+
+
+def reason(fn, *args):
+    try:
+        fn(*args)
+        return "valid"
+    except vtr.VTRError as err:
+        return str(err)
+
+
+def standing_checks():
+    """Standing is a result with the band and the response, and missing evidence gives the incomplete result."""
+    p1 = read("examples/manufacturing-safety/trp.json")
+    ev = {n: read(f"vtr/vectors/evidence/{n}.json") for n in ("healthy", "estop", "missing", "mistyped")}
+    seen = {vector_claims(f"valid/{f.name}")["standing"]["result"] for f in (ROOT / "vtr/vectors/valid").glob("*.json")}
+    check("the valid vectors carry every standing result", seen == {"meets", "does_not_meet", "incomplete"}, seen)
+    incomplete = {"result": "incomplete", "band": None, "response": None}
+    check("a receipt whose required signal is missing carries the incomplete result",
+          vector_claims("valid/es256-missing-signal-lowers-coverage.json")["standing"] == incomplete)
+    check("a receipt whose hard rule field has the wrong type carries the incomplete result",
+          vector_claims("valid/es256-mistyped-rule-field.json")["standing"] == incomplete)
+    check("healthy evidence meets the profile in its best band",
+          vector_claims("valid/es256-healthy.json")["standing"] == {"result": "meets", "band": "good", "response": "full"})
+    check("a triggered hard rule does not meet the profile",
+          vector_claims("valid/es256-hard-rule-violated.json")["standing"] == {"result": "does_not_meet", "band": "failing", "response": "suspended"})
+    both = {k: v for k, v in ev["estop"].items() if k != "vibration_rms_g"}
+    check("a required signal that is missing makes the result incomplete even when a hard rule triggered",
+          vtr.determination(p1, both)["standing"] == incomplete)
+    ignored = json.loads(json.dumps(p1))
+    for s in ignored["scored_signals"]:
+        if s["signal"] == "vibration_rms_g":
+            s["on_missing"] = "ignore"
+    d = vtr.determination(ignored, ev["missing"])
+    check("a missing signal the profile declares ignore leaves the result complete and lowers only coverage",
+          d["standing"]["result"] == "meets" and d["coverage"] == 0.9, d)
+    floor = json.loads(json.dumps(p1))
+    floor["required_standing"]["minimum_acceptable_band"] = "good"
+    review = dict(ev["healthy"], robot_speed_mm_s=950)
+    got = (vtr.determination(p1, review)["standing"], vtr.determination(floor, review)["standing"])
+    check("a band at the profile's minimum acceptable band meets it and a band below it does not",
+          got[0]["band"] == got[1]["band"] == "review" and got[0]["result"] == "meets" and got[1]["result"] == "does_not_meet", got)
+    js = node(NODE_DETERMINE, [{"profile": p1, "evidence": both}, {"profile": ignored, "evidence": ev["missing"]},
+                               {"profile": p1, "evidence": review}, {"profile": floor, "evidence": review}])
+    check("the Node.js verifier derives the same standings", [x["standing"] for x in js] ==
+          [vtr.determination(p1, both)["standing"], d["standing"], got[0], got[1]], js)
+    base = vector_claims("valid/es256-healthy.json")
+    shapes = [("good", "standing must carry exactly result, band and response"),
+              ({"result": "pass", "band": "good", "response": "full"}, "standing result must be meets, does_not_meet or incomplete"),
+              ({"result": "incomplete", "band": "failing", "response": None}, "an incomplete standing carries a null band and a null response"),
+              ({"result": "meets", "band": None, "response": None}, "a standing of meets or does_not_meet names its band"),
+              ({"result": "meets", "band": "good", "response": "unknown"}, "standing response must be full, restricted, suspended, revoked or null")]
+    py = [reason(vtr.check_claims, dict(base, standing=s)) for s, _ in shapes]
+    check("the Python verifier refuses each malformed standing", py == [m for _, m in shapes], py)
+    key = vtr.Key.generate()
+    receipts = [vtr._jws(dict(base, standing=s), key, vtr.TYP) for s, _ in shapes]
+    js = node(NODE_VERIFY, {"receipts": receipts, "jwks": key.jwks(), "profile": None, "evidence": None})
+    check("the Node.js verifier refuses each malformed standing with the same reason", js == py, js)
+
+
+def result_digest_checks():
+    """result_digest is the digest of the evaluator output, and both verifiers compute the same one."""
+    import hashlib
+    sys.path.insert(0, str(ROOT / "tools"))
+    import evaluate as trp
+    cases = []
+    for f in sorted((ROOT / "tests/profiles/valid").glob("*.json")):
+        prof = json.loads(f.read_text())
+        if "extends" in prof:
+            continue
+        for e in sorted((ROOT / "tests/evidence").glob("*.json")):
+            cases.append((f.name, e.name, prof, {k: v for k, v in json.loads(e.read_text()).items() if not k.startswith("_")}))
+    for f in sorted((ROOT / "vtr/vectors/valid").glob("*.json")):
+        t = json.loads(f.read_text())
+        if t["profile"] and t["evidence"]:
+            cases.append((t["profile"], t["evidence"], read(t["profile"]), read(t["evidence"])))
+    py = [vtr.determination(p, e) for _, _, p, e in cases]
+    js = node(NODE_DETERMINE, [{"profile": p, "evidence": e} for _, _, p, e in cases])
+    differ = [f"{a} + {b}" for (a, b, _, _), x, y in zip(cases, py, js) if x != y]
+    check(f"Python and Node.js verifiers derive the same determination and result_digest on {len(cases)} profile and evidence pairs", not differ, differ[:3])
+    claims = vector_claims("valid/es256-healthy.json")
+    p1, healthy = read("examples/manufacturing-safety/trp.json"), read("vtr/vectors/evidence/healthy.json")
+    r = trp.evaluate(trp.profile_from_dict(p1), healthy)
+    out = {k: v for k, v in r.items() if k != "evaluation"}
+    check("result_digest is the digest of the evaluator output without its evaluation member", claims["result_digest"] == vtr.digest(out))
+    check("the evaluator's own result_hash is unchanged", r["evaluation"]["result_hash"] ==
+          hashlib.sha256(json.dumps(out, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+    changed = dict(claims, coverage=0.5)
+    check("result_digest does not cover the claims, so a changed coverage leaves it the same and the re-run catches the change",
+          reason(vtr.check_against, changed, p1, healthy) == "coverage does not match a re-run of the evaluation")
+
+
+def coverage_checks():
+    """A requirement counts as checked only when its outcome is satisfied, warning or violated."""
+    p1 = read("examples/manufacturing-safety/trp.json")
+    d = vtr.determination(p1, read("vtr/vectors/evidence/mistyped.json"))
+    rule = next(x for x in d["results"] if x["clause"] == "rule:safety_certification_expired")
+    check("a hard rule whose field is present with the wrong type is inconclusive and not counted as checked",
+          rule["outcome"] == "inconclusive" and d["coverage"] == 0.9, (rule, d["coverage"]))
+    check("the mistyped vector carries coverage 0.9", vector_claims("valid/es256-mistyped-rule-field.json")["coverage"] == 0.9)
+    wide = {"trp_id": "wide", "version": "1", "spec_version": "0.5", "standing_bands": [{"band": "good", "severity": 0}],
+            "hard_rules": [{"rule": f"r{i:02d}", "field": f"f{i:02d}", "condition": "is_true", "action": "halt"} for i in range(32)]}
+    empty = {"trp_id": "empty", "version": "1", "spec_version": "0.5", "standing_bands": [{"band": "good", "severity": 0}]}
+    py = [vtr.determination(wide, {"f00": False})["coverage"], vtr.determination(wide, {f"f{i:02d}": False for i in range(3)})["coverage"],
+          vtr.determination(empty, {})["coverage"]]
+    js = [x["coverage"] for x in node(NODE_DETERMINE, [{"profile": wide, "evidence": {"f00": False}},
+                                                        {"profile": wide, "evidence": {f"f{i:02d}": False for i in range(3)}},
+                                                        {"profile": empty, "evidence": {}}])]
+    check("coverage rounds half to even at four places and is 1 with no requirements, in both verifiers", py == js == [0.0312, 0.0938, 1.0], (py, js))
 
 
 def schema_check():
@@ -175,10 +317,26 @@ def schema_check():
     v = jsonschema.Draft202012Validator(schema)
     bad = []
     for f in sorted((ROOT / "vtr/vectors/valid").glob("*.json")):
-        r = json.loads(f.read_text())["receipt"]
-        claims = json.loads(vtr.unb64u(r.split(".")[1])) if isinstance(r, str) else r["claims"]
-        bad += [f"{f.name}: {e.message}" for e in v.iter_errors(claims)]
+        bad += [f"{f.name}: {e.message}" for e in v.iter_errors(vector_claims(f"valid/{f.name}"))]
     check("every valid vector's claims pass the JSON Schema", not bad, bad[:3])
+    # The schema states the claim rules, so it must reject exactly the invalid vectors whose claims break one.
+    # The others fail on the signature, a digest, a re-run or a batch proof, which no schema can see.
+    disagree, rejected = [], []
+    for f in sorted((ROOT / "vtr/vectors/invalid").glob("*.json")):
+        c = vector_claims(f"invalid/{f.name}")
+        by_rule = reason(vtr.check_claims, c) != "valid"
+        by_schema = not v.is_valid(c)
+        if by_rule != by_schema:
+            disagree.append(f.name)
+        if by_schema:
+            rejected.append(f.stem)
+    check("the JSON Schema rejects every invalid vector whose claims break a claim rule, and only those", not disagree, disagree)
+    check("the JSON Schema rejects the missing subject and the coverage out of range",
+          {"missing-subject", "coverage-out-of-range"} <= set(rejected), rejected)
+    base = vector_claims("valid/es256-healthy.json")
+    check("the JSON Schema rejects a standing given as a band name", not v.is_valid(dict(base, standing="good")))
+    check("the JSON Schema rejects an incomplete standing that names a band",
+          not v.is_valid(dict(base, standing={"result": "incomplete", "band": "failing", "response": None})))
 
 
 if __name__ == "__main__":
