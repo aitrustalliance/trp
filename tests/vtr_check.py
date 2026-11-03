@@ -57,7 +57,7 @@ def main():
             check(f"Python verifier on {key}", reason == t["expect"] and ok == (d == "valid"), reason)
             check(f"Node.js verifier on {key}", node.get(key) == t["expect"], node.get(key))
             count[d] += 1
-    check("at least 21 valid and 16 invalid vectors", count["valid"] >= 21 and count["invalid"] >= 16, count)
+    check("at least 22 valid and 17 invalid vectors", count["valid"] >= 22 and count["invalid"] >= 17, count)
     for name in ("unknown-kid", "missing-subject", "coverage-out-of-range"):
         check(f"the invalid vector {name} exists", (ROOT / "vtr/vectors/invalid" / f"{name}.json").exists())
 
@@ -224,8 +224,19 @@ def standing_checks():
     check("a triggered hard rule does not meet the profile",
           vector_claims("valid/es256-hard-rule-violated.json")["standing"] == {"result": "does_not_meet", "band": "failing", "response": "suspended"})
     both = {k: v for k, v in ev["estop"].items() if k != "vibration_rms_g"}
-    check("a required signal that is missing makes the result incomplete even when a hard rule triggered",
-          vtr.determination(p1, both)["standing"] == incomplete)
+    failing = {"result": "does_not_meet", "band": "failing", "response": "suspended"}
+    check("a triggered hard rule gives does_not_meet even when a required signal is missing",
+          vtr.determination(p1, both)["standing"] == failing)
+    check("the vector with a triggered hard rule and a missing signal carries does_not_meet and coverage 0.9",
+          vector_claims("valid/es256-violated-rule-and-missing-signal.json")["standing"] == failing
+          and vector_claims("valid/es256-violated-rule-and-missing-signal.json")["coverage"] == 0.9)
+    both_mistyped = dict(both, safety_certification_status=1)
+    check("a triggered hard rule gives does_not_meet even when another hard rule is inconclusive",
+          vtr.determination(p1, both_mistyped)["standing"] == failing)
+    one_band = {"trp_id": "one", "version": "1", "spec_version": "0.5", "standing_bands": [{"band": "only", "severity": 0}],
+                "hard_rules": [{"rule": "stop", "field": "stop", "condition": "is_true", "action": "halt"}]}
+    check("a triggered hard rule gives does_not_meet even when the profile's only band is acceptable",
+          vtr.determination(one_band, {"stop": True})["standing"]["result"] == "does_not_meet")
     ignored = json.loads(json.dumps(p1))
     for s in ignored["scored_signals"]:
         if s["signal"] == "vibration_rms_g":
@@ -246,9 +257,11 @@ def standing_checks():
           crit["standing"] == {"result": "does_not_meet", "band": "untrusted", "response": "suspended"} and acc == "inconclusive"
           and crit["coverage"] == 0.8889, crit)
     js = node(NODE_DETERMINE, [{"profile": p1, "evidence": both}, {"profile": ignored, "evidence": ev["missing"]},
-                               {"profile": p1, "evidence": review}, {"profile": floor, "evidence": review}])
+                               {"profile": p1, "evidence": review}, {"profile": floor, "evidence": review},
+                               {"profile": p1, "evidence": both_mistyped}, {"profile": one_band, "evidence": {"stop": True}}])
     check("the Node.js verifier derives the same standings", [x["standing"] for x in js] ==
-          [vtr.determination(p1, both)["standing"], d["standing"], got[0], got[1]], js)
+          [vtr.determination(p1, both)["standing"], d["standing"], got[0], got[1], vtr.determination(p1, both_mistyped)["standing"],
+           vtr.determination(one_band, {"stop": True})["standing"]], js)
     base = vector_claims("valid/es256-healthy.json")
     shapes = [("good", "standing must carry exactly result, band and response"),
               ({"result": "pass", "band": "good", "response": "full"}, "standing result must be meets, does_not_meet or incomplete"),

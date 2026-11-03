@@ -10,12 +10,13 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
 - Verifiable Trust Receipt (VTR) version 0.5 in `vtr/`, with the
   specification, a JSON Schema, a Python reference library and emitter,
   independent Python and Node.js verifiers, Merkle batch signing under RFC 9162
-  and 37 test vectors that both verifiers must agree on.
+  and 39 test vectors that both verifiers must agree on.
   - `standing` is an object with a `result` beside the band and the response.
     The result tells an incomplete evaluation apart from a failing one. A
     receipt whose required evidence is missing, or whose hard rule is
     inconclusive, carries the result `incomplete` with a null band and a null
-    response.
+    response. A triggered hard rule is a known violation, so it gives
+    `does_not_meet` even when other evidence is missing.
   - `result_digest` is the digest of the evaluator output with its
     `evaluation` member removed. A verifier with the profile and the evidence
     re-runs either reference evaluator and compares one digest.
@@ -23,9 +24,11 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
     something other than `inconclusive`. A hard rule whose field is present
     with the wrong type no longer counts as checked.
   - New invalid vectors cover an unknown key identifier, a missing subject, a
-    coverage outside 0 to 1 and an incomplete standing altered to `meets`. A
-    new valid vector covers a hard rule field of the wrong type. Every vector
-    was regenerated with the new standing and result digest.
+    coverage outside 0 to 1, an incomplete standing altered to `meets` and a
+    triggered hard rule reported as `incomplete`. New valid vectors cover a
+    hard rule field of the wrong type and a triggered hard rule beside a
+    missing signal. Every vector was regenerated with the new standing and
+    result digest.
 - The TRP gate signs a VTR for every decision when given a receipt key.
 - `profile_from_dict` in `tools/evaluate.py` and `profileFromObject` in
   `tools/evaluate.js`, so a parsed profile can be evaluated without a file.

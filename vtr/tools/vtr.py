@@ -125,12 +125,18 @@ def evaluator_output(profile_raw, evidence):
 
 
 def standing_of(profile_raw, out):
-    """The standing `{result, band, response}` that follows from one evaluator output."""
-    if any(m["on_missing"] == "incomplete" for m in out["missing_signals"]) or out["hard_rules_inconclusive"]:
-        return {"result": "incomplete", "band": None, "response": None}
+    """The standing `{result, band, response}` that follows from one evaluator output.
+
+    A triggered hard rule is a known violation and gives does_not_meet even when other evidence is missing.
+    Otherwise missing required evidence or an inconclusive hard rule gives incomplete, and then the band decides.
+    """
     severity = {b["band"]: b["severity"] for b in profile_raw.get("standing_bands", [])}
     band = out["standing"] if out["standing"] in severity else None
     response = out["response"] if out["response"] in RESPONSES else None
+    if out["hard_rules_triggered"]:
+        return {"result": "does_not_meet", "band": band, "response": response}
+    if any(m["on_missing"] == "incomplete" for m in out["missing_signals"]) or out["hard_rules_inconclusive"]:
+        return {"result": "incomplete", "band": None, "response": None}
     floor = (profile_raw.get("required_standing") or {}).get("minimum_acceptable_band")
     limit = severity[floor] if floor in severity else min(severity.values(), default=None)
     meets = band is not None and limit is not None and severity[band] <= limit

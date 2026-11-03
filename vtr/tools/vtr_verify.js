@@ -58,13 +58,16 @@ function evaluatorOutput(profileRaw, evidence) {
   return out;
 }
 
+// A triggered hard rule is a known violation and gives does_not_meet even when other evidence is missing.
+// Otherwise missing required evidence or an inconclusive hard rule gives incomplete, and then the band decides.
 function standingOf(profileRaw, out) {
-  if (out.missing_signals.some((m) => m.on_missing === "incomplete") || (out.hard_rules_inconclusive || []).length > 0) {
-    return { result: "incomplete", band: null, response: null };
-  }
   const severity = new Map((profileRaw.standing_bands || []).map((b) => [b.band, b.severity]));
   const band = severity.has(out.standing) ? out.standing : null;
   const response = RESPONSES.has(out.response) ? out.response : null;
+  if (out.hard_rules_triggered.length > 0) return { result: "does_not_meet", band, response };
+  if (out.missing_signals.some((m) => m.on_missing === "incomplete") || (out.hard_rules_inconclusive || []).length > 0) {
+    return { result: "incomplete", band: null, response: null };
+  }
   const floor = (profileRaw.required_standing || {}).minimum_acceptable_band;
   const limit = severity.has(floor) ? severity.get(floor) : severity.size ? Math.min(...severity.values()) : null;
   const meets = band !== null && limit !== null && severity.get(band) <= limit;
