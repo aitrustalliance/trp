@@ -162,6 +162,7 @@ def gate_receipts():
         check("the Node.js verifier accepts every gate receipt", js_all)
         verdicts = [json.loads(vtr.unb64u(j.split(".")[1]))["outcome"] for j in jwss]
         check("gate verdicts map to allow, stop and escalate", verdicts == ["allow", "allow", "stop", "escalate"], verdicts)
+        check("each decision log line carries its own receipt under the log's SHA-256 chain", [r["receipt"] for r in recs] == jwss)
 
 
 def schema_check():

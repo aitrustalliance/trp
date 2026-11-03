@@ -475,10 +475,10 @@ class Gate:
             "evaluator": r["evaluation"]["evaluator"], "result_hash": r["evaluation"]["result_hash"],
             "facts": {k: v for k, v in facts.items() if k in ("paths", "urls", "secrets", "out_bytes", "sensitive_read", "instruction")},
         }
-        rec = self.log.append(rec)
         if self.receipts:
+            # The receipt goes into the log line, so the log's SHA-256 chain covers every signed receipt.
             rec["receipt"] = self.receipts.issue(self.profile_raw, rec, args, state)
-        return rec
+        return self.log.append(rec)
 
     def check_call(self, tool, args, call_id=None):
         """Judges one tool call before it runs. The tool runs only when the decision is allowed."""
