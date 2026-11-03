@@ -344,7 +344,11 @@ def evaluate(profile: Profile, signals: dict[str, Any],
     if hard_override:
         assigned_band = sorted_bands[-1].band if sorted_bands else "failing"
     else:
-        any_critical = any(s.get("in_critical") for s in signal_results)
+        # Section 3.3: on_missing critical treats an absent signal as a
+        # critical condition, the same as a value in the critical range.
+        any_critical = any(s.get("in_critical") for s in signal_results) or any(
+            m["on_missing"] == "critical" for m in missing_signals
+        )
         any_warning = any(s.get("in_warning") for s in signal_results)
         has_incomplete = any(
             m["on_missing"] == "incomplete" for m in missing_signals

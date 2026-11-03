@@ -349,7 +349,10 @@ function evaluate(profile, signals, driftDetector) {
       ? sortedBands[sortedBands.length - 1].band
       : "failing";
   } else {
-    const anyCritical = signalResults.some((s) => s.in_critical);
+    // Section 3.3: on_missing critical treats an absent signal as a
+    // critical condition, the same as a value in the critical range.
+    const anyCritical = signalResults.some((s) => s.in_critical) ||
+      missingSignals.some((m) => m.on_missing === "critical");
     const anyWarning = signalResults.some((s) => s.in_warning);
     const hasIncomplete = missingSignals.some(
       (m) => m.on_missing === "incomplete"

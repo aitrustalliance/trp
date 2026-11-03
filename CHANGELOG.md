@@ -42,6 +42,15 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   and AG2 in `adapters/frameworks`, each checked by running the real framework
   with a scripted model.
 
+### Changed
+- Both reference evaluators honor `on_missing: critical` when they assign the
+  band. Section 3.3 treats such an absence as a critical condition, so the
+  standing is the worst band, the same as a value in the critical range. The
+  evaluators used to add a penalty that no output used and left the band
+  unchanged. `tests/evidence/missing-critical-signal.json` now expects
+  `untrusted`, and `tests/evidence/missing-ignored-signal.json` covers
+  `on_missing: ignore`.
+
 ### Fixed
 - `tools/evaluate.js` rounds severity, penalty, drift moving averages and
   generated sample values half to even on the exact value of each number, the

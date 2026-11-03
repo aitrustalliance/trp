@@ -239,6 +239,12 @@ def standing_checks():
     got = (vtr.determination(p1, review)["standing"], vtr.determination(floor, review)["standing"])
     check("a band at the profile's minimum acceptable band meets it and a band below it does not",
           got[0]["band"] == got[1]["band"] == "review" and got[0]["result"] == "meets" and got[1]["result"] == "does_not_meet", got)
+    ff = read("tests/profiles/valid/full-featured.json")
+    crit = vtr.determination(ff, {k: v for k, v in read("tests/evidence/missing-critical-signal.json").items() if not k.startswith("_")})
+    acc = next(x["outcome"] for x in crit["results"] if x["clause"] == "signal:accuracy")
+    check("a missing signal the profile declares critical puts the standing in the worst band and stays out of coverage",
+          crit["standing"] == {"result": "does_not_meet", "band": "untrusted", "response": "suspended"} and acc == "inconclusive"
+          and crit["coverage"] == 0.8889, crit)
     js = node(NODE_DETERMINE, [{"profile": p1, "evidence": both}, {"profile": ignored, "evidence": ev["missing"]},
                                {"profile": p1, "evidence": review}, {"profile": floor, "evidence": review}])
     check("the Node.js verifier derives the same standings", [x["standing"] for x in js] ==

@@ -64,6 +64,10 @@ hard-override flag. The suite verifies that:
   moving average stored just below a tie, round half to even on the exact
   value. The cross-evaluator check confirms the Node.js evaluator rounds
   them the same way.
+- A missing signal whose on_missing value is critical produces `untrusted`
+  standing without hard override, the same as a value in the critical range.
+  A missing signal whose on_missing value is ignore leaves the standing
+  `trusted`.
 - The same input always produces the same output (determinism check).
 
 ### 5. Unsupported extends
