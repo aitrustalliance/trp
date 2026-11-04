@@ -52,7 +52,7 @@ function thumbprint(jwk) {
 const round4 = (x) => trp.roundHalfEven(x, 4);  // half to even at four places on the exact value, as Python rounds
 
 // The Node.js evaluator's output with no drift history and without its `evaluation` member, which carries the
-// evaluation time, the evaluator's name and its result_hash. Every other member matches the Python evaluator's.
+// evaluation time and the evaluator's name. Every other member matches the Python evaluator's.
 function evaluatorOutput(profileRaw, evidence) {
   const { evaluation, ...out } = trp.evaluate(trp.profileFromObject(profileRaw), evidence);
   return out;

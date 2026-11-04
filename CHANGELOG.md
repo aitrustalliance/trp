@@ -75,6 +75,17 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   weight 0 signal declared `on_missing: critical`, and
   `tests/evidence/zero-weight-critical-value.json` and
   `tests/evidence/zero-weight-missing.json` expect `good` against it.
+- `result_hash` in both evaluators is the SHA-256 of the RFC 8785 canonical
+  JSON form of the output without its `evaluation` member, so the Python and
+  Node.js evaluators write the same hash byte for byte. In 0.5.2 the Python
+  evaluator hashed `json.dumps` with sorted keys, and the Node.js evaluator
+  passed the top-level keys to `JSON.stringify` as a filter, which dropped
+  every nested member, so the two hashes differed whenever the output listed
+  a signal or a rule. A `result_hash` recorded under 0.5.2 can differ from
+  the 0.5.3 value for the same input. For an evaluation with no drift
+  history it equals a VTR `result_digest` in hexadecimal. The cross-evaluator check in CI now compares
+  `result_hash` on every profile and evidence pair. A non-finite number has no
+  JSON form, so both evaluators now stop with an error before hashing one.
 - An evidence sample can name the profile it runs against in `_profile`.
   Samples without it still run against `full-featured.json`.
 

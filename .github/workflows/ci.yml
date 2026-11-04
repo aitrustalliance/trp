@@ -86,13 +86,15 @@ jobs:
       - name: Install Python dependencies
         run: pip install jsonschema
 
-      - name: Cross-validate evaluators against all evidence
+      - name: Cross-validate evaluators and result_hash against all evidence
         run: |
           python3 -c "
           import glob, json, subprocess, sys
           from tools.evaluate import load_profile, evaluate, DriftDetector, UnsupportedProfileError
 
-          VOLATILE = {'evaluated_at', 'result_hash', 'evaluator'}
+          # result_hash is not volatile. Both evaluators hash the RFC 8785 canonical
+          # form of the same output, so it must match byte for byte.
+          VOLATILE = {'evaluated_at', 'evaluator'}
 
           def strip(d):
               if isinstance(d, dict):
@@ -106,6 +108,8 @@ jobs:
 
           passed = 0
           failed = 0
+          hash_passed = 0
+          hash_failed = 0
 
           for profile_path in profiles:
               with open(profile_path) as f:
@@ -157,6 +161,14 @@ jobs:
 
                   js_result = strip(json.loads(proc.stdout))
 
+                  py_hash = py_result['evaluation']['result_hash']
+                  js_hash = js_result['evaluation']['result_hash']
+                  if py_hash == js_hash:
+                      hash_passed += 1
+                  else:
+                      print(f'HASH DIFFERS  {name}: python {py_hash}, node {js_hash}')
+                      hash_failed += 1
+
                   if py_result == js_result:
                       print(f'AGREE  {name}')
                       passed += 1
@@ -168,7 +180,8 @@ jobs:
 
           print()
           print(f'Cross-evaluator agreement: {passed}/{passed + failed}')
-          sys.exit(1 if failed else 0)
+          print(f'result_hash agreement: {hash_passed}/{hash_passed + hash_failed}')
+          sys.exit(1 if failed or hash_failed else 0)
           "
 
   agent-frameworks:

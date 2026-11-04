@@ -129,7 +129,7 @@ A verifier MUST NOT read `incomplete` as `meets` or as `does_not_meet`, and a re
 
 The evaluator runs with no drift history, so the output carries no `drift` member. `tools/README.md` shows an example.
 
-**Result Digest** `result_digest` is the digest of the evaluator output. A verifier that has the profile and the evidence runs either reference evaluator again and compares one digest, so a receipt cannot be detached from the evaluation it describes. A verifier without the evidence cannot recompute `result_digest`, and the issuer's signature binds it to the other claims. `result_digest` is a different value from the evaluator's own `result_hash`, which uses another serialization and is not part of the receipt.
+**Result Digest** `result_digest` is the digest of the evaluator output. A verifier that has the profile and the evidence runs either reference evaluator again and compares one digest, so a receipt cannot be detached from the evaluation it describes. A verifier without the evidence cannot recompute `result_digest`, and the issuer's signature binds it to the other claims. The evaluator's own `result_hash` is the SHA-256 of the same canonical form written in hexadecimal, so for an evaluation with no drift history it is the same hash as `result_digest` in another encoding. `result_hash` is not part of the receipt.
 
 ## Canonical Form And Digests
 

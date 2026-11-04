@@ -21,6 +21,7 @@ import math
 import sys
 from collections import deque
 from dataclasses import dataclass, field
+from decimal import Decimal
 from pathlib import Path
 import hashlib
 import datetime
@@ -51,6 +52,66 @@ def value_type(value: Any) -> str:
     if isinstance(value, str):
         return "string"
     return "other"
+
+
+# ---------------------------------------------------------------------------
+# Canonical JSON (RFC 8785)
+# ---------------------------------------------------------------------------
+
+def _canonical_number(value: int | float) -> str:
+    """The ECMAScript form of a number, which RFC 8785 requires."""
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            raise ValueError("integers beyond 2^53 cannot be canonicalized exactly")
+        return str(value)
+    if not math.isfinite(value):
+        raise ValueError("NaN and infinity have no JSON form")
+    if value == 0:
+        return "0"
+    sign = "-" if value < 0 else ""
+    # repr gives the shortest digits that round-trip, as ECMAScript does.
+    t = Decimal(repr(abs(value))).normalize().as_tuple()
+    digits = "".join(map(str, t.digits)).rstrip("0") or "0"
+    k = len(digits)
+    n = t.exponent + len(t.digits)
+    if k <= n <= 21:
+        text = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        text = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        text = "0." + "0" * (-n) + digits
+    else:
+        e = n - 1
+        text = digits[0] + ("." + digits[1:] if k > 1 else "") + \
+            "e" + ("+" if e >= 0 else "-") + str(abs(e))
+    return sign + text
+
+
+def canonical_json(value: Any) -> str:
+    """The RFC 8785 JSON Canonicalization Scheme form of a JSON value.
+
+    Keys sort by UTF-16 code units and numbers take their ECMAScript form, so
+    the Node.js evaluator writes the same bytes for the same output.
+    """
+    if value is None:
+        return "null"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, (int, float)):
+        return _canonical_number(value)
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, (list, tuple)):
+        return "[" + ",".join(canonical_json(x) for x in value) + "]"
+    if isinstance(value, dict):
+        keys = sorted(value, key=lambda k: k.encode("utf-16-be"))
+        return "{" + ",".join(
+            json.dumps(k, ensure_ascii=False) + ":" + canonical_json(value[k])
+            for k in keys
+        ) + "}"
+    raise ValueError(f"{type(value).__name__} is not a JSON value")
 
 
 # ---------------------------------------------------------------------------
@@ -390,15 +451,17 @@ def evaluate(profile: Profile, signals: dict[str, Any],
             for s in drift_detector.signals
         }
 
-    # 6. Evaluation metadata (provenance and tamper detection)
-    result_payload = json.dumps(result, sort_keys=True, separators=(",", ":"))
+    # 6. Evaluation metadata (provenance and tamper detection). result_hash
+    # is the SHA-256 of the RFC 8785 canonical form of everything above, the
+    # same bytes the Node.js evaluator hashes.
+    result_payload = canonical_json(result)
     result["evaluation"] = {
         "profile_id": profile.trp_id,
         "profile_version": profile.version,
         "spec_version": profile.spec_version,
         "evaluator": "trp-reference-python",
         "evaluated_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "result_hash": hashlib.sha256(result_payload.encode()).hexdigest(),
+        "result_hash": hashlib.sha256(result_payload.encode("utf-8")).hexdigest(),
     }
 
     return result

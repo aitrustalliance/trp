@@ -258,6 +258,25 @@ function round4(x) {
   return roundHalfEven(x, 4);
 }
 
+// RFC 8785 JSON Canonicalization Scheme. JSON.stringify gives the ECMAScript
+// number and string forms the scheme requires, and keys sort by UTF-16 code
+// units, so the Python evaluator writes the same bytes for the same output.
+// A member whose value is undefined is left out, as JSON.stringify leaves it.
+function canonicalJson(value) {
+  if (value === null || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("NaN and infinity have no JSON form");
+    return JSON.stringify(value);
+  }
+  if (typeof value === "string") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(canonicalJson).join(",") + "]";
+  if (typeof value === "object") {
+    return "{" + Object.keys(value).filter((k) => value[k] !== undefined).sort()
+      .map((k) => JSON.stringify(k) + ":" + canonicalJson(value[k])).join(",") + "}";
+  }
+  throw new Error(`${typeof value} is not a JSON value`);
+}
+
 function evaluate(profile, signals, driftDetector) {
   const result = {
     trp_id: profile.trpId,
@@ -387,7 +406,6 @@ function evaluate(profile, signals, driftDetector) {
   result.hard_override = hardOverride;
   result.response = profile.responseBands[assignedBand] || "unknown";
 
-  // 6. Evaluation metadata (provenance and tamper detection)
   // 5. Drift evidence
   if (driftDetector) {
     const drift = {};
@@ -402,14 +420,17 @@ function evaluate(profile, signals, driftDetector) {
     result.drift = drift;
   }
 
-  const resultPayload = JSON.stringify(result, Object.keys(result).sort());
+  // 6. Evaluation metadata (provenance and tamper detection). result_hash is
+  // the SHA-256 of the RFC 8785 canonical form of everything above, the same
+  // bytes the Python evaluator hashes.
+  const resultPayload = canonicalJson(result);
   result.evaluation = {
     profile_id: profile.trpId,
     profile_version: profile.version,
     spec_version: profile.specVersion,
     evaluator: "trp-reference-nodejs",
     evaluated_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-    result_hash: crypto.createHash("sha256").update(resultPayload).digest("hex"),
+    result_hash: crypto.createHash("sha256").update(resultPayload, "utf8").digest("hex"),
   };
 
   return result;
@@ -517,4 +538,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { loadProfile, profileFromObject, evaluate, generateSample, roundHalfEven, UnsupportedProfileError };
+module.exports = { loadProfile, profileFromObject, evaluate, generateSample, roundHalfEven, canonicalJson, UnsupportedProfileError };

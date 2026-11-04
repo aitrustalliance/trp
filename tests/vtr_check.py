@@ -69,6 +69,13 @@ def main():
     js = json.loads(subprocess.run(["node", "-e", f"console.log(JSON.stringify({json.dumps(nums)}.map(x => JSON.stringify(x))))"],
                                    capture_output=True, text=True, check=True).stdout)
     check("canonical numbers match ECMAScript", [vtr.canonical(n) for n in nums] == js)
+    awkward = {"nums": nums, "text": "a\u0000\u001f\"\\\u007f é\U0001F600", "keys": {"\U0001F600": 1, "דּ": 2, "a": 3},
+               "nil": None, "flag": True, "list": [{"b": 1, "a": [2, 0.5]}]}
+    node_eval = json.loads(subprocess.run(
+        ["node", "-e", "const t = require(process.argv[1]); console.log(JSON.stringify(t.canonicalJson(JSON.parse(require('fs').readFileSync(0, 'utf8')))))",
+         str(ROOT / "tools/evaluate.js")], input=json.dumps(awkward), capture_output=True, text=True, check=True).stdout)
+    check("both evaluators write the same RFC 8785 form as the receipt library",
+          vtr.trp.canonical_json(awkward) == vtr.canonical(awkward) == node_eval, (vtr.trp.canonical_json(awkward), node_eval))
     check("canonical keys sort by UTF-16 code units", vtr.canonical({"\U0001F600": 1, "דּ": 2, "a": 3}) == '{"a":3,"\U0001F600":1,"דּ":2}')
 
     # Every leaf of every tree size from 1 to 33 proves its way to the signed root, and only its own position does.
@@ -334,8 +341,8 @@ def result_digest_checks():
     r = trp.evaluate(trp.profile_from_dict(p1), healthy)
     out = {k: v for k, v in r.items() if k != "evaluation"}
     check("result_digest is the digest of the evaluator output without its evaluation member", claims["result_digest"] == vtr.digest(out))
-    check("the evaluator's own result_hash is unchanged", r["evaluation"]["result_hash"] ==
-          hashlib.sha256(json.dumps(out, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+    check("the evaluator's result_hash is the SHA-256 of the same canonical form, so it is result_digest in hexadecimal",
+          r["evaluation"]["result_hash"] == hashlib.sha256(vtr.canonical(out).encode()).hexdigest() == vtr.unb64u(claims["result_digest"]).hex())
     changed = dict(claims, coverage=0.5)
     check("result_digest does not cover the claims, so a changed coverage leaves it the same and the re-run catches the change",
           reason(vtr.check_against, changed, p1, healthy) == "coverage does not match a re-run of the evaluation")

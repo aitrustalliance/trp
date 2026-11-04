@@ -4,7 +4,9 @@ Two independent reference implementations that load a TRP profile and
 evaluate a data sample against it. The Python and Node.js evaluators share
 no code. Both produce identical standings, hard-override decisions, and
 response actions for the same profile and evidence, proving that the
-specification is independently implementable.
+specification is independently implementable. Both also write the same
+`result_hash`, the SHA-256 of the RFC 8785 canonical JSON form of the output
+without its `evaluation` member.
 
 These are reference tools for testing and development, not production
 evaluation sources.

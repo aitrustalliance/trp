@@ -117,8 +117,8 @@ def digest(v):
 def evaluator_output(profile_raw, evidence):
     """The reference evaluator's output with no drift history and without its `evaluation` member.
 
-    The `evaluation` member carries the evaluation time, the evaluator's name and its `result_hash`, which differ
-    from run to run and between the Python and Node.js evaluators. Every other member is the same in both.
+    The `evaluation` member carries the evaluation time, which differs from run to run, and the evaluator's name, which
+    differs between the Python and Node.js evaluators. Every other member is the same in both.
     """
     r = trp.evaluate(trp.profile_from_dict(profile_raw), evidence)
     return {k: v for k, v in r.items() if k != "evaluation"}
