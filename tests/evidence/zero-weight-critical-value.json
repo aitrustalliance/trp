@@ -1,0 +1,10 @@
+{
+  "_test_description": "Evaluated against zero-weight-signal.json. observed_metric 250 and observed_ratio 0.30 are both in their critical ranges, but each has weight 0, and Section 3.3 makes a weight 0 signal informational, so neither moves the band. primary_metric is healthy. Expected standing: good.",
+  "_profile": "zero-weight-signal.json",
+  "_expected_standing": "good",
+  "_expected_response": "unknown",
+  "_expected_hard_override": false,
+  "primary_metric": 0.95,
+  "observed_metric": 250,
+  "observed_ratio": 0.30
+}

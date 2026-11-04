@@ -2,10 +2,10 @@
   "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
   "trp_id": "zero-weight-signal",
   "spec_version": "0.5",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "authority": "aitrustalliance.com",
   "scope": {
-    "intended_use": "Test that a signal with weight 0 is monitored but does not contribute to standing."
+    "intended_use": "Test that a signal with weight 0 is monitored but does not contribute to standing, even when its value is critical or it is missing."
   },
   "scored_signals": [
     {
@@ -22,6 +22,15 @@
       "warning_threshold": 100,
       "critical_threshold": 200,
       "reason": "Monitored for drift but does not affect standing calculation."
+    },
+    {
+      "signal": "observed_ratio",
+      "weight": 0,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.90,
+      "critical_threshold": 0.50,
+      "reason": "Its on_missing is critical, and weight 0 still keeps it from affecting standing.",
+      "on_missing": "critical"
     }
   ],
   "standing_bands": [

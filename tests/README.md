@@ -68,6 +68,9 @@ hard-override flag. The suite verifies that:
   standing without hard override, the same as a value in the critical range.
   A missing signal whose on_missing value is ignore leaves the standing
   `trusted`.
+- A signal with weight 0 never moves the band, even when its value is in the
+  critical range or it is missing with on_missing critical. These samples run
+  against `profiles/valid/zero-weight-signal.json` and expect `good`.
 - The same input always produces the same output (determinism check).
 
 ### 5. Unsupported extends
@@ -94,7 +97,8 @@ fail schema validation.
 `_expected_standing`, `_expected_response`, and `_expected_hard_override`
 fields. Add `_expected_inconclusive_rules` (a list of rule identifiers) when
 the sample should leave rules inconclusive. The test runner evaluates it
-against `profiles/valid/full-featured.json`.
+against `profiles/valid/full-featured.json`, or against the valid profile
+named in `_profile` when the sample sets one.
 
 ## Continuous integration
 

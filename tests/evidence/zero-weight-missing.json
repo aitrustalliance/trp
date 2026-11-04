@@ -1,0 +1,8 @@
+{
+  "_test_description": "Evaluated against zero-weight-signal.json. Both weight 0 signals are absent, observed_metric with the default on_missing incomplete and observed_ratio with on_missing critical. Section 3.3 makes a weight 0 signal informational, so neither absence moves the band. primary_metric is healthy. Expected standing: good.",
+  "_profile": "zero-weight-signal.json",
+  "_expected_standing": "good",
+  "_expected_response": "unknown",
+  "_expected_hard_override": false,
+  "primary_metric": 0.95
+}

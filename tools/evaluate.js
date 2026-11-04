@@ -344,6 +344,14 @@ function evaluate(profile, signals, driftDetector) {
     ? sortedBands[sortedBands.length - 1].band
     : "unknown";
 
+  // Section 3.3: a signal with weight 0 is informational. It is reported
+  // above and never moves the band, whatever its value or on_missing.
+  const informational = new Set(
+    profile.scoredSignals.filter((s) => s.weight === 0).map((s) => s.signal)
+  );
+  const banded = signalResults.filter((s) => !informational.has(s.signal));
+  const bandedMissing = missingSignals.filter((m) => !informational.has(m.signal));
+
   if (hardOverride) {
     assignedBand = sortedBands.length > 0
       ? sortedBands[sortedBands.length - 1].band
@@ -351,10 +359,10 @@ function evaluate(profile, signals, driftDetector) {
   } else {
     // Section 3.3: on_missing critical treats an absent signal as a
     // critical condition, the same as a value in the critical range.
-    const anyCritical = signalResults.some((s) => s.in_critical) ||
-      missingSignals.some((m) => m.on_missing === "critical");
-    const anyWarning = signalResults.some((s) => s.in_warning);
-    const hasIncomplete = missingSignals.some(
+    const anyCritical = banded.some((s) => s.in_critical) ||
+      bandedMissing.some((m) => m.on_missing === "critical");
+    const anyWarning = banded.some((s) => s.in_warning);
+    const hasIncomplete = bandedMissing.some(
       (m) => m.on_missing === "incomplete"
     ) || inconclusiveRules.length > 0;
 

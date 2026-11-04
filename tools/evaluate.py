@@ -341,17 +341,23 @@ def evaluate(profile: Profile, signals: dict[str, Any],
     sorted_bands = sorted(profile.standing_bands, key=lambda b: b.severity)
     assigned_band = sorted_bands[-1].band if sorted_bands else "unknown"
 
+    # Section 3.3: a signal with weight 0 is informational. It is reported
+    # above and never moves the band, whatever its value or on_missing.
+    informational = {s.signal for s in profile.scored_signals if s.weight == 0}
+    banded = [s for s in signal_results if s["signal"] not in informational]
+    banded_missing = [m for m in missing_signals if m["signal"] not in informational]
+
     if hard_override:
         assigned_band = sorted_bands[-1].band if sorted_bands else "failing"
     else:
         # Section 3.3: on_missing critical treats an absent signal as a
         # critical condition, the same as a value in the critical range.
-        any_critical = any(s.get("in_critical") for s in signal_results) or any(
-            m["on_missing"] == "critical" for m in missing_signals
+        any_critical = any(s["in_critical"] for s in banded) or any(
+            m["on_missing"] == "critical" for m in banded_missing
         )
-        any_warning = any(s.get("in_warning") for s in signal_results)
+        any_warning = any(s["in_warning"] for s in banded)
         has_incomplete = any(
-            m["on_missing"] == "incomplete" for m in missing_signals
+            m["on_missing"] == "incomplete" for m in banded_missing
         ) or len(inconclusive_rules) > 0
 
         if any_critical or has_incomplete:

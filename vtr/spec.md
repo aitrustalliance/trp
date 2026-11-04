@@ -106,6 +106,8 @@ When no hard rule triggered, the result is `incomplete` if a scored signal is mi
 
 In every other case the result is `meets` when the band is no more severe than the profile's `required_standing.minimum_acceptable_band` and `does_not_meet` when the band is more severe. A profile that declares no minimum acceptable band is met only in its least severe band. A missing signal whose `on_missing` is `critical` does not make the result incomplete, because the evaluator treats the absence as a critical condition and assigns its worst band. Its outcome in `results` is still `inconclusive` since the evidence lacks it, so it does not count toward coverage.
 
+A scored signal with weight 0 is informational under TRP Section 3.3. Its outcome appears in `results` and counts toward coverage, and it never changes the standing, so its absence never makes the result `incomplete`.
+
 A verifier MUST NOT read `incomplete` as `meets` or as `does_not_meet`, and a relying party applies its own policy to an incomplete result. Standing does not depend on coverage.
 
 **Evaluator Output** The evaluator output is the object the TRP reference evaluator returns, with its `evaluation` member removed. The `evaluation` member describes the run itself, and its values change from one run to the next and from one implementation to another. A conforming evaluator MUST produce every other member exactly as the reference evaluators do for the same profile and evidence.

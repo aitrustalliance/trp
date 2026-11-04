@@ -259,6 +259,15 @@ def standing_checks():
     check("a missing signal the profile declares critical puts the standing in the worst band and stays out of coverage",
           crit["standing"] == {"result": "does_not_meet", "band": "untrusted", "response": "suspended"} and acc == "inconclusive"
           and crit["coverage"] == 0.8889, crit)
+    zw = read("tests/profiles/valid/zero-weight-signal.json")
+    zd = [vtr.determination(zw, {k: v for k, v in read(f"tests/evidence/{n}.json").items() if not k.startswith("_")})
+          for n in ("zero-weight-critical-value", "zero-weight-missing")]
+    good = {"result": "meets", "band": "good", "response": None}
+    check("a signal with weight 0 never changes the standing, in its critical range or missing with on_missing critical or incomplete",
+          [x["standing"] for x in zd] == [good, good], zd)
+    check("a signal with weight 0 still reports its outcome and counts toward coverage",
+          {x["clause"]: x["outcome"] for x in zd[0]["results"]}["signal:observed_metric"] == "violated"
+          and zd[0]["coverage"] == 1.0 and zd[1]["coverage"] == 0.3333, zd)
     js = node(NODE_DETERMINE, [{"profile": p1, "evidence": both}, {"profile": ignored, "evidence": ev["missing"]},
                                {"profile": p1, "evidence": review}, {"profile": floor, "evidence": review},
                                {"profile": p1, "evidence": both_mistyped}, {"profile": one_band, "evidence": {"stop": True}}])

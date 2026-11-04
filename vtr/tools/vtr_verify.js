@@ -60,12 +60,15 @@ function evaluatorOutput(profileRaw, evidence) {
 
 // A triggered hard rule is a known violation and gives does_not_meet even when other evidence is missing.
 // Otherwise missing required evidence or an inconclusive hard rule gives incomplete, and then the band decides.
+// A signal with weight 0 is informational under TRP Section 3.3, so its absence never makes the result incomplete.
 function standingOf(profileRaw, out) {
   const severity = new Map((profileRaw.standing_bands || []).map((b) => [b.band, b.severity]));
   const band = severity.has(out.standing) ? out.standing : null;
   const response = RESPONSES.has(out.response) ? out.response : null;
   if (out.hard_rules_triggered.length > 0) return { result: "does_not_meet", band, response };
-  if (out.missing_signals.some((m) => m.on_missing === "incomplete") || (out.hard_rules_inconclusive || []).length > 0) {
+  const informational = new Set((profileRaw.scored_signals || []).filter((s) => s.weight === 0).map((s) => s.signal));
+  const missing = out.missing_signals.filter((m) => !informational.has(m.signal));
+  if (missing.some((m) => m.on_missing === "incomplete") || (out.hard_rules_inconclusive || []).length > 0) {
     return { result: "incomplete", band: null, response: null };
   }
   const floor = (profileRaw.required_standing || {}).minimum_acceptable_band;

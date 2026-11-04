@@ -16,7 +16,9 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
     receipt whose required evidence is missing, or whose hard rule is
     inconclusive, carries the result `incomplete` with a null band and a null
     response. A triggered hard rule is a known violation, so it gives
-    `does_not_meet` even when other evidence is missing.
+    `does_not_meet` even when other evidence is missing. A signal with
+    weight 0 never changes the standing, so its absence never gives
+    `incomplete`.
   - `result_digest` is the digest of the evaluator output with its
     `evaluation` member removed. A verifier with the profile and the evidence
     re-runs either reference evaluator and compares one digest.
@@ -53,6 +55,16 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   unchanged. `tests/evidence/missing-critical-signal.json` now expects
   `untrusted`, and `tests/evidence/missing-ignored-signal.json` covers
   `on_missing: ignore`.
+- A signal with weight 0 is informational in both evaluators and never moves
+  the band, including a signal whose value is in the critical range or that
+  is missing with `on_missing: critical`. In 0.5.2 such a signal could set
+  the worst band or the middle band. Section 3.3 states the rule once, where
+  weight is defined. `tests/profiles/valid/zero-weight-signal.json` gains a
+  weight 0 signal declared `on_missing: critical`, and
+  `tests/evidence/zero-weight-critical-value.json` and
+  `tests/evidence/zero-weight-missing.json` expect `good` against it.
+- An evidence sample can name the profile it runs against in `_profile`.
+  Samples without it still run against `full-featured.json`.
 
 ### Fixed
 - `tools/evaluate.js` rounds severity, penalty, drift moving averages and

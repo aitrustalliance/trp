@@ -159,8 +159,10 @@ def test_example_profiles(schema: dict, results: Results, verbose: bool):
 def test_evaluator_determinism(results: Results, verbose: bool):
     """Run the reference evaluator against known evidence samples and
     verify that the standing and response match the expected values
-    embedded in each evidence file."""
-    profile_path = PROJECT_ROOT / "tests" / "profiles" / "valid" / "full-featured.json"
+    embedded in each evidence file. A sample is evaluated against
+    full-featured.json unless its _profile names another valid profile."""
+    profiles_dir = PROJECT_ROOT / "tests" / "profiles" / "valid"
+    profile_path = profiles_dir / "full-featured.json"
     evidence_dir = PROJECT_ROOT / "tests" / "evidence"
 
     if not profile_path.exists():
@@ -196,11 +198,19 @@ def test_evaluator_determinism(results: Results, verbose: bool):
             k: v for k, v in data.items() if not k.startswith("_")
         }
 
-        drift = None
-        if profile.drift_window > 0:
-            drift = DriftDetector(profile.drift_window, profile.drift_signals)
+        case_profile = profile
+        if "_profile" in data:
+            other = profiles_dir / data["_profile"]
+            if not other.exists():
+                results.fail(f"evidence/{path.name}", f"_profile {data['_profile']} not found", verbose)
+                continue
+            case_profile = load_profile(other)
 
-        result = evaluate(profile, signals, drift)
+        drift = None
+        if case_profile.drift_window > 0:
+            drift = DriftDetector(case_profile.drift_window, case_profile.drift_signals)
+
+        result = evaluate(case_profile, signals, drift)
 
         test_name = f"evidence/{path.name}"
 

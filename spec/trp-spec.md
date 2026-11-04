@@ -110,7 +110,7 @@ Every document SHOULD declare `$schema`, the URI of the JSON Schema it validates
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
 | signal | string | 1 | MUST | Name of the signal. Unique within the array. |
-| weight | number | 1 | MUST | Relative importance, at least 0. Weight 0 means the signal is monitored but does not contribute to standing. Nonzero interpretation is left to the evaluation source. |
+| weight | number | 1 | MUST | Relative importance, at least 0. A signal with weight 0 is informational. It is reported, and it never moves the band or makes the assessment incomplete, even when its value is in the critical range or it is missing with on_missing critical. Nonzero interpretation is left to the evaluation source. |
 | direction | string | 1 | MUST | lower_is_unsafe or higher_is_unsafe. |
 | warning_threshold | number | 1 | MUST | Value at which the signal is a concern. |
 | critical_threshold | number | 1 | MUST | Value at which the signal is critical, at least as far in the unsafe direction as warning_threshold. |
