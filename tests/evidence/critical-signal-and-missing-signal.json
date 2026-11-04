@@ -1,0 +1,14 @@
+{
+  "_test_description": "accuracy 0.55 is in its critical range, and bias_score is absent with on_missing incomplete. A critical condition takes precedence over the incomplete assessment and sets the worst band. No hard rule is met. Expected standing: untrusted without hard override.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": false,
+  "accuracy": 0.55,
+  "latency_ms": 120,
+  "data_freshness_hours": 4,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

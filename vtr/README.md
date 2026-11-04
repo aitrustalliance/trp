@@ -11,7 +11,7 @@ A Verifiable Trust Receipt is a signed statement that one evaluation against a T
 | `tools/vtr_verify.py` | Python verifier |
 | `tools/vtr_verify.js` | Node.js verifier, written apart from the Python one |
 | `tools/make_vectors.py` | Writes the test vectors |
-| `vectors/` | 26 valid and 17 invalid receipts with their profiles, evidence and test keys |
+| `vectors/` | 27 valid and 18 invalid receipts with their profiles, evidence and test keys |
 
 ## Use
 

@@ -100,13 +100,17 @@ An issuer computes the determination from the profile and the evidence with a co
 | `band` | string or null | The band the evaluator assigned, which is a band the profile declares, or `null` when the result is `incomplete` |
 | `response` | string or null | The response the profile's `required_standing.response_bands` gives that band, one of `full`, `restricted`, `suspended` or `revoked`, or `null` when the profile gives none or the result is `incomplete` |
 
+A band meets the profile when it is no more severe than the profile's `required_standing.minimum_acceptable_band`. A profile that declares no minimum acceptable band is met only in its least severe band.
+
 A triggered hard rule is a known violation, and a known violation is never reported as incomplete. When any hard rule triggered, the result is `does_not_meet` with the band and the response, even when a required signal is also missing or another hard rule is inconclusive.
 
-When no hard rule triggered, the result is `incomplete` if a scored signal is missing from the evidence and its `on_missing` is `incomplete`, which is the default. The result is also `incomplete` if any hard rule is inconclusive, because TRP Section 3.4 gives an inconclusive rule the same outcome. An incomplete result prevents `meets`, and an incomplete standing carries a `null` band and a `null` response.
+A scored signal whose value is in its critical range is a critical condition, and so is a missing signal whose `on_missing` is `critical`, because TRP Section 3.3 treats that absence as one. The evaluator assigns its worst band for a critical condition whatever other evidence is missing. When no hard rule triggered and a critical condition is present, the result is `does_not_meet` with the band and the response whenever that band does not meet the profile, even when a required signal is also missing or a hard rule is inconclusive. A missing signal whose `on_missing` is `critical` still has the outcome `inconclusive` in `results` since the evidence lacks it, so it does not count toward coverage.
 
-In every other case the result is `meets` when the band is no more severe than the profile's `required_standing.minimum_acceptable_band` and `does_not_meet` when the band is more severe. A profile that declares no minimum acceptable band is met only in its least severe band. A missing signal whose `on_missing` is `critical` does not make the result incomplete, because the evaluator treats the absence as a critical condition and assigns its worst band. Its outcome in `results` is still `inconclusive` since the evidence lacks it, so it does not count toward coverage.
+Otherwise the result is `incomplete` if a scored signal is missing from the evidence and its `on_missing` is `incomplete`, which is the default. The result is also `incomplete` if any hard rule is inconclusive, because TRP Section 3.4 gives an inconclusive rule the same outcome. An incomplete result prevents `meets`, and an incomplete standing carries a `null` band and a `null` response.
 
-A scored signal with weight 0 is informational under TRP Section 3.3. Its outcome appears in `results` and counts toward coverage, and it never changes the standing, so its absence never makes the result `incomplete`.
+In every other case the result is `meets` when the band meets the profile and `does_not_meet` when it does not.
+
+A scored signal with weight 0 is informational under TRP Section 3.3. Its outcome appears in `results` and counts toward coverage, and it never changes the standing, so it is never a critical condition and its absence never makes the result `incomplete`.
 
 A verifier MUST NOT read `incomplete` as `meets` or as `does_not_meet`, and a relying party applies its own policy to an incomplete result. Standing does not depend on coverage.
 

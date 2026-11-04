@@ -340,9 +340,9 @@ function evaluate(profile, signals, driftDetector) {
   const sortedBands = [...profile.standingBands].sort(
     (a, b) => a.severity - b.severity
   );
-  let assignedBand = sortedBands.length > 0
+  const worstBand = sortedBands.length > 0
     ? sortedBands[sortedBands.length - 1].band
-    : "unknown";
+    : "failing";
 
   // Section 3.3: a signal with weight 0 is informational. It is reported
   // above and never moves the band, whatever its value or on_missing.
@@ -352,34 +352,35 @@ function evaluate(profile, signals, driftDetector) {
   const banded = signalResults.filter((s) => !informational.has(s.signal));
   const bandedMissing = missingSignals.filter((m) => !informational.has(m.signal));
 
-  if (hardOverride) {
-    assignedBand = sortedBands.length > 0
-      ? sortedBands[sortedBands.length - 1].band
-      : "failing";
-  } else {
-    // Section 3.3: on_missing critical treats an absent signal as a
-    // critical condition, the same as a value in the critical range.
-    const anyCritical = banded.some((s) => s.in_critical) ||
-      bandedMissing.some((m) => m.on_missing === "critical");
-    const anyWarning = banded.some((s) => s.in_warning);
-    const hasIncomplete = bandedMissing.some(
-      (m) => m.on_missing === "incomplete"
-    ) || inconclusiveRules.length > 0;
+  // A critical condition is a value in the critical range, or an absent
+  // signal whose on_missing is critical (Section 3.3).
+  const anyCritical = banded.some((s) => s.in_critical) ||
+    bandedMissing.some((m) => m.on_missing === "critical");
+  const anyWarning = banded.some((s) => s.in_warning);
+  const hasIncomplete = bandedMissing.some(
+    (m) => m.on_missing === "incomplete"
+  ) || inconclusiveRules.length > 0;
 
-    if (anyCritical || hasIncomplete) {
-      assignedBand = sortedBands.length > 0
-        ? sortedBands[sortedBands.length - 1].band
-        : "failing";
-    } else if (anyWarning) {
-      const mid = Math.floor(sortedBands.length / 2);
-      assignedBand = sortedBands.length > 0
-        ? sortedBands[mid].band
-        : "review";
-    } else {
-      assignedBand = sortedBands.length > 0
-        ? sortedBands[0].band
-        : "good";
-    }
+  // Conditions in order of precedence. A triggered hard rule comes first,
+  // and a critical condition comes next and sets the worst band whatever
+  // other evidence is missing, so both rank ahead of an incomplete
+  // assessment.
+  let assignedBand;
+  if (hardOverride) {
+    assignedBand = worstBand;
+  } else if (anyCritical) {
+    assignedBand = worstBand;
+  } else if (hasIncomplete) {
+    assignedBand = worstBand;
+  } else if (anyWarning) {
+    const mid = Math.floor(sortedBands.length / 2);
+    assignedBand = sortedBands.length > 0
+      ? sortedBands[mid].band
+      : "review";
+  } else {
+    assignedBand = sortedBands.length > 0
+      ? sortedBands[0].band
+      : "good";
   }
 
   result.standing = assignedBand;

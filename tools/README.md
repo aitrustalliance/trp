@@ -63,7 +63,7 @@ node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
 | Inheritance via `extends` (Section 7) | Not supported yet, so the profile is rejected with exit code 2 |
 | On-missing policy | A missing signal follows its declared policy. critical puts the standing in the worst band, the same as a value in the critical range, incomplete marks the assessment incomplete, and ignore drops the signal |
 | Weight 0 (Section 3.3) | The signal is informational. It is reported in `signal_results` or `missing_signals` and never moves the band, whatever its value or on_missing |
-| Standing bands with severity order | Bands sorted by severity and assigned from the worst active condition |
+| Standing bands with severity order | Bands sorted by severity and assigned from the worst active condition. A triggered hard rule comes first, then a critical condition, then an incomplete assessment, then a warning. A critical condition sets the worst band whatever other evidence is missing |
 | Required standing and response bands | Response action mapped from the assigned band |
 | Drift over a window | Moving average tracked per signal across consecutive evaluations. The `drift_detected` field is a placeholder that both reference evaluators always report as `false`, because the specification leaves the method for judging drift to the evaluation source |
 

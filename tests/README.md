@@ -68,6 +68,8 @@ hard-override flag. The suite verifies that:
   standing without hard override, the same as a value in the critical range.
   A missing signal whose on_missing value is ignore leaves the standing
   `trusted`.
+- A signal in its critical range takes precedence over a missing signal or an
+  inconclusive hard rule and produces `untrusted` without hard override.
 - A signal with weight 0 never moves the band, even when its value is in the
   critical range or it is missing with on_missing critical. These samples run
   against `profiles/valid/zero-weight-signal.json` and expect `good`.

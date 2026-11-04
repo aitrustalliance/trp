@@ -128,8 +128,11 @@ def standing_of(profile_raw, out):
     """The standing `{result, band, response}` that follows from one evaluator output.
 
     A triggered hard rule is a known violation and gives does_not_meet even when other evidence is missing.
-    Otherwise missing required evidence or an inconclusive hard rule gives incomplete, and then the band decides.
-    A signal with weight 0 is informational under TRP Section 3.3, so its absence never makes the result incomplete.
+    A critical condition, a scored signal in its critical range or one missing with on_missing critical, sets the
+    worst band whatever else is missing, so it gives does_not_meet even when other evidence is missing whenever that
+    band does not meet the profile. Otherwise missing required evidence or an inconclusive hard rule gives incomplete,
+    and then the band decides. A signal with weight 0 is informational under TRP Section 3.3 and never changes the
+    standing.
     """
     severity = {b["band"]: b["severity"] for b in profile_raw.get("standing_bands", [])}
     band = out["standing"] if out["standing"] in severity else None
@@ -137,12 +140,15 @@ def standing_of(profile_raw, out):
     if out["hard_rules_triggered"]:
         return {"result": "does_not_meet", "band": band, "response": response}
     informational = {s["signal"] for s in profile_raw.get("scored_signals", []) if s.get("weight") == 0}
+    present = [s for s in out["signal_results"] if s["signal"] not in informational]
     missing = [m for m in out["missing_signals"] if m["signal"] not in informational]
-    if any(m["on_missing"] == "incomplete" for m in missing) or out["hard_rules_inconclusive"]:
-        return {"result": "incomplete", "band": None, "response": None}
+    critical = any(s["in_critical"] for s in present) or any(m["on_missing"] == "critical" for m in missing)
+    incomplete = any(m["on_missing"] == "incomplete" for m in missing) or bool(out["hard_rules_inconclusive"])
     floor = (profile_raw.get("required_standing") or {}).get("minimum_acceptable_band")
     limit = severity[floor] if floor in severity else min(severity.values(), default=None)
     meets = band is not None and limit is not None and severity[band] <= limit
+    if incomplete and (meets or not critical):
+        return {"result": "incomplete", "band": None, "response": None}
     return {"result": "meets" if meets else "does_not_meet", "band": band, "response": response}
 
 

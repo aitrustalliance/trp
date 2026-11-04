@@ -339,7 +339,7 @@ def evaluate(profile: Profile, signals: dict[str, Any],
 
     # 4. Standing band assignment
     sorted_bands = sorted(profile.standing_bands, key=lambda b: b.severity)
-    assigned_band = sorted_bands[-1].band if sorted_bands else "unknown"
+    worst_band = sorted_bands[-1].band if sorted_bands else "failing"
 
     # Section 3.3: a signal with weight 0 is informational. It is reported
     # above and never moves the band, whatever its value or on_missing.
@@ -347,29 +347,33 @@ def evaluate(profile: Profile, signals: dict[str, Any],
     banded = [s for s in signal_results if s["signal"] not in informational]
     banded_missing = [m for m in missing_signals if m["signal"] not in informational]
 
-    if hard_override:
-        assigned_band = sorted_bands[-1].band if sorted_bands else "failing"
-    else:
-        # Section 3.3: on_missing critical treats an absent signal as a
-        # critical condition, the same as a value in the critical range.
-        any_critical = any(s["in_critical"] for s in banded) or any(
-            m["on_missing"] == "critical" for m in banded_missing
-        )
-        any_warning = any(s["in_warning"] for s in banded)
-        has_incomplete = any(
-            m["on_missing"] == "incomplete" for m in banded_missing
-        ) or len(inconclusive_rules) > 0
+    # A critical condition is a value in the critical range, or an absent
+    # signal whose on_missing is critical (Section 3.3).
+    any_critical = any(s["in_critical"] for s in banded) or any(
+        m["on_missing"] == "critical" for m in banded_missing
+    )
+    any_warning = any(s["in_warning"] for s in banded)
+    has_incomplete = any(
+        m["on_missing"] == "incomplete" for m in banded_missing
+    ) or len(inconclusive_rules) > 0
 
-        if any_critical or has_incomplete:
-            # Worst band
-            assigned_band = sorted_bands[-1].band if sorted_bands else "failing"
-        elif any_warning:
-            # Middle band (or worst if only two)
-            mid = len(sorted_bands) // 2
-            assigned_band = sorted_bands[mid].band if sorted_bands else "review"
-        else:
-            # Best band
-            assigned_band = sorted_bands[0].band if sorted_bands else "good"
+    # Conditions in order of precedence. A triggered hard rule comes first,
+    # and a critical condition comes next and sets the worst band whatever
+    # other evidence is missing, so both rank ahead of an incomplete
+    # assessment.
+    if hard_override:
+        assigned_band = worst_band
+    elif any_critical:
+        assigned_band = worst_band
+    elif has_incomplete:
+        assigned_band = worst_band
+    elif any_warning:
+        # Middle band (or worst if only two)
+        mid = len(sorted_bands) // 2
+        assigned_band = sorted_bands[mid].band if sorted_bands else "review"
+    else:
+        # Best band
+        assigned_band = sorted_bands[0].band if sorted_bands else "good"
 
     result["standing"] = assigned_band
     result["hard_override"] = hard_override

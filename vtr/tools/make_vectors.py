@@ -63,6 +63,7 @@ def main():
         "warning": dict(healthy, robot_speed_mm_s=1100),
         "mistyped": dict(healthy, safety_certification_status=1),  # a number where the rule compares a string
         "estop_missing": {x: y for x, y in dict(healthy, estop_active=True).items() if x != "vibration_rms_g"},
+        "critical_missing": {x: y for x, y in dict(healthy, temperature_C=85).items() if x != "vibration_rms_g"},
     }
     gate = {"steps_per_task": 3, "tool_error_rate": 0.0, "calls_per_minute": 3, "egress_kb_session": 0.0,
             "unapproved_tool_called": False, "secret_in_arguments": False, "output_destination_approved": True,
@@ -90,6 +91,7 @@ def main():
         ("es256-missing-signal-lowers-coverage", vtr.sign(c(p1, "missing"), es), P1, "missing", False),
         ("es256-mistyped-rule-field", vtr.sign(c(p1, "mistyped"), es), P1, "mistyped", False),
         ("es256-violated-rule-and-missing-signal", vtr.sign(c(p1, "estop_missing"), es), P1, "estop_missing", False),
+        ("es256-critical-signal-and-missing-signal", vtr.sign(c(p1, "critical_missing"), es), P1, "critical_missing", False),
         ("es256-warning", vtr.sign(c(p1, "warning"), es), P1, "warning", False),
         ("es256-window", vtr.sign(c(p1, "healthy", window=window), es), P1, "healthy", False),
         ("es256-nonce", vtr.sign(c(p1, "healthy", nonce="b3J2WkFWb3ZqZWhR"), es), P1, "healthy", False),
@@ -144,6 +146,7 @@ def main():
         ("altered-standing", resign(healthy_jws, es, lambda x: x.update(standing=failing)), P1, "healthy", False, "standing does not match a re-run of the evaluation"),
         ("incomplete-altered-to-meets", resign(missing_jws, es, lambda x: x.update(standing=meets)), P1, "missing", False, "standing does not match a re-run of the evaluation"),
         ("violation-reported-as-incomplete", resign(by_name["es256-violated-rule-and-missing-signal"], es, lambda x: x.update(standing=incomplete)), P1, "estop_missing", False, "standing does not match a re-run of the evaluation"),
+        ("critical-signal-reported-as-incomplete", resign(by_name["es256-critical-signal-and-missing-signal"], es, lambda x: x.update(standing=incomplete)), P1, "critical_missing", False, "standing does not match a re-run of the evaluation"),
         ("unknown-claim", resign(healthy_jws, es, lambda x: x.update(score=812)), P1, "healthy", False, "unknown claim score"),
         ("eddsa-not-allowed", by_name["eddsa-healthy"], P1, "healthy", False, "EdDSA receipts are refused unless the verifier allows EdDSA"),
         ("result-digest-mismatch", resign(healthy_jws, es, lambda x: x.update(result_digest=vtr.digest("other"))), P1, "healthy", False, "result_digest does not match a re-run of the evaluation"),
