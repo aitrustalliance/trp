@@ -1,6 +1,6 @@
 # Trust Requirements Profile (TRP)
 
-Version 0.5 public working draft. Expect field names and normative requirements may change before 1.0.
+Version 0.5.3 public working draft. Expect field names and normative requirements may change before 1.0.
 
 Author: Striv AI.
 Steward: Striv AI during the formative stage, with stewardship transferring to the AI Trust Alliance once its governance is formalized (see GOVERNANCE.md).
@@ -13,7 +13,7 @@ The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in 
 
 There are two levels of conformance:
 
-A valid TRP document satisfies structural and referential rules in Sections 2 through 4 and validates against the published JSON Schema (provided in the repository as a v0.5 draft, under review).
+A valid TRP document satisfies structural and referential rules in Sections 2 through 4 and validates against the published JSON Schema (provided in the repository as a v0.5.3 draft, under review).
 
 The JSON Schema is provided in the repository at `schema/trp.schema.json`. Any standard JSON Schema validator can check a profile against it. This validates the profile's structure and is separate from any assessment of a subject against the profile, which is performed by an evaluation source and is out of scope for this standard.
 

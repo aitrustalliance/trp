@@ -64,7 +64,7 @@
       "result_digest": "_8J1zhG6Quf22JMOqqnVGcdaC9TwUZug2X4gAFdZ7Ck",
       "evaluator": {
         "implementation": "trp-reference-python",
-        "version": "0.5.2",
+        "version": "0.5.3",
         "spec_version": "0.5"
       }
     },
@@ -72,9 +72,9 @@
       "leaf_index": 4,
       "tree_size": 5,
       "path": [
-        "K2qMsrnoZ6AqhmYOXXKcltpklsP_4tOAmBF7dRa8xMY"
+        "zDjpcZg9JOrLIpsQzsAPvERckWGutO-Wc_jeGNYac78"
       ],
-      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkNNWXlNbERGTGNWSjB6bDBHUWVSWGZ3V1N5QnVEdW0wNVhpeWVlc2RMUk0iLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.xX3APgPcDNrdOKLGhDlnPcKIBuvwU7GtLxLmqo4m3ppuRKtARZRfl2veGO0gru-GDvSJ2HjxgjsXWOEJD8aHVw"
+      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkRfUDlhaU5lSDVUOTA5WXFRV3BEU1d1Z0pkNUZpSzFma29EbWlYbVNFeTgiLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.nUYBqLRLnuPSI2-9vQrE-7YOEuDq_5SfN4sanXGubKPGcnAoNdkU57mEj3PBNL5JG1KaXFuJ51W0EyBsGCcYYg"
     }
   },
   "jwks": "vtr/vectors/keys/jwks.json",

@@ -4,7 +4,10 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
-## [Unreleased]
+## [0.5.3] - 2026-11-04
+
+TRP 0.5.3 ships with Verifiable Trust Receipt (VTR) version 0.5. Every
+evaluator behavior that differs from 0.5.2 is listed under Changed and Fixed.
 
 ### Added
 - Verifiable Trust Receipt (VTR) version 0.5 in `vtr/`, with the
@@ -26,15 +29,14 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
     `evaluation` member removed. A verifier with the profile and the evidence
     re-runs either reference evaluator and compares one digest.
   - Coverage counts a requirement as checked only when its outcome is
-    something other than `inconclusive`. A hard rule whose field is present
-    with the wrong type no longer counts as checked.
-  - New invalid vectors cover an unknown key identifier, a missing subject, a
-    coverage outside 0 to 1, an incomplete standing altered to `meets` and a
-    triggered hard rule or a critical signal reported as `incomplete`. New
-    valid vectors cover a hard rule field of the wrong type, and a triggered
-    hard rule or a critical signal beside a missing signal. Every kind and
-    every mode now has a valid vector. Every vector was regenerated with the
-    new standing and result digest.
+    something other than `inconclusive`, so a hard rule whose field is
+    present with the wrong type does not count as checked.
+  - The valid vectors carry every standing result and cover every kind and
+    every mode, including a hard rule field of the wrong type and a triggered
+    hard rule or a critical signal beside a missing signal. The invalid
+    vectors include an unknown key identifier, a missing subject, a coverage
+    outside 0 to 1, an incomplete standing altered to `meets` and a triggered
+    hard rule or a critical signal reported as `incomplete`.
 - The TRP gate signs a VTR for every decision when given a receipt key.
 - `profile_from_dict` in `tools/evaluate.py` and `profileFromObject` in
   `tools/evaluate.js`, so a parsed profile can be evaluated without a file.
@@ -43,28 +45,35 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   call before it runs and each tool result before the model sees it, with a
   decision log chained by SHA-256 and a session file shared across servers and
   frameworks.
-- `adapters/mcp/trp_mcp_checkpoint.py`, a TRP checkpoint in front of any MCP
-  server on stdio, with the reference profile
+- `adapters/mcp/trp_mcp_checkpoint.py`, a TRP checkpoint in front of any Model
+  Context Protocol (MCP) server on stdio, with the reference profile
   `adapters/mcp/profiles/mcp-tool-checkpoint.trp.json` and policies for the
   official filesystem and fetch servers.
 - Adapters for LangChain, LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI
   and AG2 in `adapters/frameworks`, each checked by running the real framework
   with a scripted model.
+- An evidence sample can name the profile it runs against in `_profile`.
+  Samples without it still run against `full-featured.json`.
+- Conformance tests for `on_missing: ignore`, rounding ties, a critical
+  signal beside a missing signal or an inconclusive hard rule, and weight 0
+  signals (48 tests, up from 42).
 
 ### Changed
 - Both reference evaluators honor `on_missing: critical` when they assign the
   band. Section 3.3 treats such an absence as a critical condition, so the
-  standing is the worst band, the same as a value in the critical range. The
-  evaluators used to add a penalty that no output used and left the band
-  unchanged. `tests/evidence/missing-critical-signal.json` now expects
-  `untrusted`, and `tests/evidence/missing-ignored-signal.json` covers
-  `on_missing: ignore`.
+  standing is the worst band, the same as a value in the critical range. In
+  0.5.2 the evaluators added a penalty that no output used and left the band
+  unchanged. `tests/evidence/missing-critical-signal.json`, published in
+  0.5.2 with the expected standing `trusted` and the response `full`, now
+  expects `untrusted` and `suspended`.
+  `tests/evidence/missing-ignored-signal.json` covers `on_missing: ignore`.
 - Both evaluators assign the band in a stated order of precedence. A
   triggered hard rule comes first, then a critical condition, then an
   incomplete assessment, then a warning. A value in the critical range takes
   the same precedence as a signal missing with `on_missing: critical`, so a
   critical condition sets the worst band whatever other evidence is missing.
-  The band is the same as before for every input, and
+  The band is the same as in 0.5.2 for every input that does not involve
+  `on_missing: critical` or weight 0, and
   `tests/evidence/critical-signal-and-missing-signal.json` and
   `tests/evidence/critical-signal-and-inconclusive-rule.json` pin it.
 - A signal with weight 0 is informational in both evaluators and never moves
@@ -83,11 +92,17 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   every nested member, so the two hashes differed whenever the output listed
   a signal or a rule. A `result_hash` recorded under 0.5.2 can differ from
   the 0.5.3 value for the same input. For an evaluation with no drift
-  history it equals a VTR `result_digest` in hexadecimal. The cross-evaluator check in CI now compares
-  `result_hash` on every profile and evidence pair. A non-finite number has no
-  JSON form, so both evaluators now stop with an error before hashing one.
-- An evidence sample can name the profile it runs against in `_profile`.
-  Samples without it still run against `full-featured.json`.
+  history it equals a VTR `result_digest` in hexadecimal. The
+  cross-evaluator check in continuous integration (CI) now compares
+  `result_hash` on every profile and evidence pair.
+- A non-finite number has no JSON form, so both evaluators now stop with an
+  error when the output would carry one, such as a scored signal value that
+  converts to not a number (NaN). In 0.5.2 both kept going and wrote the
+  value as `NaN` or `null`.
+- The specification header, the schema title and description, and the
+  README give version 0.5.3, and the VTR library names the evaluator version
+  0.5.3. The schema `$id` and the `spec_version` a profile declares stay
+  `0.5`.
 
 ### Fixed
 - `tools/evaluate.js` rounds severity, penalty, drift moving averages and

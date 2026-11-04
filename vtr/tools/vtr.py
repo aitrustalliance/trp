@@ -30,7 +30,7 @@ import evaluate as trp  # noqa: E402  the reference evaluator in tools/evaluate.
 VTR_VERSION = "0.5"
 TYP = "vtr+jwt"
 BATCH_TYP = "vtr-batch+jwt"
-EVALUATOR = {"implementation": "trp-reference-python", "version": "0.5.2"}
+EVALUATOR = {"implementation": "trp-reference-python", "version": "0.5.3"}
 KINDS = {"evaluation", "conformance", "drill", "variance"}
 MODES = {"enforced", "test", "shadow", "observed"}
 OUTCOMES = {"satisfied", "warning", "violated", "inconclusive"}

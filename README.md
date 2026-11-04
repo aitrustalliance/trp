@@ -1,4 +1,4 @@
-[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5_Draft-orange.svg)](spec/trp-spec.md) [![Release](https://img.shields.io/badge/Release-v0.5.2-blue.svg)](https://github.com/aitrustalliance/trp/releases) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![Conformance](https://img.shields.io/badge/Conformance-42%2F42_passing-brightgreen.svg)](tests/run_conformance.py) [![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/) [![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099403.svg)](https://doi.org/10.5281/zenodo.22099403)
+[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5.3_Draft-orange.svg)](spec/trp-spec.md) [![Release](https://img.shields.io/badge/Release-v0.5.3-blue.svg)](https://github.com/aitrustalliance/trp/releases) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![Conformance](https://img.shields.io/badge/Conformance-48%2F48_passing-brightgreen.svg)](tests/run_conformance.py) [![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/) [![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099403.svg)](https://doi.org/10.5281/zenodo.22099403)
 
 # Trust Requirements Profile (TRP)
 
@@ -12,7 +12,7 @@ Trust infrastructure is the foundation of the AI economy. TRP is the standard th
 
 Trust requirements for AI will be defined with or without an open standard. Without an open standard, authority over those requirements follows resources and utility comes second. TRP exists to prevent that outcome.
 
-Specification version 0.5, public working draft. Field names and normative requirements may still change before 1.0.
+Specification version 0.5.3, public working draft. Field names and normative requirements may still change before 1.0.
 
 Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
-  "title": "Trust Requirements Profile (TRP) v0.5 draft",
-  "description": "Draft JSON Schema for a Trust Requirements Profile. Defines the shape of a profile: how signals, rules, drift, bands, and standing are expressed. It is an open-ended grammar, not a fixed list of signals; a profile may declare any number of signals. It does not define how a standing is computed. Version 0.5 draft, expected to evolve.",
+  "title": "Trust Requirements Profile (TRP) v0.5.3 draft",
+  "description": "Draft JSON Schema for a Trust Requirements Profile. Defines the shape of a profile: how signals, rules, drift, bands, and standing are expressed. It is an open-ended grammar, not a fixed list of signals; a profile may declare any number of signals. It does not define how a standing is computed. Version 0.5.3 draft, expected to evolve.",
   "type": "object",
   "required": [
     "trp_id",
