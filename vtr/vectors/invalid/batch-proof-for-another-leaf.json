@@ -1,7 +1,7 @@
 {
   "receipt": {
     "claims": {
-      "vtr_version": "0.5",
+      "vtr_version": "0.6",
       "iss": "https://evaluator.example.com",
       "iat": 1793700000,
       "sub": "urn:example:cell:02",
@@ -64,7 +64,7 @@
       "result_digest": "HOFbpSW4mX9t2_csO52KGcln4-_szw57dPcHwfYhSBQ",
       "evaluator": {
         "implementation": "trp-reference-python",
-        "version": "0.5.3",
+        "version": "0.6.0",
         "spec_version": "0.5"
       }
     },
@@ -72,11 +72,11 @@
       "leaf_index": 1,
       "tree_size": 5,
       "path": [
-        "YRUMCIjlMZ4qMHFY8jW-0DW-12HwGfJumDgaPhN3Kv0",
-        "UI00sF6DUximIpRu1Ke2yWUsmt0_BidbiQb3l5eD390",
-        "-m89miPVJIqNjwg71WKs00HjpTvOwmS2c79Qq20Veec"
+        "bX1c5YUBaKgHES28bs8ghja2JRMC3YVQz1j8v1JSYuc",
+        "ss1IKiUZeKJrf74cykI8el7pPYDJyqiLEx6W-X693ek",
+        "0D-lI7H9aiAsq8qCcRuL5w9S__SueeWC2mkl9dzzaCY"
       ],
-      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkRfUDlhaU5lSDVUOTA5WXFRV3BEU1d1Z0pkNUZpSzFma29EbWlYbVNFeTgiLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC41In0.nUYBqLRLnuPSI2-9vQrE-7YOEuDq_5SfN4sanXGubKPGcnAoNdkU57mEj3PBNL5JG1KaXFuJ51W0EyBsGCcYYg"
+      "batch": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjNxQlFGZVlaakcxRUFIMXFPRWpnT2VPdEtkN2tMVEtJTDh3bEtieDFsWWciLCJ0eXAiOiJ2dHItYmF0Y2grand0In0.eyJpYXQiOjE3OTM3MDAwMDAsImlzcyI6Imh0dHBzOi8vZXZhbHVhdG9yLmV4YW1wbGUuY29tIiwicm9vdCI6IkJPb0M4TkUySXowVzFnR1FuS0oxdmk5TjRHR2Z4MU01emo0eHZDT04xSFEiLCJ0cmVlX3NpemUiOjUsInZ0cl92ZXJzaW9uIjoiMC42In0.pSBo5D6gvUFjbLjupPHw7tPpHBnPCV6ch3Rj3y4NrZCFdB91_IP06DgK7HFGhe3qn7vBTe6B_Mw-7A7U-uFLPw"
     }
   },
   "jwks": "vtr/vectors/keys/jwks.json",

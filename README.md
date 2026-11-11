@@ -1,4 +1,4 @@
-[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.5.3_Draft-orange.svg)](spec/trp-spec.md) [![Release](https://img.shields.io/badge/Release-v0.5.3-blue.svg)](https://github.com/aitrustalliance/trp/releases) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![Conformance](https://img.shields.io/badge/Conformance-48%2F48_passing-brightgreen.svg)](tests/run_conformance.py) [![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/) [![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099403.svg)](https://doi.org/10.5281/zenodo.22099403)
+[![CI](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml/badge.svg)](https://github.com/aitrustalliance/trp/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE) [![Spec](https://img.shields.io/badge/Spec-v0.6.0_Draft-orange.svg)](spec/trp-spec.md) [![Release](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](https://github.com/aitrustalliance/trp/releases) [![Schema](https://img.shields.io/badge/Schema-Draft_2020--12-green.svg)](schema/trp.schema.json) [![Conformance](https://img.shields.io/badge/Conformance-60%2F60_passing-brightgreen.svg)](tests/run_conformance.py) [![Evaluators](https://img.shields.io/badge/Evaluators-Python_%7C_Node.js-blue.svg)](tools/) [![Cross--evaluator](https://img.shields.io/badge/Cross--evaluator-verified-brightgreen.svg)](.github/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22099403.svg)](https://doi.org/10.5281/zenodo.22099403)
 
 # Trust Requirements Profile (TRP)
 
@@ -12,7 +12,7 @@ Trust infrastructure is the foundation of the AI economy. TRP is the standard th
 
 Trust requirements for AI will be defined with or without an open standard. Without an open standard, authority over those requirements follows resources and utility comes second. TRP exists to prevent that outcome.
 
-Specification version 0.5.3, public working draft. Field names and normative requirements may still change before 1.0.
+Specification version 0.6.0, public working draft. Field names and normative requirements may still change before 1.0.
 
 Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 
@@ -20,7 +20,7 @@ Licensed under the Apache License 2.0. Copyright 2026 Striv AI.
 
 ## Technical Overview
 
-A Trust Requirements Profile (TRP) is a universal trust taxonomy and machine-readable contract that specifies the operating requirements, trust boundaries, and standing criteria for any subject, system, agent, model, workflow, or data source in a given domain. A domain expert authors the profile. Any qualified evaluation source reads that contract, assesses a subject against it, and produces a standing.
+A Trust Requirements Profile (TRP) is a universal trust taxonomy and machine-readable contract that specifies the operating requirements and trust boundaries for any subject, system, agent, model, workflow, or data source in a given domain, along with the criteria that decide its standing. A domain expert authors the profile. Any qualified evaluation source reads that contract, assesses a subject against it, and produces a standing.
 
 The standard defines the profile and the requirements it carries, along with the vocabulary of outcomes. Any qualified evaluation source can assess against a profile, so one source can serve any domain by loading a different profile, and independent implementations interoperate because they share the format. Practitioners who understand a domain are best positioned to define what trustworthy behavior means in it.
 
@@ -36,6 +36,20 @@ A trust requirement is that missing piece: a portable contract of interaction re
 
 A trust requirement cannot belong to any single platform. When the definition of a trusted interaction lives inside one company's system, every other participant has to trust that company, and the record is the company's to shape. Good intentions do not change this, so the problem is structural. A large part of the trust gap in AI comes from trust being compartmentalized inside individual platforms and fragmented into private formats and protocols that cannot agree across parties. An open standard confronts that fragmentation and breaks platform lock-in. The core problem is trust orchestration, ensuring every party in an interaction can prove it met the requirements, and TRP is built to solve it. TRP integrates with identity, authorization and enforcement systems, and it must be open because it depends on shared agreement across the ecosystem.
 
+## Zero Trust
+
+Security teams that run zero trust already work with the parts TRP defines. National Institute of Standards and Technology (NIST) Special Publication (SP) 800-207, *Zero Trust Architecture*, decides each request for a resource at a policy decision point and enforces that decision at a policy enforcement point, and its tenets call for access set by dynamic policy and for monitoring the integrity and security posture of every asset. TRP applies that model to the interactions between models, agents, data, services and the people they act for, and it adds a signed record of each decision that a party outside the enterprise can check.
+
+| Zero Trust Term | In TRP |
+| :-- | :-- |
+| Identity | TRP takes identity from the identity systems a team already runs, such as workload identity for services and single sign-on for people. A profile states what a subject must do once its identity is known. |
+| Custody | Evidence stays with the party that collected it, and signing keys stay with the evaluation source that issues receipts. A Verifiable Trust Receipt (VTR) carries only digests of the profile and the evidence, and the issuer publishes its public keys, so a relying party can check a decision without taking custody of the evidence or the keys. |
+| Policy | The profile is the policy. It states the signals to measure, their thresholds, the hard rules that stop a subject outright and the standing a subject must reach, in a data document any evaluation source can load. |
+| Continuous Monitoring | Scored signals are measured against their thresholds on every assessment, and drift watches the trend of chosen signals across a window of assessments, so a subject sliding toward an unsafe state is flagged while its values are still in range. |
+| Policy Decision Point | The evaluation source plays the part of the policy decision point. It assesses a subject against the profile and assigns a standing from the bands the profile declares. Each standing can be issued as a VTR that anyone with the issuer's public key can verify, and a party that also has the profile and the evidence can run the evaluation again and get the same answer. Enforcement stays with the systems that act on the standing, which play the part of the policy enforcement point. |
+
+Requirements are set locally by whoever has authority over the interaction. A government sets them for a regulated activity, a company for its own systems and suppliers, a user for the agents that act for that person, and a compliance framework for every organization that adopts it. TRP is agnostic about who authors a profile. Each profile names its authority and can name its author, and a relying party decides whose requirements it accepts.
+
 ## Repository Contents
 
 ```
@@ -50,23 +64,32 @@ examples/
 tools/
   evaluate.py                                    reference evaluator (Python)
   evaluate.js                                    reference evaluator (Node.js)
+  trp_oscal.py                                   OSCAL 1.2.3 export and import of TRP profiles
   README.md                                      evaluator documentation and usage
 tests/
   run_conformance.py                             conformance test suite
+  cross_evaluator_check.py                       Python and Node.js evaluators must give the same output
   profiles/valid/                                profiles that must pass schema validation
   profiles/invalid/                              profiles that must fail schema validation
   evidence/                                      evidence samples with expected evaluation outcomes
   README.md                                      test suite documentation
-vtr/                                             Verifiable Trust Receipt v0.5: spec, schema, signer, verifiers, test vectors
+vtr/                                             Verifiable Trust Receipt v0.6: spec, schema, signer, verifiers, test vectors
 adapters/
   gate/trp_gate.py                               one TRP gate for AI agent tool calls and results
   mcp/                                           TRP checkpoint in front of any MCP server, with its profile and policies
   frameworks/                                    LangChain, LangGraph, OpenAI Agents SDK, Google ADK, CrewAI and AG2 adapters
+  a2a/                                           TRP gate on both sides of an A2A delegation, with its profile and policy
+  otel/                                          OpenTelemetry export of evaluations and receipts as spans and log records
 tests/mcp_checkpoint_check.py, tests/frameworks/ adapter checks against real frameworks and servers
+tests/a2a_check.py                               A2A adapter checks against in-process a2a-sdk agents
+tests/otel_check.py, tests/otel_sdk_check.py     OpenTelemetry export checks against golden files and the OpenTelemetry packages
+tests/oscal_check.py                             OSCAL export checked against the official schemas and NIST's own catalogs
+fixtures/oscal/                                  official OSCAL 1.2.3 schemas and NIST OSCAL content, vendored with provenance
 .github/workflows/ci.yml                         CI pipeline: runs on every push and PR
 INTEGRATIONS.md                                  working adapters and integration architecture with SPIFFE, AAuth, MCP, VCs, A2A
 docs/
   authoring-guide.md                             step-by-step guide to writing your first TRP profile
+  oscal.md                                       how a TRP profile travels in OSCAL, and the x_oscal extension
 CONTRIBUTING.md                                  how to contribute profiles and spec changes
 GOVERNANCE.md                                    stewardship model and decision process
 ROADMAP.md                                       project direction and planned work
@@ -80,8 +103,8 @@ LICENSE                                          Apache License 2.0
 
 Read the specification in `spec/` for the full field-by-field definition. For a hands-on walkthrough, see the [Profile Authoring Guide](docs/authoring-guide.md), which takes you from an empty file to a validated, evaluator-tested profile in nine steps. Then look at the reference profiles in `examples/` to see the format in use across two domains.
 
-- **Manufacturing safety** (`examples/manufacturing-safety/trp.json`) covers a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone, and certification status.
-- **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`) covers an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for HIPAA basis, IRB status, and data use agreements.
+- **Manufacturing safety** (`examples/manufacturing-safety/trp.json`) covers a collaborative robot cell with scored signals for human distance, robot speed, vibration, temperature, model confidence, and data quality, plus hard rules for emergency stop, exclusion zone breach, safety certification status and critically poor data quality.
+- **Healthcare data governance** (`examples/healthcare-data-governance/trp.json`) covers an AI system processing protected health information, with scored signals for de-identification confidence, consent coverage, subgroup performance gaps, and access log completeness, plus hard rules for a verified Health Insurance Portability and Accountability Act (HIPAA) basis, institutional review board (IRB) status, external sharing without a data use agreement and review status for training on protected health information.
 
 To check a profile against the schema, use any standard JSON Schema validator (Draft 2020-12).
 
@@ -106,7 +129,7 @@ The evaluator loads the profile, checks hard rules, scores signals against thres
 
 ## Use TRP In A Running Agent
 
-`adapters/` connects a TRP profile to the agent frameworks and protocols teams already run. Put the MCP checkpoint in front of any MCP server, or add the adapter for LangChain, LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI or AG2. Each one judges every tool call before it runs and every tool result before the model sees it. [INTEGRATIONS.md](INTEGRATIONS.md) lists each adapter and the versions it was checked against.
+`adapters/` connects a TRP profile to the agent frameworks and protocols teams already run. Put the MCP checkpoint in front of any MCP server, or add the adapter for LangChain, LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI or AG2. Each one judges every tool call before it runs and every tool result before the model sees it. The A2A (Agent2Agent protocol) adapter does the same for delegation between agents. It judges each message before it goes to another agent and each answer before the caller uses it. [INTEGRATIONS.md](INTEGRATIONS.md) lists each adapter and the versions it was checked against.
 
 ```bash
 python adapters/mcp/trp_mcp_checkpoint.py \
@@ -116,7 +139,7 @@ python adapters/mcp/trp_mcp_checkpoint.py \
 
 ## Conformance Testing
 
-Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose thresholds, rules, and bands reflect the requirements of a real domain and were set by a qualified author. Validation is automatic, and whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body. A validator does not make that call. See the specification for the full definitions.
+Conformance has two levels. A *valid* profile satisfies the structural and referential rules in the specification and validates against the schema. A *conformant* profile is a valid profile whose values reflect the requirements of a real domain and were set by a qualified author. Validation is automatic, and whether a valid profile is also conformant is a judgment for the authoring authority and any reviewing body. A validator does not make that call. See the specification for the full definitions.
 
 The repository includes a conformance test suite that validates all profiles against the schema, verifies that intentionally malformed profiles are correctly rejected, and checks that the reference evaluator produces deterministic results for known inputs.
 
@@ -125,11 +148,11 @@ pip install -r requirements.txt
 python tests/run_conformance.py --verbose
 ```
 
-The GitHub Actions CI pipeline runs this suite on every push and pull request. See `tests/README.md` for the full test inventory and instructions for adding new test cases.
+`python tests/cross_evaluator_check.py` runs both reference evaluators on every test and example profile against every evidence sample and requires the same output and the same `result_hash`. The GitHub Actions CI pipeline runs both on every push and pull request. See `tests/README.md` for the full test inventory and instructions for adding new test cases.
 
 ## Governance
 
-Striv AI authored TRP and stewards the core, including the decision to promote extensions into it, during the standard's formative stage. Stewardship transfers to the AI Trust Alliance, an independent nonprofit standards body, once the Alliance's governance is formalized. The Ohio State University is a founding participant. See [GOVERNANCE.md](GOVERNANCE.md) for the stewardship model, the transfer and the decision process. Openness under this standard covers the TRP core and its published profiles. Implementations built on it may be licensed however their authors choose.
+Striv AI authored TRP and stewards the core, including the decision to promote extensions into it, during the standard's formative stage. Stewardship transfers to the AI Trust Alliance, an independent nonprofit standards body, once the Alliance's governance is formalized. The Ohio State University is a founding participant. [GOVERNANCE.md](GOVERNANCE.md) describes the stewardship model and the transfer to the Alliance. Openness under this standard covers the TRP core and its published profiles. Implementations built on it may be licensed however their authors choose.
 
 ## Your Contribution
 
@@ -143,7 +166,7 @@ TRP is a foundational element of the trust infrastructure the AI economy require
 
 ## Status
 
-This is an early public draft. While it is complete enough to read, validate against, and author profiles, it is unfinished enough that field names and requirements will likely change before 1.0. See [ROADMAP.md](ROADMAP.md) for planned work. Feedback from practitioners at any and all levels is our top priority.
+This is an early public draft. It is complete enough to author and validate profiles against, and unfinished enough that field names and requirements will likely change before 1.0. See [ROADMAP.md](ROADMAP.md) for planned work. Feedback from practitioners at any and all levels is our top priority.
 
 ## License
 

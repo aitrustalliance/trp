@@ -1,12 +1,12 @@
 # Writing Your First Trust Requirements Profile
 
-A practical guide for domain experts, compliance professionals, and engineers.
+A practical guide for domain experts, including compliance professionals, and the engineers who build on their profiles.
 
 ## What This Guide Is For
 
 A Trust Requirements Profile (TRP) encodes what trust means in your domain
 as a machine-readable document. This guide walks you through writing one from
-scratch, validating it, and testing it with the reference evaluator. No prior
+scratch and testing it against the schema and the reference evaluator. No prior
 experience with JSON Schema or trust frameworks is required.
 
 By the end, you will have a working profile that any conforming evaluator can
@@ -17,8 +17,8 @@ read and enforce.
 You need three things:
 
 1. **Domain knowledge.** You understand the trust requirements for your use
-   case: what to measure, what thresholds matter, and what conditions
-   should halt operations. This is the hard part, and it is yours.
+   case, including what to measure, where the thresholds sit, and which
+   conditions should halt operations. This is the hard part, and it is yours.
 
 2. **A text editor.** Any editor that handles JSON (VS Code, Sublime,
    Notepad++, vim).
@@ -28,16 +28,16 @@ You need three things:
    pip install jsonschema
    ```
 
-## Step 1: Start With the Required Fields
+## Step 1: Start With The Required Fields
 
 Every TRP profile needs six fields. Copy this skeleton into a new file
 called `my-profile.json`:
 
 ```json
 {
-  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
   "trp_id": "my-use-case",
-  "spec_version": "0.5",
+  "spec_version": "0.6",
   "version": "1.0.0",
   "authority": "your-organization.com",
   "scope": {
@@ -64,12 +64,12 @@ print('Valid.')
 
 No output other than "Valid." means your profile conforms to the schema.
 
-### Field-by-field
+### Field-By-Field
 
 | Field | What to write | Example |
 |-------|---------------|---------|
 | `trp_id` | A short, lowercase, hyphenated identifier. Unique within your authority. | `healthcare-phi-governance` |
-| `spec_version` | Always `"0.5"` for now. | `"0.5"` |
+| `spec_version` | `"0.6"` for a new profile. A profile written as `"0.5"` stays valid. | `"0.6"` |
 | `version` | Your profile's version. Use semantic versioning. | `"1.0.0"` |
 | `authority` | Who is responsible for this profile. Usually your organization's domain. | `"mercy-health.org"` |
 | `scope.intended_use` | One sentence describing what this profile governs. | `"Trust requirements for AI systems processing protected health information."` |
@@ -130,7 +130,7 @@ Here is a signal for a healthcare AI system:
 ]
 ```
 
-### How to choose values
+### How To Choose Values
 
 **signal**: A descriptive, lowercase name. This is the key that evidence
 data will use to report a measurement.
@@ -162,7 +162,7 @@ matters in your domain. This is where your expertise lives.
 - `"critical"`: Treat as if the signal is in the critical range.
 - `"ignore"`: Skip this signal in the evaluation.
 
-### A complete set of signals
+### A Complete Set Of Signals
 
 A real profile typically has 4-8 signals. Here is a set for an AI chatbot
 handling customer financial data:
@@ -251,7 +251,7 @@ Ask yourself: **What conditions should immediately stop this system?**
 ]
 ```
 
-### Available conditions
+### Available Conditions
 
 | Condition | Meaning | Needs `value`? |
 |-----------|---------|----------------|
@@ -262,7 +262,7 @@ Ask yourself: **What conditions should immediately stop this system?**
 | `less_than` | The field is less than the value | Yes |
 | `greater_than` | The field is greater than the value | Yes |
 
-### Available actions
+### Available Actions
 
 | Action | Meaning |
 |--------|---------|
@@ -290,12 +290,38 @@ and compliance mapping:
   "use_case": "customer-chatbot"
 },
 "scope": {
+  "subject_type": "agent",
   "intended_use": "Trust requirements for AI chatbots handling customer financial inquiries.",
   "boundary": "Customer-facing chatbot interactions within retail banking.",
   "jurisdiction": ["US"],
   "out_of_scope": ["Internal employee tools", "Batch processing systems"]
 }
 ```
+
+### Subject Type
+
+The subject is whatever the profile assesses. It can be any endpoint or step
+in an automated system, so a profile can govern a dataset before a model
+trains on it, or a route a request takes between services, as readily as an
+agent. Set `scope.subject_type` to name the kind of subject you wrote the
+profile for.
+
+| Value | Use it when the profile assesses |
+|-------|----------------------------------|
+| `agent` | A software agent that plans and takes actions. |
+| `model` | A model called as a component, including a small model that calls tools directly. |
+| `user` | A person, together with what that person delegates to an agent. |
+| `dataset` | A dataset a model trains on or an agent or workflow reads. |
+| `workflow` | A sequence of automated steps run as one process. |
+| `route` | The path a request or data takes between components. |
+| `service` | A callable service, such as an application programming interface (API), a tool server or an inference endpoint. |
+| `other` | A subject none of the values above describes. |
+
+When no value fits, use an `https://` URI or a `urn:` URN under a namespace
+your organization controls, for example
+`https://your-organization.com/trp/subject-types/robot-cell`. Leave the field
+out when the profile applies to more than one kind of subject. The field is
+optional and does not change how a subject is evaluated.
 
 ### Assurance Mapping
 
@@ -306,7 +332,7 @@ requirements:
 "assurance_mapping": [
   { "framework": "FFIEC IT Examination Handbook", "reference": "Information Security, II.C.20" },
   { "framework": "NIST AI RMF", "reference": "MEASURE 2.6" },
-  { "framework": "OCC SR 11-7", "reference": "Model Risk Management" }
+  { "framework": "Federal Reserve SR 26-2", "reference": "Revised Guidance on Model Risk Management" }
 ]
 ```
 
@@ -351,9 +377,9 @@ These tell enforcement systems how to react at each standing level. The
 profile declares the responses, and the systems that consume the evaluation
 result carry out the enforcement.
 
-## Step 8: Validate and Test
+## Step 8: Validate And Test
 
-### Validate against the schema
+### Validate Against The Schema
 
 ```bash
 python -c "
@@ -365,7 +391,7 @@ print('Valid.')
 "
 ```
 
-### Generate sample evidence
+### Generate Sample Evidence
 
 ```bash
 python tools/evaluate.py my-profile.json --generate-sample > sample.json
@@ -374,7 +400,7 @@ python tools/evaluate.py my-profile.json --generate-sample > sample.json
 This creates a JSON file with all signals set to safe values. Review it
 to confirm the signal names and safe defaults make sense.
 
-### Run an evaluation
+### Run An Evaluation
 
 ```bash
 python tools/evaluate.py my-profile.json sample.json
@@ -383,14 +409,14 @@ python tools/evaluate.py my-profile.json sample.json
 You should see a result with `"standing": "trusted"` and no hard rules
 triggered. If you don't, check your thresholds and signal directions.
 
-### Test edge cases
+### Test Edge Cases
 
 Edit `sample.json` to push signals into warning and critical ranges.
 Verify that the evaluator produces the standing you expect. This is how
 you confirm that your thresholds are calibrated correctly before
 publishing.
 
-### Run the conformance suite
+### Run The Conformance Suite
 
 ```bash
 python tests/run_conformance.py --verbose
@@ -416,7 +442,7 @@ license, and taxonomy. Your work stays attributed and yours.
 
 ## Extension Fields
 
-### Signal Naming and Evidence Mapping
+### Signal Naming And Evidence Mapping
 
 Signal names in a TRP profile are chosen by the profile author. The evaluator
 treats them as opaque keys matched against evidence data. There is no global
@@ -430,16 +456,16 @@ author is the domain expert. They name the signals. The evaluator matches keys.
 
 For organizations connecting TRP to existing telemetry (Prometheus, CloudWatch,
 Splunk, Datadog), the mapping between your internal metric names and TRP signal
-names happens in the evidence adapter, not in the profile. A simple adapter
-reads your monitoring system, extracts the relevant values, and passes them to
+names happens in the evidence adapter, and the profile never sees it. A simple
+adapter pulls the relevant values from your monitoring system and passes them to
 the evaluator using the signal names the profile expects. The evaluator does not
 need to know where the data came from.
 
 Naming conventions that help:
 
-- Use lowercase with underscores: `response_latency_ms`, not `ResponseLatencyMs`.
+- Use lowercase words joined by `_`, for example `response_latency_ms`. Avoid camel case such as `ResponseLatencyMs`.
 - Include the unit in the name when it clarifies meaning: `latency_ms`, `distance_m`, `age_days`.
-- Use domain terminology your practitioners already know, not invented abstractions.
+- Use the domain terms your practitioners already know.
 - Document the expected source in the `reason` field so integrators know where to find the data.
 
 ### Vendor Extensions
@@ -478,7 +504,7 @@ any object:
 ```
 
 These keys need no registration, because the namespace owner prevents
-collisions. A plain `http://` key is rejected.
+collisions. An `http://` key is rejected.
 
 ### Registered Modules
 
@@ -490,9 +516,11 @@ same name. See `extensions/README.md`.
 
 Before publishing, verify:
 
-- [ ] `trp_id` is lowercase, hyphenated, and unique within your authority.
+- [ ] `trp_id` uses lowercase hyphenated words and is unique within your authority.
 - [ ] `version` follows MAJOR.MINOR.PATCH format.
 - [ ] `scope.intended_use` clearly states what the profile governs.
+- [ ] `scope.subject_type` names the kind of subject, or is left out when the
+      profile covers more than one kind.
 - [ ] Every `scored_signal` has a `reason` explaining why the threshold matters.
 - [ ] `direction` is correct for each signal (which way is dangerous?).
 - [ ] `warning_threshold` is less severe than `critical_threshold` for the
@@ -506,7 +534,7 @@ Before publishing, verify:
       frameworks.
 - [ ] `author` identifies the domain expert responsible for the profile.
 
-## What Makes a Good Profile
+## What Makes A Good Profile
 
 A valid profile passes the schema. A good profile earns the trust of the
 practitioners who depend on it.

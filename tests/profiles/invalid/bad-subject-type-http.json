@@ -1,0 +1,22 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "x_test_description": "MUST fail: a namespaced subject_type must be an https URI or a urn URN. A plain http URI is not accepted.",
+  "trp_id": "bad-subject-type-http",
+  "spec_version": "0.6",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "subject_type": "http://example.org/trp/subject-types/robot-cell",
+    "intended_use": "Should be rejected."
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0
+    },
+    {
+      "band": "failing",
+      "severity": 1
+    }
+  ]
+}

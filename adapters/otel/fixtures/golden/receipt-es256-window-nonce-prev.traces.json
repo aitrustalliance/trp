@@ -1,0 +1,264 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "trp-evaluator"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "trp-otel-export",
+            "version": "0.6.0"
+          },
+          "spans": [
+            {
+              "traceId": "68a4164bf61eceac1f77081d41b80fa8",
+              "spanId": "aba19aa822225511",
+              "name": "trp.evaluate manufacturing-safety",
+              "kind": 1,
+              "startTimeUnixNano": "1793700000000000000",
+              "endTimeUnixNano": "1793700000000000000",
+              "attributes": [
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 1.0
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "86O2Y_8UU9m9kdhKFaPqR9G3ENROzgfh3_oDgePICjk"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "tIgSQ3O3xGDPoLoe8wyGrL0dAQn7WjTcOyYNJLAAvvw"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "manufacturing-safety"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "1.0.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "HOFbpSW4mX9t2_csO52KGcln4-_szw57dPcHwfYhSBQ"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:critical_data_quality"
+                        },
+                        {
+                          "stringValue": "rule:estop_active"
+                        },
+                        {
+                          "stringValue": "rule:human_in_exclusion_zone"
+                        },
+                        {
+                          "stringValue": "rule:safety_certification_expired"
+                        },
+                        {
+                          "stringValue": "signal:data_quality"
+                        },
+                        {
+                          "stringValue": "signal:human_distance_m"
+                        },
+                        {
+                          "stringValue": "signal:model_confidence"
+                        },
+                        {
+                          "stringValue": "signal:robot_speed_mm_s"
+                        },
+                        {
+                          "stringValue": "signal:temperature_C"
+                        },
+                        {
+                          "stringValue": "signal:vibration_rms_g"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "violated"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.band",
+                  "value": {
+                    "stringValue": "failing"
+                  }
+                },
+                {
+                  "key": "trp.standing.response",
+                  "value": {
+                    "stringValue": "suspended"
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "does_not_meet"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:cell:01"
+                  }
+                },
+                {
+                  "key": "trp.vtr.alg",
+                  "value": {
+                    "stringValue": "ES256"
+                  }
+                },
+                {
+                  "key": "trp.vtr.digest",
+                  "value": {
+                    "stringValue": "-8moa50GJpfX0UShaPD35PuGtGx4sgIKNX_4KYgzOKk"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iat",
+                  "value": {
+                    "intValue": "1793700000"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iss",
+                  "value": {
+                    "stringValue": "https://evaluator.example.com"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kid",
+                  "value": {
+                    "stringValue": "3qBQFeYZjG1EAH1qOEjgOeOtKd7kLTKIL8wlKbx1lYg"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kind",
+                  "value": {
+                    "stringValue": "evaluation"
+                  }
+                },
+                {
+                  "key": "trp.vtr.mode",
+                  "value": {
+                    "stringValue": "enforced"
+                  }
+                },
+                {
+                  "key": "trp.vtr.nonce",
+                  "value": {
+                    "stringValue": "Zm9vYmFy"
+                  }
+                },
+                {
+                  "key": "trp.vtr.prev",
+                  "value": {
+                    "stringValue": "vGXQf1bcXitHWrxkIsQKvHV7uJhB7WN-bODZE8nhxhI"
+                  }
+                },
+                {
+                  "key": "trp.vtr.version",
+                  "value": {
+                    "stringValue": "0.6"
+                  }
+                },
+                {
+                  "key": "trp.vtr.window.end",
+                  "value": {
+                    "stringValue": "2026-11-03T08:00:00Z"
+                  }
+                },
+                {
+                  "key": "trp.vtr.window.start",
+                  "value": {
+                    "stringValue": "2026-11-03T07:55:00Z"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

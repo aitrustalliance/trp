@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Checks the VTR v0.5 reference code. Both verifiers, Python and Node.js, must return the expected
-result on every test vector in vtr/vectors, and they must agree with each other.
+"""Checks the VTR v0.6 reference code. Both verifiers, Python and Node.js, must return the expected
+result on every test vector in vtr/vectors, and they must agree with each other. Both accept VTR 0.5
+receipts, and only on those the deprecated JOSE identifier EdDSA.
 
     pip install cryptography && python tests/vtr_check.py
 """
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,11 +59,11 @@ def main():
             check(f"Python verifier on {key}", reason == t["expect"] and ok == (d == "valid"), reason)
             check(f"Node.js verifier on {key}", node.get(key) == t["expect"], node.get(key))
             count[d] += 1
-    check("at least 27 valid and 18 invalid vectors", count["valid"] >= 27 and count["invalid"] >= 18, count)
+    check("at least 29 valid and 20 invalid vectors", count["valid"] >= 29 and count["invalid"] >= 20, count)
     valid = [vector_claims(f"valid/{f.name}") for f in (ROOT / "vtr/vectors/valid").glob("*.json")]
     check("every kind has a valid vector", {c["kind"] for c in valid} == vtr.KINDS, sorted({c["kind"] for c in valid}))
     check("every mode has a valid vector", {c["mode"] for c in valid} == vtr.MODES, sorted({c["mode"] for c in valid}))
-    for name in ("unknown-kid", "missing-subject", "coverage-out-of-range"):
+    for name in ("unknown-kid", "missing-subject", "coverage-out-of-range", "eddsa-on-vtr-0.6", "ed25519-not-allowed", "eddsa-not-allowed"):
         check(f"the invalid vector {name} exists", (ROOT / "vtr/vectors/invalid" / f"{name}.json").exists())
 
     # RFC 8785 numbers: the Python canonical form must equal ECMAScript's for awkward values.
@@ -127,14 +129,111 @@ def main():
             f.unlink()
         tmp.rmdir()
 
+    algorithm_checks()
     standing_checks()
     result_digest_checks()
     coverage_checks()
+    mistyped_signal_checks()
     rounding_checks()
     gate_receipts()
     schema_check()
     print(f"VTR: {passed} checks passed" + (f", {len(failed)} failed" if failed else ""))
     return 1 if failed else 0
+
+
+NODE_BATCHED = r"""
+const v = require(process.argv[1]); const t = JSON.parse(require("fs").readFileSync(0, "utf8"));
+console.log(JSON.stringify(t.receipts.map((r) => v.verifyBatched(r, t.jwks, { allowEdDSA: true })[1])));
+"""
+
+
+def header_of(jws):
+    return json.loads(vtr.unb64u(jws.split(".")[0]))
+
+
+def algorithm_checks():
+    """RFC 9864 names Ed25519 signatures Ed25519 and deprecates EdDSA. VTR 0.6 signs with Ed25519 and accepts EdDSA only
+    on a VTR 0.5 receipt. ES256 is fully specified in JOSE already and does not change."""
+    seen = []
+    for f in sorted((ROOT / "vtr/vectors/valid").glob("*.json")):
+        r = json.loads(f.read_text())["receipt"]
+        jws = r if isinstance(r, str) else r["proof"]["batch"]
+        seen.append((header_of(jws)["alg"], json.loads(vtr.unb64u(jws.split(".")[1]))["vtr_version"]))
+    check("the valid vectors sign VTR 0.6 with ES256 or Ed25519 and carry EdDSA only on VTR 0.5",
+          all((alg == "EdDSA") == (ver == "0.5") for alg, ver in seen) and {a for a, v in seen if v == "0.6"} == {"ES256", "Ed25519"}, seen)
+    jwks = read("vtr/vectors/keys/jwks.json")
+    check("the published Ed25519 key names its algorithm Ed25519, as RFC 9864 Section 5 describes",
+          [k["alg"] for k in jwks["keys"] if k["kty"] == "OKP"] == ["Ed25519"], jwks)
+    p1, healthy = read("examples/manufacturing-safety/trp.json"), read("vtr/vectors/evidence/healthy.json")
+    ed, es = vtr.Key.generate("Ed25519"), vtr.Key.generate()
+    claims = vtr.claims_for(p1, healthy, iss="https://evaluator.example.com", sub="urn:example:cell:01", iat=1793700000)
+    signed = vtr.sign(claims, ed)
+    check("a new receipt is VTR 0.6 and an Ed25519 key signs it as Ed25519",
+          claims["vtr_version"] == "0.6" and header_of(signed)["alg"] == "Ed25519" and header_of(vtr.sign(claims, es))["alg"] == "ES256")
+    check("the library refuses to sign a new VTR 0.5 receipt",
+          reason(vtr.sign, dict(claims, vtr_version="0.5"), es) == "a new receipt must be VTR 0.6")
+    check("a key generated under the older name EdDSA is an Ed25519 key", vtr.Key.generate("EdDSA").alg == "Ed25519")
+    legacy = dict(claims, vtr_version="0.5")
+    cases = [
+        ("a VTR 0.5 receipt signed with EdDSA", vtr._jws(legacy, _named(ed, "EdDSA"), vtr.TYP), ed, "valid"),
+        ("a VTR 0.6 receipt signed with EdDSA", vtr._jws(claims, _named(ed, "EdDSA"), vtr.TYP), ed, "EdDSA is allowed only on a VTR 0.5 receipt"),
+        ("a VTR 0.5 receipt whose EdDSA header names a P-256 key", vtr._jws(legacy, _named(es, "EdDSA"), vtr.TYP), es, "alg does not match the key type"),
+        ("a receipt signed under the COSE identifier ESP256", vtr._jws(claims, _named(es, "ESP256"), vtr.TYP), es, "alg ESP256 is not allowed"),
+        ("a receipt that declares VTR 0.7", vtr._jws(dict(claims, vtr_version="0.7"), es, vtr.TYP), es, "vtr_version must be 0.5 or 0.6"),
+    ]
+    for name, jws, key, want in cases:
+        py = vtr.verify(jws, key.jwks(), allow_eddsa=True)[1]
+        js = node(NODE_VERIFY_ALLOWED, {"receipts": [jws], "jwks": key.jwks()})[0]
+        check(f"both verifiers on {name} return: {want}", py == js == want, (py, js))
+    batch = vtr.sign_batch([claims, dict(claims, nonce="1")], ed, claims["iss"], iat=1793700000)
+    check("a batch signs as VTR 0.6 under Ed25519", header_of(batch[0]["proof"]["batch"])["alg"] == "Ed25519"
+          and json.loads(vtr.unb64u(batch[0]["proof"]["batch"].split(".")[1]))["vtr_version"] == "0.6")
+    statement = json.loads(vtr.unb64u(batch[0]["proof"]["batch"].split(".")[1]))
+    old_statement = vtr._jws(dict(statement, vtr_version="0.5"), _named(ed, "EdDSA"), vtr.BATCH_TYP)
+    batched = [
+        ("a VTR 0.6 batch under Ed25519", batch[0], "valid"),
+        ("a VTR 0.6 batch statement signed with EdDSA",
+         dict(batch[0], proof=dict(batch[0]["proof"], batch=vtr._jws(statement, _named(ed, "EdDSA"), vtr.BATCH_TYP))),
+         "EdDSA is allowed only on a VTR 0.5 receipt"),
+        ("a VTR 0.5 batch statement signed with EdDSA over VTR 0.6 claims",
+         dict(batch[0], proof=dict(batch[0]["proof"], batch=old_statement)), "the batch statement is malformed"),
+    ]
+    for name, r, want in batched:
+        py = vtr.verify_batched(r, ed.jwks(), allow_eddsa=True)[1]
+        js = node(NODE_BATCHED, {"receipts": [r], "jwks": ed.jwks()})[0]
+        check(f"both verifiers on {name} return: {want}", py == js == want, (py, js))
+    # Emitter and both command line verifiers agree end to end for a fresh Ed25519 key.
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        pem = subprocess.run([sys.executable, str(ROOT / "vtr/tools/vtr_emit.py"), "--new-key", "ed25519"],
+                             capture_output=True, text=True, check=True).stdout
+        (tmp / "key.pem").write_text(pem)
+        (tmp / "jwks.json").write_text(subprocess.run([sys.executable, str(ROOT / "vtr/tools/vtr_emit.py"), "--jwks", str(tmp / "key.pem")],
+                                                      capture_output=True, text=True, check=True).stdout)
+        profile, evidence = str(ROOT / "examples/manufacturing-safety/trp.json"), str(ROOT / "vtr/vectors/evidence/healthy.json")
+        jws = subprocess.run([sys.executable, str(ROOT / "vtr/tools/vtr_emit.py"), "--profile", profile, "--evidence", evidence,
+                              "--key", str(tmp / "key.pem"), "--iss", "https://evaluator.example.com", "--sub", "urn:example:cell:10"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+        (tmp / "r.jws").write_text(jws)
+        args = [str(tmp / "r.jws"), "--jwks", str(tmp / "jwks.json"), "--profile", profile, "--evidence", evidence]
+        runs = [subprocess.run(cmd + args + flag, capture_output=True, text=True)
+                for flag in (["--allow-eddsa"], []) for cmd in ([sys.executable, str(ROOT / "vtr/tools/vtr_verify.py")], ["node", str(ROOT / "vtr/tools/vtr_verify.js")])]
+        out = [r.stdout.strip() for r in runs]
+        check("the emitter signs with a fresh Ed25519 key as Ed25519, and both command line verifiers accept it only when allowed",
+              header_of(jws)["alg"] == "Ed25519" and out == ["valid", "valid"] + ["Ed25519 receipts are refused unless the verifier allows Ed25519"] * 2, out)
+
+
+class _named:
+    """A key that writes another identifier into the header, to build receipts an issuer must not sign."""
+
+    def __init__(self, key, alg):
+        self.key, self.alg = key, alg
+
+    def jwk(self):
+        return self.key.jwk()
+
+    def sign(self, data):
+        return self.key.sign(data)
 
 
 def gate_receipts():
@@ -197,6 +296,11 @@ console.log(JSON.stringify(cases.map((c) => v.determination(c.profile, c.evidenc
 NODE_VERIFY = r"""
 const v = require(process.argv[1]); const t = JSON.parse(require("fs").readFileSync(0, "utf8"));
 console.log(JSON.stringify(t.receipts.map((r) => v.verify(r, t.jwks, { profile: t.profile, evidence: t.evidence })[1])));
+"""
+
+NODE_VERIFY_ALLOWED = r"""
+const v = require(process.argv[1]); const t = JSON.parse(require("fs").readFileSync(0, "utf8"));
+console.log(JSON.stringify(t.receipts.map((r) => v.verify(r, t.jwks, { allowEdDSA: true })[1])));
 """
 
 
@@ -369,6 +473,38 @@ def coverage_checks():
     py = vtr.determination(many, {"f000": False})["coverage"]
     js = node(NODE_DETERMINE, [{"profile": many, "evidence": {"f000": False}}])[0]["coverage"]
     check("coverage of 1 in 160 rounds the exact value of the double, which lies just above 0.00625, in both verifiers", py == js == 0.0063, (py, js))
+
+
+def mistyped_signal_checks():
+    """A scored signal whose value is not a finite number is never scored, and its on_missing governs (TRP Section 3.3)."""
+    p1 = read("examples/manufacturing-safety/trp.json")
+    healthy = read("vtr/vectors/evidence/healthy.json")
+    ff = read("tests/profiles/valid/full-featured.json")
+    base = {k: v for k, v in read("tests/evidence/all-healthy.json").items() if not k.startswith("_")}
+    cases = [(p1, dict(healthy, vibration_rms_g="0.64"), "vibration_rms_g"),
+             (p1, dict(healthy, vibration_rms_g=True), "vibration_rms_g"),
+             (ff, dict(base, accuracy="0.97"), "accuracy"),
+             (ff, dict(base, uptime_ratio="down"), "uptime_ratio")]
+    py = [vtr.determination(p, e) for p, e, _ in cases]
+    outcome = [next(x["outcome"] for x in d["results"] if x["clause"] == f"signal:{n}") for d, (_, _, n) in zip(py, cases)]
+    check("a scored signal whose value has the wrong type is inconclusive and not counted as checked",
+          outcome == ["inconclusive"] * 4 and [d["coverage"] for d in py] == [0.9, 0.9, 0.8889, 0.8889], (outcome, [d["coverage"] for d in py]))
+    incomplete = {"result": "incomplete", "band": None, "response": None}
+    check("a mistyped scored signal with on_missing incomplete gives the incomplete result, as text or as a boolean",
+          py[0]["standing"] == incomplete and py[1]["standing"] == incomplete, (py[0]["standing"], py[1]["standing"]))
+    check("a mistyped scored signal gives the same determination as the missing signal apart from the result digest",
+          {k: v for k, v in py[0].items() if k != "result_digest"}
+          == {k: v for k, v in vtr.determination(p1, read("vtr/vectors/evidence/missing.json")).items() if k != "result_digest"})
+    check("a mistyped scored signal with on_missing critical puts the standing in the worst band",
+          py[2]["standing"] == {"result": "does_not_meet", "band": "untrusted", "response": "suspended"}, py[2]["standing"])
+    check("a mistyped scored signal with on_missing ignore leaves the result complete",
+          py[3]["standing"] == {"result": "meets", "band": "trusted", "response": "full"}, py[3]["standing"])
+    out = vtr.evaluator_output(p1, cases[0][1])
+    check("the evaluator output lists a mistyped scored signal in missing_signals with the reason type_mismatch",
+          out["missing_signals"] == [{"signal": "vibration_rms_g", "on_missing": "incomplete", "reason": "type_mismatch"}]
+          and "vibration_rms_g" not in {x["signal"] for x in out["signal_results"]}, out["missing_signals"])
+    js = node(NODE_DETERMINE, [{"profile": p, "evidence": e} for p, e, _ in cases])
+    check("the Node.js verifier derives the same determination and result_digest for each mistyped scored signal", js == py, js)
 
 
 NODE_ROUND = r"""

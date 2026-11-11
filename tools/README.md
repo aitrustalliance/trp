@@ -8,8 +8,8 @@ specification is independently implementable. Both also write the same
 `result_hash`, the SHA-256 of the RFC 8785 canonical JSON form of the output
 without its `evaluation` member.
 
-These are reference tools for testing and development, not production
-evaluation sources.
+These are reference tools for testing and development. Production evaluation
+sources run on their own implementations.
 
 ## Implementations
 
@@ -64,6 +64,7 @@ node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
 | Inconclusive hard rules (Section 3.4) | A missing field or a type mismatch makes the rule inconclusive, lists it in `hard_rules_inconclusive` and marks the assessment incomplete |
 | Inheritance via `extends` (Section 7) | Not supported yet, so the profile is rejected with exit code 2 |
 | On-missing policy | A missing signal follows its declared policy. critical puts the standing in the worst band, the same as a value in the critical range, incomplete marks the assessment incomplete, and ignore drops the signal |
+| Scored signal value type (Section 3.3) | Only a finite JSON number is scored. Text, numeric text such as "0.5", a boolean, null, an object, an array, not a number (NaN), infinity and an integer too large for a double are type mismatches. The signal is listed in `missing_signals` with the reason `type_mismatch` and never appears in `signal_results`. Its on_missing policy governs as it does for an absent signal, whose entry carries no `reason` member |
 | Weight 0 (Section 3.3) | The signal is informational. It is reported in `signal_results` or `missing_signals` and never moves the band, whatever its value or on_missing |
 | Standing bands with severity order | Bands sorted by severity and assigned from the worst active condition. A triggered hard rule comes first, then a critical condition, then an incomplete assessment, then a warning. A critical condition sets the worst band whatever other evidence is missing |
 | Required standing and response bands | Response action mapped from the assigned band |
@@ -71,4 +72,16 @@ node tools/evaluate.js examples/manufacturing-safety/trp.json sample.json
 
 ## Limitations
 
-This evaluator is intentionally simple. It demonstrates that the TRP format is machine-actionable, not that this particular implementation is optimal. Production evaluation sources may use different scoring algorithms, richer drift models, or additional verification logic. The specification permits all of these because it defines the profile format, not the evaluation method.
+This evaluator is intentionally simple and exists to show that the TRP format is machine-actionable. Production evaluation sources may bring their own scoring algorithms and drift models, and the specification permits that because it defines the profile format and leaves the evaluation method open.
+
+## OSCAL Export And Import
+
+`trp_oscal.py` writes a TRP profile in the Open Security Controls Assessment Language (OSCAL) 1.2.3 of the National Institute of Standards and Technology (NIST) and reads OSCAL back. The export writes a TRP-native OSCAL catalog with one control per scored signal and per hard rule, along with an OSCAL profile that imports that catalog and the controls the TRP profile maps in other catalogs. A profile that declares mappings in its `x_oscal` extension also gets an OSCAL mapping collection. The import brings a document the export wrote back as the same TRP profile, and turns any other OSCAL catalog or profile into a skeleton whose placeholder signals carry no threshold.
+
+```shell
+python3 tools/trp_oscal.py export profile.json --out-dir out/
+python3 tools/trp_oscal.py validate out/*.json
+python3 tools/trp_oscal.py import out/my-profile.oscal-profile.json
+```
+
+`docs/oscal.md` documents the namespace, the encoding of each TRP member and the `x_oscal` extension.

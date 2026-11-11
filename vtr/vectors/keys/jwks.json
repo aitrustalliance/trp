@@ -14,7 +14,7 @@
       "kty": "OKP",
       "x": "nVsI88fPDo91d7rZG36Dehd1sdANez-A-ZbRIpP8O3M",
       "kid": "yp08gTkHTjugrGuYSicLtPOgRO1WL6Bx8MxSJV7yoUM",
-      "alg": "EdDSA",
+      "alg": "Ed25519",
       "use": "sig"
     }
   ]

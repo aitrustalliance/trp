@@ -1,0 +1,108 @@
+{
+  "description": "Provenance of the OSCAL files tests/oscal_check.py reads. OSCAL is the Open Security Controls Assessment Language of the National Institute of Standards and Technology (NIST). Every vendored file is byte for byte the published file, and git_blob is the Git object identifier of the file in the upstream repository, which git hash-object reproduces.",
+  "retrieved": "2026-11-04",
+  "oscal": {
+    "repository": "https://github.com/usnistgov/OSCAL",
+    "release": "v1.2.3",
+    "tag_object": "a504f40be661d4c1758e753643b0164978a9c2f1",
+    "commit": "e061961c7702afeabffdf5e59894d35e748dade1",
+    "tagged": "2026-08-07T03:03:02Z",
+    "current": "git ls-remote of the repository on 2026-11-04 lists v1.2.3 as its highest release tag, with no later tag and no release candidate after it, and the tag points at the head of the main branch. The GitHub releases API and release pages were not reachable from the build environment, so the release was confirmed through its tags and by downloading its assets.",
+    "license": "LICENSE.md of the repository at v1.2.3: a work of the United States government in the public domain within the United States, and dedicated worldwide under CC0 1.0 Universal.",
+    "files": {
+      "schemas/oscal_catalog_schema.json": {
+        "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_catalog_schema.json",
+        "schema_id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-catalog-schema.json",
+        "sha256": "ab95836e9e8dfeb6fde80007f6cc76fa3192f595d427c751a3f3923c3f474fc2",
+        "bytes": 55199
+      },
+      "schemas/oscal_profile_schema.json": {
+        "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_profile_schema.json",
+        "schema_id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-profile-schema.json",
+        "sha256": "7c5ff5a92683b6a80ce6a3474dea04e0ea8680a4ecb60702ffa08ebfc677e6cb",
+        "bytes": 68516
+      },
+      "schemas/oscal_mapping_schema.json": {
+        "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_mapping_schema.json",
+        "schema_id": "http://csrc.nist.gov/ns/oscal/1.2.3/oscal-mapping-schema.json",
+        "sha256": "ed28b68c8e56cc7d39f0c6076a5d7da3e8100fbe25abf5bb731120bd34f8817e",
+        "bytes": 67267
+      }
+    },
+    "allowed_values_source": "src/metaschema/oscal_mapping-common_metaschema.xml at v1.2.3 lists the relationship, method, matching-rationale and status values. The JSON schemas do not carry them, so tools/trp_oscal.py checks them itself.",
+    "schema_notes": [
+      "The JSON schemas are JSON Schema draft 07. TokenDatatype uses the Unicode property escapes \\p{L} and \\p{N}, which the Python re module lacks, so tools/trp_oscal.py spells both out from the Unicode database of the running Python before it validates.",
+      "The qualifier-item definition of oscal_mapping_schema.json requires a description member and does not allow one, so no mapping entry with qualifiers can validate against the published 1.2.3 schema. tools/trp_oscal.py writes no qualifiers."
+    ]
+  },
+  "oscal_content": {
+    "repository": "https://github.com/usnistgov/oscal-content",
+    "release": "v1.6.0",
+    "tag_object": "8342d2e4798583f5bbbd1a6dc8b45e31ca0393f8",
+    "commit": "f0de6d8d8c059d374f15e0ae07508d82e370fc1d",
+    "tagged": "2026-10-22T22:18:37Z",
+    "license": "LICENSE.md of the repository at v1.6.0: a work of the United States government in the public domain within the United States, and dedicated worldwide under CC0 1.0 Universal.",
+    "copy": "Downloaded from raw.githubusercontent.com at the tag. The minified files carry the same JSON data as the full files beside them, which the build checked by parsing both.",
+    "files": {
+      "content/NIST_SP-800-53_rev5_catalog-min.json": {
+        "path": "nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog-min.json",
+        "url": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog-min.json",
+        "git_blob": "fc799de42f24ff8cbe7d461f352898939b38ae06",
+        "sha256": "1cbaf5f25aa1c70610324e278323f1d3be380b9183a0e1f44074976d5da55291",
+        "bytes": 4909051,
+        "uuid": "d3880008-f544-4620-8f66-aaa4dfeb1202",
+        "title": "Electronic (OSCAL) Version of NIST SP 800-53 Rev 5.2.0 Controls and SP 800-53A Rev 5.2.0 Assessment Procedures",
+        "version": "5.2.0",
+        "oscal_version": "1.2.3",
+        "controls": 1196,
+        "withdrawn": 182
+      },
+      "content/NIST_AI-RMF_v1_catalog-min.json": {
+        "path": "nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog-min.json",
+        "url": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog-min.json",
+        "git_blob": "1f625a618448cec41f8f7fa8ea50bbaf7751bb82",
+        "sha256": "6b78134aa5639593c12c84bd0da77f1f5a1a40b95115d02d4208ac73b1c8dced",
+        "bytes": 470233,
+        "uuid": "2cbeb73c-3204-4a37-b490-610f8d758fb3",
+        "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0)",
+        "version": "1.0.0",
+        "oscal_version": "v1.2.3",
+        "controls": 91,
+        "withdrawn": 0,
+        "note": "The catalog gives its oscal-version as v1.2.3, with a leading v that the other two NIST files do not carry. The schema accepts any string there."
+      },
+      "content/NIST_SP-800-53_rev5_LOW-baseline_profile-min.json": {
+        "path": "nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_LOW-baseline_profile-min.json",
+        "url": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_LOW-baseline_profile-min.json",
+        "git_blob": "8490807f08d0552958854afbae7aa469ad8ebeb7",
+        "sha256": "594765d9638597a2d107c872e59170b16118bccd3c54ac58ba68d49203dd7f35",
+        "bytes": 3520,
+        "uuid": "47dba700-ff2a-4e28-9c4a-ac0e1b37fa12",
+        "version": "5.2.0",
+        "oscal_version": "1.2.3",
+        "selected_controls": 149,
+        "import_href": "#84cbf061-eb87-4ec1-8112-1f529232e907",
+        "note": "The profile names its catalog through a back-matter resource whose JSON link is a relative path inside the oscal-content repository, so the check resolves that import to the vendored catalog."
+      }
+    }
+  },
+  "built": {
+    "profiles/oscal-mapping-test.trp.json": {
+      "kind": "test profile",
+      "note": "A TRP profile written for the check. Its x_oscal mappings are illustrative and are not a reviewed crosswalk.",
+      "sha256": "f7157d50d9b51897d3e67f5d5ecf43dd9347d2e94979a60cb7c6cb156cd55db8"
+    },
+    "golden/oscal-mapping-test.oscal-catalog.json": {
+      "kind": "golden export",
+      "command": "python tools/trp_oscal.py export fixtures/oscal/profiles/oscal-mapping-test.trp.json --out-dir fixtures/oscal/golden --catalog sp800-53r5=fixtures/oscal/content/NIST_SP-800-53_rev5_catalog-min.json --catalog ai-rmf-1.0=fixtures/oscal/content/NIST_AI-RMF_v1_catalog-min.json"
+    },
+    "golden/oscal-mapping-test.oscal-profile.json": {
+      "kind": "golden export",
+      "command": "the same export"
+    },
+    "golden/oscal-mapping-test.oscal-mapping.json": {
+      "kind": "golden export",
+      "command": "the same export"
+    }
+  }
+}

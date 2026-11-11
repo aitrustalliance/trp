@@ -1,0 +1,186 @@
+{
+  "profile": {
+    "uuid": "574c51ed-69c8-5d26-a786-a03abd36cca9",
+    "metadata": {
+      "title": "Test profile with OSCAL control mappings",
+      "last-modified": "2026-11-04T00:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.3",
+      "props": [
+        {
+          "name": "json_schema",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json"
+        },
+        {
+          "name": "json_id",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "https://aitrustalliance.com/profiles/oscal-mapping-test/1.0.0/trp.json"
+        },
+        {
+          "name": "trp_id",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "oscal-mapping-test"
+        },
+        {
+          "name": "spec_version",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "0.6"
+        },
+        {
+          "name": "version",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "1.0.0"
+        },
+        {
+          "name": "name",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "Test profile with OSCAL control mappings"
+        },
+        {
+          "name": "description",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "Test profile for tools/trp_oscal.py. It declares mappings from its requirements to controls of NIST SP 800-53 Rev. 5 and the NIST AI RMF in x_oscal, so its export carries an OSCAL mapping collection. The threshold values and the mappings are illustrative."
+        },
+        {
+          "name": "authority",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "aitrustalliance.com"
+        },
+        {
+          "name": "author",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "{\"name\":\"AI Trust Alliance reference templates\",\"role\":\"Reference profile author\"}",
+          "class": "json"
+        },
+        {
+          "name": "created_at",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "2026-11-04T00:00:00Z"
+        },
+        {
+          "name": "license",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "Apache-2.0"
+        },
+        {
+          "name": "taxonomy",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "{\"industry\":\"cross-industry\",\"use_case\":\"oscal-export-test\"}",
+          "class": "json"
+        },
+        {
+          "name": "scope",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "{\"subject_type\":\"agent\",\"intended_use\":\"Test data for tools/trp_oscal.py. The requirements describe an AI agent whose tool calls pass through a checkpoint that logs every decision.\",\"boundary\":\"One agent session behind one tool checkpoint.\",\"out_of_scope\":[\"How the checkpoint decides each call\",\"Whether the declared control mappings satisfy an assessment under either framework\"]}",
+          "class": "json"
+        },
+        {
+          "name": "standing_bands",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "[{\"band\":\"good\",\"severity\":0,\"range\":\"Every signal is in range and no hard rule is met.\"},{\"band\":\"review\",\"severity\":1,\"range\":\"A signal is in its warning range.\"},{\"band\":\"failing\",\"severity\":2,\"range\":\"A signal is in its critical range or a hard rule is met.\"}]",
+          "class": "json"
+        },
+        {
+          "name": "required_standing",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "{\"minimum_acceptable_band\":\"review\",\"response_bands\":[{\"band\":\"good\",\"response\":\"full\"},{\"band\":\"review\",\"response\":\"restricted\"},{\"band\":\"failing\",\"response\":\"suspended\"}]}",
+          "class": "json"
+        },
+        {
+          "name": "x_oscal",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "{\"catalogs\":{\"sp800-53r5\":{\"title\":\"NIST SP 800-53 Rev. 5.2.0\",\"href\":\"https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json\"},\"ai-rmf-1.0\":{\"title\":\"NIST AI RMF 1.0\",\"href\":\"https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog.json\"}},\"provenance\":{\"method\":\"automation\",\"matching_rationale\":\"semantic\",\"status\":\"draft\"},\"mappings\":[{\"clause\":\"rule:unapproved_tool_called\",\"catalog\":\"sp800-53r5\",\"control\":\"cm-7\",\"relationship\":\"intersects-with\"},{\"clause\":\"rule:credential_in_arguments\",\"catalog\":\"sp800-53r5\",\"control\":\"ac-4\",\"relationship\":\"intersects-with\"},{\"clause\":\"signal:decision_log_completeness\",\"catalog\":\"sp800-53r5\",\"control\":\"au-2\",\"relationship\":\"intersects-with\",\"remarks\":\"The signal covers whether each tool call was logged and leaves the choice of event types to the control.\"},{\"clause\":\"signal:tool_calls_denied_ratio\",\"catalog\":\"ai-rmf-1.0\",\"control\":\"MEASURE_2.4\",\"relationship\":\"intersects-with\"},{\"clause\":\"rule:review_overdue\",\"catalog\":\"ai-rmf-1.0\",\"control\":\"GOVERN_1.5\",\"relationship\":\"intersects-with\"}]}",
+          "class": "json"
+        },
+        {
+          "name": "notes",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "[\"The control mappings are illustrative and exist to test the OSCAL export. They are not a reviewed crosswalk between TRP and either framework.\",\"Threshold values are illustrative drafts.\"]",
+          "class": "json"
+        }
+      ],
+      "remarks": "Test profile for tools/trp_oscal.py. It declares mappings from its requirements to controls of NIST SP 800-53 Rev. 5 and the NIST AI RMF in x_oscal, so its export carries an OSCAL mapping collection. The threshold values and the mappings are illustrative."
+    },
+    "imports": [
+      {
+        "href": "#5f072159-1186-5c0d-ade8-e2887c12b3ae",
+        "include-all": {}
+      },
+      {
+        "href": "#ac7d6682-8832-5103-9c38-b9daf53468bc",
+        "include-controls": [
+          {
+            "with-ids": [
+              "ac-4",
+              "au-2",
+              "cm-7"
+            ]
+          }
+        ]
+      },
+      {
+        "href": "#402de397-941e-59bf-96d8-b99f697cdc7a",
+        "include-controls": [
+          {
+            "with-ids": [
+              "GOVERN_1.5",
+              "MEASURE_2.4"
+            ]
+          }
+        ]
+      }
+    ],
+    "merge": {
+      "as-is": true
+    },
+    "back-matter": {
+      "resources": [
+        {
+          "uuid": "5f072159-1186-5c0d-ade8-e2887c12b3ae",
+          "title": "TRP catalog of Test profile with OSCAL control mappings",
+          "rlinks": [
+            {
+              "href": "oscal-mapping-test.oscal-catalog.json",
+              "media-type": "application/oscal.catalog+json"
+            }
+          ]
+        },
+        {
+          "uuid": "ac7d6682-8832-5103-9c38-b9daf53468bc",
+          "title": "NIST SP 800-53 Rev. 5.2.0",
+          "props": [
+            {
+              "name": "catalog",
+              "ns": "https://aitrustalliance.com/ns/trp",
+              "value": "sp800-53r5"
+            }
+          ],
+          "rlinks": [
+            {
+              "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+              "media-type": "application/oscal.catalog+json"
+            }
+          ]
+        },
+        {
+          "uuid": "402de397-941e-59bf-96d8-b99f697cdc7a",
+          "title": "NIST AI RMF 1.0",
+          "props": [
+            {
+              "name": "catalog",
+              "ns": "https://aitrustalliance.com/ns/trp",
+              "value": "ai-rmf-1.0"
+            }
+          ],
+          "rlinks": [
+            {
+              "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog.json",
+              "media-type": "application/oscal.catalog+json"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

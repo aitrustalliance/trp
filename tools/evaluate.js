@@ -28,6 +28,8 @@ class UnsupportedProfileError extends Error {}
 // --- Value types (Section 3.4) ----------------------------------------------
 
 // Return the TRP scalar type of a value: boolean, number, string or other.
+// A number is finite. NaN and infinity are "other", and so is a JSON integer
+// too large for a double, which JSON.parse reads as infinity.
 function valueType(value) {
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") return Number.isFinite(value) ? "number" : "other";
@@ -314,18 +316,29 @@ function evaluate(profile, signals, driftDetector) {
   const missingSignals = [];
 
   for (const ss of profile.scoredSignals) {
-    if (!(ss.signal in signals)) {
-      missingSignals.push({
+    // Section 3.3: a scored signal value is a finite JSON number. A value of
+    // any other type is never scored. The signal is handled like an absent
+    // one, so its on_missing governs, and the entry carries the reason
+    // type_mismatch. The lookup reads own members only, so a signal named
+    // after an inherited member such as constructor is absent unless the
+    // evidence carries it.
+    const present = Object.prototype.hasOwnProperty.call(signals, ss.signal);
+    if (!present || valueType(signals[ss.signal]) !== "number") {
+      const entry = {
         signal: ss.signal,
         on_missing: ss.onMissing,
-      });
+      };
+      if (present) {
+        entry.reason = "type_mismatch";
+      }
+      missingSignals.push(entry);
       if (ss.onMissing === "critical") {
         weightedPenalty += ss.weight;
       }
       continue;
     }
 
-    const value = Number(signals[ss.signal]);
+    const value = signals[ss.signal];
     const sev = signalSeverity(ss, value);
     const penalty = ss.weight * sev;
     weightedPenalty += penalty;
@@ -371,8 +384,8 @@ function evaluate(profile, signals, driftDetector) {
   const banded = signalResults.filter((s) => !informational.has(s.signal));
   const bandedMissing = missingSignals.filter((m) => !informational.has(m.signal));
 
-  // A critical condition is a value in the critical range, or an absent
-  // signal whose on_missing is critical (Section 3.3).
+  // A critical condition is a value in the critical range, or an absent or
+  // mistyped signal whose on_missing is critical (Section 3.3).
   const anyCritical = banded.some((s) => s.in_critical) ||
     bandedMissing.some((m) => m.on_missing === "critical");
   const anyWarning = banded.some((s) => s.in_warning);

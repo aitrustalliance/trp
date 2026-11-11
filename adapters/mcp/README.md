@@ -2,7 +2,7 @@
 
 The checkpoint puts a TRP (Trust Requirements Profile) between an AI agent and the MCP (Model Context Protocol) servers it uses. MCP is the open protocol agents use to reach tools such as files, the web, code runners and business systems. The checkpoint judges every tool call before the server sees it and every tool result before the model sees it, using the reference TRP evaluator in `tools/evaluate.py`.
 
-It works with any MCP client and any MCP server on the stdio transport, which is how desktop agents, coding agents and IDEs start local servers. Nothing in the client, the server or the model changes.
+It works with any MCP client and any MCP server on the stdio transport, which is how desktop and coding agents start local servers. Nothing in the MCP stack changes.
 
 ## What It Stops
 
@@ -95,6 +95,6 @@ pip install "mcp==2.3.0" && python tests/mcp_checkpoint_sdk.py    # the official
 
 ## Limits
 
-- Secret detection matches published token formats and assignments such as `api_key=`. Instruction detection matches phrase patterns. Both are pattern matches, not classifiers, and encoded or paraphrased content can pass them.
-- Data-flow tracking matches exact lines of 12 characters or more and tokens of 16 or more. Content that is rewritten, summarized or encoded before it leaves is not matched.
+- Secret detection matches published token formats and assignments such as `api_key=`. Instruction detection matches phrase patterns. Both are pattern matches with no classifier behind them, so encoded or paraphrased content can pass them.
+- Data-flow tracking matches exact lines of 12 characters or more and tokens of 16 or more. Content rewritten or encoded before it leaves goes unmatched.
 - Only the stdio transport is covered. Streamable HTTP servers need the same checks in an HTTP proxy.

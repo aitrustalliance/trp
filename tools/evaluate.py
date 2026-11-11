@@ -44,10 +44,18 @@ def value_type(value: Any) -> str:
     """Return the TRP scalar type of a value: boolean, number, string or other.
 
     A boolean is never a number, even though Python treats bool as an int.
+    A number is finite. NaN and infinity are "other", and so is an integer
+    too large for a double, which the Node.js evaluator reads as infinity.
     """
     if isinstance(value, bool):
         return "boolean"
-    if isinstance(value, (int, float)):
+    if isinstance(value, int):
+        try:
+            float(value)
+        except OverflowError:
+            return "other"
+        return "number"
+    if isinstance(value, float):
         return "number" if math.isfinite(value) else "other"
     if isinstance(value, str):
         return "string"
@@ -360,11 +368,19 @@ def evaluate(profile: Profile, signals: dict[str, Any],
     missing_signals = []
 
     for ss in profile.scored_signals:
-        if ss.signal not in signals:
-            missing_signals.append({
+        # Section 3.3: a scored signal value is a finite JSON number. A value
+        # of any other type is never scored. The signal is handled like an
+        # absent one, so its on_missing governs, and the entry carries the
+        # reason type_mismatch.
+        present = ss.signal in signals
+        if not present or value_type(signals[ss.signal]) != "number":
+            entry = {
                 "signal": ss.signal,
                 "on_missing": ss.on_missing,
-            })
+            }
+            if present:
+                entry["reason"] = "type_mismatch"
+            missing_signals.append(entry)
             if ss.on_missing == "critical":
                 weighted_penalty += ss.weight
             continue
@@ -408,8 +424,8 @@ def evaluate(profile: Profile, signals: dict[str, Any],
     banded = [s for s in signal_results if s["signal"] not in informational]
     banded_missing = [m for m in missing_signals if m["signal"] not in informational]
 
-    # A critical condition is a value in the critical range, or an absent
-    # signal whose on_missing is critical (Section 3.3).
+    # A critical condition is a value in the critical range, or an absent or
+    # mistyped signal whose on_missing is critical (Section 3.3).
     any_critical = any(s["in_critical"] for s in banded) or any(
         m["on_missing"] == "critical" for m in banded_missing
     )

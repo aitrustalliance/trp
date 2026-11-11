@@ -10,8 +10,8 @@ During the formative stage the steward makes decisions in the open on GitHub, th
 
 Decisions about the TRP specification follow a transparent process.
 
-- **Profiles** Anyone can author and contribute a domain profile. Profiles carry their own author attribution, version, and license. Contributing a profile does not require approval, only validation against the schema.
-- **Spec changes** Changes to the core specification or schema are proposed as GitHub issues, discussed openly, and require review and approval by the steward before merging.
+- **Profiles** Anyone can author and contribute a domain profile. Profiles carry their own author attribution, version, license, and taxonomy. Contributing a profile requires validation against the schema and no approval.
+- **Spec changes** Changes to the core specification or schema are proposed and discussed openly as GitHub issues and require review and approval by the steward before merging.
 - **Extension keys** A module's top-level `x_` key is registered by pull request to `extensions/registry.json` and reviewed by the steward. URI-namespaced keys need no registration. See [extensions/README.md](extensions/README.md).
 - **Extension promotion** A proven extension may be promoted into the core specification through the promotion path described in the spec. The steward decides promotion based on demonstrated adoption and technical merit.
 

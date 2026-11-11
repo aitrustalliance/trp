@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Verifiable Trust Receipt (VTR) v0.5 verifier for Node.js, written apart from the Python reference so the two
+// Verifiable Trust Receipt (VTR) v0.6 verifier for Node.js, written apart from the Python reference so the two
 // can be checked against each other on every test vector. Needs Node.js 18 or later and nothing else.
+// It accepts VTR 0.6 and VTR 0.5 receipts. The deprecated JOSE identifier EdDSA is accepted only on VTR 0.5, and
+// VTR 0.6 names Ed25519 signatures with the fully specified identifier Ed25519 of RFC 9864.
 //
 //   node vtr/tools/vtr_verify.js receipt.jws --jwks jwks.json [--profile trp.json --evidence evidence.json] [--allow-eddsa]
 //   node vtr/tools/vtr_verify.js batched.json --jwks jwks.json ...      a receipt from a signed batch
@@ -12,7 +14,9 @@ const fs = require("fs");
 const path = require("path");
 const trp = require(path.join(__dirname, "..", "..", "tools", "evaluate.js"));
 
-const VTR_VERSION = "0.5";
+const VERSIONS = ["0.5", "0.6"];
+const LEGACY_EDDSA_VERSION = "0.5";
+const ALGS = new Set(["ES256", "Ed25519", "EdDSA"]);
 const KINDS = new Set(["evaluation", "conformance", "drill", "variance"]);
 const MODES = new Set(["enforced", "test", "shadow", "observed"]);
 const OUTCOMES = new Set(["satisfied", "warning", "violated", "inconclusive"]);
@@ -115,7 +119,7 @@ function checkClaims(c) {
   if (!c || typeof c !== "object" || Array.isArray(c)) fail("claims must be a JSON object");
   for (const k of REQUIRED) if (!(k in c)) fail(`missing required claim ${k}`);
   for (const k of Object.keys(c)) if (!REQUIRED.includes(k) && !OPTIONAL.includes(k)) fail(`unknown claim ${k}`);
-  if (c.vtr_version !== VTR_VERSION) fail(`vtr_version must be ${VTR_VERSION}`);
+  if (!VERSIONS.includes(c.vtr_version)) fail(`vtr_version must be ${VERSIONS.join(" or ")}`);
   if (!Number.isInteger(c.iat)) fail("iat must be integer Unix seconds");
   for (const k of ["iss", "sub", "evidence_digest", "result_digest"]) if (typeof c[k] !== "string" || !c[k]) fail(`${k} must be a non-empty string`);
   if (!KINDS.has(c.kind)) fail(`unknown kind ${c.kind}`);
@@ -131,13 +135,13 @@ function checkClaims(c) {
   const ev = c.evaluator;
   if (!ev || typeof ev !== "object" || !["implementation", "version", "spec_version"].every((k) => k in ev)) fail("evaluator must carry implementation, version and spec_version");
   if ("outcome" in c && c.outcome !== null && !VERDICTS.has(c.outcome)) fail("outcome must be allow, stop or escalate");
-  if ("risk" in c && c.risk !== null && !(typeof c.risk === "object" && Object.keys(c.risk).length === 0)) fail("risk must be empty in VTR v0.5");
+  if ("risk" in c && c.risk !== null && !(typeof c.risk === "object" && Object.keys(c.risk).length === 0)) fail("risk must be empty in VTR v0.5 and v0.6");
   if (c.kind !== "evaluation" && !(c.details && typeof c.details === "object" && !Array.isArray(c.details))) fail(`kind ${c.kind} requires a details object`);
 }
 
 function publicKey(jwk) {
   if (jwk.kty === "EC" && jwk.crv === "P-256") return { alg: "ES256", key: crypto.createPublicKey({ key: { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y }, format: "jwk" }) };
-  if (jwk.kty === "OKP" && jwk.crv === "Ed25519") return { alg: "EdDSA", key: crypto.createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: jwk.x }, format: "jwk" }) };
+  if (jwk.kty === "OKP" && jwk.crv === "Ed25519") return { alg: "Ed25519", key: crypto.createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: jwk.x }, format: "jwk" }) };
   fail("the key set holds a key type VTR does not allow");
 }
 
@@ -149,13 +153,15 @@ function open(jws, jwks, typ, allowEdDSA) {
   catch (err) { if (err instanceof VTRError) throw err; fail(`malformed JWS (${err.message})`); }
   if (!header || typeof header !== "object" || Object.keys(header).sort().join() !== "alg,kid,typ") fail("the protected header must carry exactly alg, kid and typ");
   if (header.typ !== typ) fail(`typ must be ${typ}`);
-  if (header.alg === "EdDSA" && !allowEdDSA) fail("EdDSA receipts are refused unless the verifier allows EdDSA");
-  if (header.alg !== "ES256" && header.alg !== "EdDSA") fail(`alg ${header.alg} is not allowed`);
+  if (!ALGS.has(header.alg)) fail(`alg ${header.alg} is not allowed`);
+  // RFC 9864 deprecates the polymorphic EdDSA identifier, so only a VTR 0.5 receipt may carry it.
+  if (header.alg === "EdDSA" && !(payload && typeof payload === "object" && payload.vtr_version === LEGACY_EDDSA_VERSION)) fail(`EdDSA is allowed only on a VTR ${LEGACY_EDDSA_VERSION} receipt`);
+  if (header.alg !== "ES256" && !allowEdDSA) fail(`${header.alg} receipts are refused unless the verifier allows Ed25519`);
   const jwk = (jwks.keys || []).find((k) => k.kid === header.kid);
   if (!jwk) fail("no key in the key set has this kid");
   if (thumbprint(jwk) !== header.kid) fail("kid is not the RFC 7638 thumbprint of its key");
   const pk = publicKey(jwk);
-  if (pk.alg !== header.alg) fail("alg does not match the key type");
+  if (pk.alg !== (header.alg === "EdDSA" ? "Ed25519" : header.alg)) fail("alg does not match the key type");  // EdDSA on VTR 0.5 is an Ed25519 signature
   const data = Buffer.from(parts[0] + "." + parts[1], "ascii");
   const ok = pk.alg === "ES256"
     ? sig.length === 64 && crypto.verify("sha256", data, { key: pk.key, dsaEncoding: "ieee-p1363" }, sig)
@@ -205,7 +211,7 @@ function verifyBatched(receipt, jwks, opts = {}) {
     const { claims, proof } = receipt;
     checkClaims(claims);
     const batch = open(proof.batch, jwks, "vtr-batch+jwt", opts.allowEdDSA);
-    if (Object.keys(batch).sort().join() !== "iat,iss,root,tree_size,vtr_version" || batch.vtr_version !== VTR_VERSION) fail("the batch statement is malformed");
+    if (Object.keys(batch).sort().join() !== "iat,iss,root,tree_size,vtr_version" || batch.vtr_version !== claims.vtr_version) fail("the batch statement is malformed");
     if (batch.iss !== claims.iss) fail("the batch was signed by another issuer");
     if (proof.tree_size !== batch.tree_size) fail("tree_size does not match the signed batch");
     const root = rootFromPath(proof.leaf_index, proof.tree_size, leaf(unb64u(digest(claims))), (proof.path || []).map(unb64u));

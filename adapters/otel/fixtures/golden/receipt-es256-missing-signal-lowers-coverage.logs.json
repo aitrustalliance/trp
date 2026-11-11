@@ -1,0 +1,227 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "trp-evaluator"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "trp-otel-export",
+            "version": "0.6.0"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1793700000000000000",
+              "observedTimeUnixNano": "1793700000000000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "eventName": "trp.vtr.receipt",
+              "attributes": [
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 0.9
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "BioX3svM1Arq9sJ3sjcJQ-YvEknJfXbXSP8IROUmBQM"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "tIgSQ3O3xGDPoLoe8wyGrL0dAQn7WjTcOyYNJLAAvvw"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "manufacturing-safety"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "1.0.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "aVEIBWJxrtIaDUx8h4y6YxsBRaPLjlBEAqS_VAxF5Wk"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:critical_data_quality"
+                        },
+                        {
+                          "stringValue": "rule:estop_active"
+                        },
+                        {
+                          "stringValue": "rule:human_in_exclusion_zone"
+                        },
+                        {
+                          "stringValue": "rule:safety_certification_expired"
+                        },
+                        {
+                          "stringValue": "signal:data_quality"
+                        },
+                        {
+                          "stringValue": "signal:human_distance_m"
+                        },
+                        {
+                          "stringValue": "signal:model_confidence"
+                        },
+                        {
+                          "stringValue": "signal:robot_speed_mm_s"
+                        },
+                        {
+                          "stringValue": "signal:temperature_C"
+                        },
+                        {
+                          "stringValue": "signal:vibration_rms_g"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "inconclusive"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "incomplete"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:cell:01"
+                  }
+                },
+                {
+                  "key": "trp.vtr.alg",
+                  "value": {
+                    "stringValue": "ES256"
+                  }
+                },
+                {
+                  "key": "trp.vtr.digest",
+                  "value": {
+                    "stringValue": "8c7Cf4BGfZijnIVGO_Dhi5f6um2G9IgaZcF7hNYYiZ4"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iat",
+                  "value": {
+                    "intValue": "1793700000"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iss",
+                  "value": {
+                    "stringValue": "https://evaluator.example.com"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kid",
+                  "value": {
+                    "stringValue": "3qBQFeYZjG1EAH1qOEjgOeOtKd7kLTKIL8wlKbx1lYg"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kind",
+                  "value": {
+                    "stringValue": "evaluation"
+                  }
+                },
+                {
+                  "key": "trp.vtr.mode",
+                  "value": {
+                    "stringValue": "enforced"
+                  }
+                },
+                {
+                  "key": "trp.vtr.version",
+                  "value": {
+                    "stringValue": "0.6"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

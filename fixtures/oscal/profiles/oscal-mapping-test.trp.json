@@ -1,0 +1,176 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/oscal-mapping-test/1.0.0/trp.json",
+  "trp_id": "oscal-mapping-test",
+  "spec_version": "0.6",
+  "version": "1.0.0",
+  "name": "Test profile with OSCAL control mappings",
+  "description": "Test profile for tools/trp_oscal.py. It declares mappings from its requirements to controls of NIST SP 800-53 Rev. 5 and the NIST AI RMF in x_oscal, so its export carries an OSCAL mapping collection. The threshold values and the mappings are illustrative.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-04T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "cross-industry",
+    "use_case": "oscal-export-test"
+  },
+  "scope": {
+    "subject_type": "agent",
+    "intended_use": "Test data for tools/trp_oscal.py. The requirements describe an AI agent whose tool calls pass through a checkpoint that logs every decision.",
+    "boundary": "One agent session behind one tool checkpoint.",
+    "out_of_scope": [
+      "How the checkpoint decides each call",
+      "Whether the declared control mappings satisfy an assessment under either framework"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "tool_calls_denied_ratio",
+      "weight": 40,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.05,
+      "critical_threshold": 0.2,
+      "unit": "ratio",
+      "reason": "A rising share of refused calls shows an agent working against its policy."
+    },
+    {
+      "signal": "decision_log_completeness",
+      "weight": 60,
+      "direction": "lower_is_unsafe",
+      "warning_threshold": 0.99,
+      "critical_threshold": 0.9,
+      "unit": "ratio",
+      "reason": "A tool call with no logged decision cannot be reviewed later.",
+      "on_missing": "critical"
+    },
+    {
+      "signal": "open_review_items",
+      "weight": 0,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 5,
+      "critical_threshold": 20,
+      "unit": "items",
+      "on_missing": "ignore",
+      "reason": "Reported for the reviewer and never moves the band."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "unapproved_tool_called",
+      "field": "unapproved_tool_called",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "credential_in_arguments",
+      "field": "credential_in_arguments",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "checkpoint_bypassed",
+      "field": "checkpoint_mode",
+      "condition": "equals",
+      "value": "bypass",
+      "action": "block_startup"
+    },
+    {
+      "rule": "review_overdue",
+      "field": "days_since_last_review",
+      "condition": "greater_than",
+      "value": 90,
+      "action": "require_review"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0,
+      "range": "Every signal is in range and no hard rule is met."
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "A signal is in its warning range."
+    },
+    {
+      "band": "failing",
+      "severity": 2,
+      "range": "A signal is in its critical range or a hard rule is met."
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "response_bands": [
+      {
+        "band": "good",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "failing",
+        "response": "suspended"
+      }
+    ]
+  },
+  "x_oscal": {
+    "catalogs": {
+      "sp800-53r5": {
+        "title": "NIST SP 800-53 Rev. 5.2.0",
+        "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json"
+      },
+      "ai-rmf-1.0": {
+        "title": "NIST AI RMF 1.0",
+        "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog.json"
+      }
+    },
+    "provenance": {
+      "method": "automation",
+      "matching_rationale": "semantic",
+      "status": "draft"
+    },
+    "mappings": [
+      {
+        "clause": "rule:unapproved_tool_called",
+        "catalog": "sp800-53r5",
+        "control": "cm-7",
+        "relationship": "intersects-with"
+      },
+      {
+        "clause": "rule:credential_in_arguments",
+        "catalog": "sp800-53r5",
+        "control": "ac-4",
+        "relationship": "intersects-with"
+      },
+      {
+        "clause": "signal:decision_log_completeness",
+        "catalog": "sp800-53r5",
+        "control": "au-2",
+        "relationship": "intersects-with",
+        "remarks": "The signal covers whether each tool call was logged and leaves the choice of event types to the control."
+      },
+      {
+        "clause": "signal:tool_calls_denied_ratio",
+        "catalog": "ai-rmf-1.0",
+        "control": "MEASURE_2.4",
+        "relationship": "intersects-with"
+      },
+      {
+        "clause": "rule:review_overdue",
+        "catalog": "ai-rmf-1.0",
+        "control": "GOVERN_1.5",
+        "relationship": "intersects-with"
+      }
+    ]
+  },
+  "notes": [
+    "The control mappings are illustrative and exist to test the OSCAL export. They are not a reviewed crosswalk between TRP and either framework.",
+    "Threshold values are illustrative drafts."
+  ]
+}

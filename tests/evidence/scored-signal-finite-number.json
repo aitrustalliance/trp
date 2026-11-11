@@ -1,0 +1,16 @@
+{
+  "_test_description": "Every scored signal arrives as a finite JSON number, written as an integer, a decimal, an exponent or zero. Section 3.3 accepts each form, so every signal is scored and none is missing. Expected standing trusted.",
+  "_expected_standing": "trusted",
+  "_expected_response": "full",
+  "_expected_hard_override": false,
+  "_expected_missing_signals": [],
+  "accuracy": 1,
+  "latency_ms": 1.2e2,
+  "bias_score": 3E-2,
+  "data_freshness_hours": 0,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
-  "title": "Trust Requirements Profile (TRP) v0.5.3 draft",
-  "description": "Draft JSON Schema for a Trust Requirements Profile. Defines the shape of a profile: how signals, rules, drift, bands, and standing are expressed. It is an open-ended grammar, not a fixed list of signals; a profile may declare any number of signals. It does not define how a standing is computed. Version 0.5.3 draft, expected to evolve.",
+  "$id": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "title": "Trust Requirements Profile (TRP) v0.6.0 draft",
+  "description": "Draft JSON Schema for a Trust Requirements Profile. Defines the shape of a profile: how signals, rules, drift, bands, and standing are expressed. It is an open-ended grammar, not a fixed list of signals; a profile may declare any number of signals. It does not define how a standing is computed. Version 0.6.0 draft, expected to evolve.",
   "type": "object",
   "required": [
     "trp_id",
@@ -27,7 +27,7 @@
     },
     "spec_version": {
       "type": "string",
-      "description": "The TRP spec version this profile targets, for example 0.5.",
+      "description": "The TRP spec version this profile targets, for example 0.6. A profile that declares 0.5 stays valid.",
       "minLength": 1
     },
     "version": {
@@ -112,6 +112,30 @@
         "intended_use"
       ],
       "properties": {
+        "subject_type": {
+          "type": "string",
+          "description": "Optional, added in 0.6. The kind of subject the profile is written for. One of the listed values, or an absolute https URI or a urn URN that names a kind defined by the organization that controls the namespace.",
+          "anyOf": [
+            {
+              "enum": [
+                "agent",
+                "model",
+                "user",
+                "dataset",
+                "workflow",
+                "route",
+                "service",
+                "other"
+              ]
+            },
+            {
+              "pattern": "^https://\\S+$"
+            },
+            {
+              "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:\\S+$"
+            }
+          ]
+        },
         "intended_use": {
           "type": "string"
         },

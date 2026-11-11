@@ -1,0 +1,13 @@
+{
+  "subject_prefix": "urn:trp:a2a:task:",
+  "require_caller": true,
+  "agents": {
+    "https://planner.example.com": {
+      "jwks": "../../vtr/vectors/keys/jwks.json",
+      "profile": "profiles/a2a-delegation.trp.json",
+      "issuer": "urn:example:planner",
+      "allow_eddsa": false,
+      "modes": ["enforced"]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "x_test_description": "A subject_type given as an https URI that names a kind defined by the organization that controls the namespace (Section 3.2).",
+  "trp_id": "subject-type-uri",
+  "spec_version": "0.6",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "subject_type": "https://example.org/trp/subject-types/robot-cell",
+    "intended_use": "Conformance test for a URI-namespaced subject_type."
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0
+    },
+    {
+      "band": "failing",
+      "severity": 1
+    }
+  ]
+}

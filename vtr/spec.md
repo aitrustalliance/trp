@@ -3,7 +3,7 @@ Copyright 2026 Striv AI, Inc.
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Verifiable Trust Receipt (VTR) Version 0.5
+# Verifiable Trust Receipt (VTR) Version 0.6
 
 ## Status
 
@@ -13,7 +13,7 @@ The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT, RE
 
 ## Purpose
 
-A Verifiable Trust Receipt is a signed statement that one evaluation of an entity against a TRP happened, and what it found. A relying party can check a receipt without trusting the party that issued it. It confirms the signature against the issuer's published key, confirms which profile was applied from the profile's digest, and, when it has the evidence, runs the evaluation again and gets the same answer.
+A Verifiable Trust Receipt is a signed statement that one evaluation of an entity against a TRP happened, and what it found. A relying party can check a receipt without trusting the party that issued it. It confirms the signature against the issuer's published key and confirms which profile was applied from the profile's digest. When it also has the evidence, it runs the evaluation again and must get the same answer.
 
 A receipt records a determination. It carries no score, and no member of a receipt may hold a numeric rating of the entity.
 
@@ -51,7 +51,7 @@ The receipt payload is a JSON object. It MUST carry every required member and MA
 
 | Claim | Type | Required | Meaning |
 |---|---|---|---|
-| `vtr_version` | string | Yes | `"0.5"` |
+| `vtr_version` | string | Yes | `"0.6"`, or `"0.5"` on a receipt a version 0.5 issuer signed, as Versions describes |
 | `iss` | string | Yes | The issuer, resolvable to a key set |
 | `iat` | integer | Yes | Issue time in Unix seconds |
 | `sub` | string | Yes | The entity evaluated, as a URI |
@@ -67,7 +67,7 @@ The receipt payload is a JSON object. It MUST carry every required member and MA
 | `window` | object | When time-based | `{start, end}` in RFC 3339, REQUIRED when any requirement was evaluated over a time window |
 | `nonce` | string | No | A value a challenger supplied, echoed for freshness |
 | `prev` | string | No | The digest of the issuer's previous claims for the same `sub` |
-| `risk` | object | No | Reserved. It MUST be empty in version 0.5 |
+| `risk` | object | No | Reserved. It MUST be empty in versions 0.5 and 0.6 |
 | `evaluators` | array | No | `{name, version, decision}` for each detector or evaluator that contributed |
 | `build` | string | No | The digest of the evaluator's build image |
 | `fallback` | object | No | `{from, to, trp_clause}` when the system fell back to a safer state |
@@ -106,6 +106,8 @@ A triggered hard rule is a known violation, and a known violation is never repor
 
 A scored signal whose value is in its critical range is a critical condition, and so is a missing signal whose `on_missing` is `critical`, because TRP Section 3.3 treats that absence as one. The evaluator assigns its worst band for a critical condition whatever other evidence is missing. When no hard rule triggered and a critical condition is present, the result is `does_not_meet` with the band and the response whenever that band does not meet the profile, even when a required signal is also missing or a hard rule is inconclusive. A missing signal whose `on_missing` is `critical` still has the outcome `inconclusive` in `results` since the evidence lacks it, so it does not count toward coverage.
 
+TRP Section 3.3 accepts only a finite JSON number as the value of a scored signal. A scored signal whose value has any other type is never scored and counts as a missing signal everywhere in this section. Its `on_missing` governs the standing. Its outcome in `results` is `inconclusive`, so it does not count toward coverage.
+
 Otherwise the result is `incomplete` if a scored signal is missing from the evidence and its `on_missing` is `incomplete`, which is the default. The result is also `incomplete` if any hard rule is inconclusive, because TRP Section 3.4 gives an inconclusive rule the same outcome. An incomplete result prevents `meets`, and an incomplete standing carries a `null` band and a `null` response.
 
 In every other case the result is `meets` when the band meets the profile and `does_not_meet` when it does not.
@@ -122,7 +124,7 @@ A verifier MUST NOT read `incomplete` as `meets` or as `does_not_meet`, and a re
 | `hard_rules_triggered` | Each triggered hard rule as `{rule, action, field, condition}` |
 | `hard_rules_inconclusive` | Each inconclusive hard rule as `{rule, field, condition, reason}` |
 | `signal_results` | Each scored signal present in the evidence as `{signal, value, unit, severity, penalty, in_warning, in_critical}` |
-| `missing_signals` | Each scored signal missing from the evidence as `{signal, on_missing}` |
+| `missing_signals` | Each scored signal missing from the evidence as `{signal, on_missing}`, and each scored signal whose value is not a finite number as `{signal, on_missing, reason}` with the reason `type_mismatch` |
 | `standing` | The band the evaluator assigned |
 | `hard_override` | Whether a triggered hard rule set the band |
 | `response` | The response for that band, or `unknown` when the profile gives none |
@@ -139,16 +141,29 @@ The profile digest in `trp_ref` is computed over the profile document exactly as
 
 ## Envelope
 
-A single receipt is a JSON Web Signature (RFC 7515) in compact serialization.
+A single receipt is a JSON Web Signature (JWS) under RFC 7515 in compact serialization.
 
 - The protected header MUST be the canonical form of `{"alg", "kid", "typ"}` and MUST carry no other member.
 - `typ` MUST be `vtr+jwt`.
-- `alg` MUST be `ES256` (ECDSA with P-256 and SHA-256, RFC 7518 section 3.4) by default. `EdDSA` with Ed25519 (RFC 8037) MAY be used. A verifier MUST refuse an `EdDSA` receipt unless its operator has allowed EdDSA.
+- `alg` MUST be `ES256` by default, the Elliptic Curve Digital Signature Algorithm (ECDSA) with P-256 and SHA-256 under RFC 7518 section 3.4. `Ed25519` MAY be used, the Edwards-curve Digital Signature Algorithm (EdDSA) with the Ed25519 parameter set under RFC 9864 Section 2.2. A verifier MUST refuse an `Ed25519` receipt unless its operator has allowed Ed25519.
+- `EdDSA` is the polymorphic identifier of RFC 8037, which RFC 9864 deprecates. An issuer MUST NOT sign a version 0.6 receipt with `EdDSA`. A verifier MUST refuse `EdDSA` on any receipt whose `vtr_version` is not `"0.5"`, and on a version 0.5 receipt it treats `EdDSA` as it treats `Ed25519`.
 - `kid` MUST be the RFC 7638 thumbprint of the signing key's public JSON Web Key.
 - The payload MUST be the canonical form of the claims.
 - An ES256 signature is the 64 bytes of R followed by S, each 32 bytes, as RFC 7518 section 3.4 requires.
+- An Ed25519 key is the same JSON Web Key under `Ed25519` and under `EdDSA`. When the key carries `alg`, its value is `Ed25519`, as RFC 9864 Section 5 describes.
 
-A receipt in any other serialization, or with a header or payload that is not in canonical form, is invalid. Selective Disclosure JSON Web Tokens are reserved for a later credential profile. CBOR Object Signing and Encryption (COSE) envelopes are planned for a later version.
+A JWS receipt in any other serialization, or with a header or payload that is not in canonical form, is invalid. An informative profile later in this document registers the same claims with a supply chain transparency service. Selective Disclosure JSON Web Tokens are reserved for a later credential profile.
+
+## Versions
+
+Version 0.6 changes the identifier of an Ed25519 signature and nothing else. RFC 9864 registers `Ed25519` as the fully specified JSON Object Signing and Encryption (JOSE) identifier for EdDSA with the Ed25519 parameter set and deprecates the polymorphic `EdDSA`. The JOSE identifier `ES256` already names one curve and one hash, so it does not change.
+
+| `vtr_version` | `alg` For An Ed25519 Signature | Signed By A New Issuer |
+|---|---|---|
+| `"0.6"` | `Ed25519` | Yes |
+| `"0.5"` | `EdDSA` | No |
+
+An issuer MUST sign every new receipt and every new batch statement as version 0.6. A verifier MUST accept a version 0.5 receipt and check it under this specification, with `EdDSA` allowed as its `alg`. The claims and the determination mean the same in both versions.
 
 ## Key Discovery
 
@@ -160,7 +175,7 @@ An issuer MAY sign many receipts with one signature by signing the root of a Mer
 
 - The leaves are the digests of each receipt's claims, in the order the issuer chooses.
 - A leaf hash is SHA-256 of the byte 0x00 followed by the 32 bytes of the receipt digest. A node hash is SHA-256 of the byte 0x01 followed by its left child hash and its right child hash. A tree of n leaves splits at the largest power of two smaller than n. This is the Merkle tree hash of RFC 9162 section 2.1.1.
-- The batch statement is a compact JWS with `typ` `vtr-batch+jwt` over the canonical form of `{vtr_version, iss, iat, tree_size, root}`, with `root` encoded as base64url without padding. It follows the same header and algorithm rules as a single receipt.
+- The batch statement is a compact JWS with `typ` `vtr-batch+jwt` over the canonical form of `{vtr_version, iss, iat, tree_size, root}`, with `root` encoded as base64url without padding. It follows the same header and algorithm rules as a single receipt, and its `vtr_version` MUST equal the `vtr_version` of every receipt in the batch.
 - Each batched receipt is the JSON object `{claims, proof}`, where `proof` is `{leaf_index, tree_size, path, batch}`, `path` is the inclusion proof of RFC 9162 section 2.1.3 as an array of base64url hashes, and `batch` is the batch statement.
 
 A verifier recomputes the root from the claims and the proof with the algorithm of RFC 9162 section 2.1.3.2 and compares it with the signed root. The prefixes 0x00 and 0x01 keep an interior node from verifying as a leaf. The batch statement's `iss` MUST equal the receipt's `iss`, and the proof's `tree_size` MUST equal the signed `tree_size`.
@@ -169,7 +184,7 @@ A verifier recomputes the root from the claims and the proof with the algorithm 
 
 A verifier MUST perform these checks and report the receipt invalid at the first one that fails.
 
-1. Parse the compact JWS, or for a batched receipt the batch statement, and confirm the header carries exactly `alg`, `kid` and `typ` with the required values.
+1. Parse the compact JWS, or for a batched receipt the batch statement, and confirm the header carries exactly `alg`, `kid` and `typ` with the required values. Refuse `EdDSA` unless the payload's `vtr_version` is `"0.5"`.
 2. Select the key by `kid`, confirm `kid` is its RFC 7638 thumbprint, confirm the key type matches `alg`, and verify the signature.
 3. Confirm the header and payload are in canonical form.
 4. For a batched receipt, recompute the Merkle root from the claims and the inclusion proof and compare it with the signed root.
@@ -178,7 +193,7 @@ A verifier MUST perform these checks and report the receipt invalid at the first
 7. When the verifier has the evidence, recompute `evidence_digest` from it.
 8. When the verifier has both, run the evaluation again and confirm that `result_digest`, `standing`, `results` and `coverage` each equal the values the new run produces.
 
-Drift results are not part of the determination in version 0.5 and are not re-derived. A verifier SHOULD treat a receipt with `mode` other than `enforced` as a record of a decision that did not control the action.
+Drift results are not part of the determination in versions 0.5 and 0.6 and are not re-derived. A verifier SHOULD treat a receipt with `mode` other than `enforced` as a record of a decision that did not control the action.
 
 ## Agent Actions
 
@@ -188,7 +203,35 @@ A receipt for an AI agent's tool call carries `tool`, `outcome` and `input_diges
 |---|---|
 | A call allowed, or a result passed to the model | `allow` |
 | A call refused by a halt, by a suspended standing or by a restricted standing | `stop` |
-| A call held for a person, or a result withheld for review | `escalate` |
+| A call paused for a person, or a result withheld for review | `escalate` |
+
+## SCITT And COSE Profile
+
+An issuer can register a receipt with a transparency service of the Supply Chain Integrity, Transparency, and Trust (SCITT) architecture in RFC 9943. The receipt travels as the payload of a SCITT signed statement, which is a COSE_Sign1 message of CBOR Object Signing and Encryption (COSE) under RFC 9052, where CBOR is the Concise Binary Object Representation. The transparency service returns a COSE Receipt under RFC 9942 as its proof of registration. A COSE Receipt is the transparency service's proof and a separate object from the Verifiable Trust Receipt it registers.
+
+This profile is informative in version 0.6. The project has no verified implementation of COSE Receipts to generate test vectors with, so the reference verifiers do not check it.
+
+**Signed Statement** The signed statement is a COSE_Sign1 message tagged with CBOR tag 18.
+
+| Part | Value |
+|---|---|
+| Payload | The receipt's claims in canonical form, the same bytes a compact JWS receipt carries as its payload |
+| `alg`, label 1 | `ESP256` (-9) by default, or `Ed25519` (-19) where the relying party allows it. RFC 9864 defines both and deprecates the COSE values `ES256` (-7) and `EdDSA` (-8) |
+| `content type`, label 3 | `application/json` |
+| `kid`, label 4 | The RFC 7638 thumbprint of the signing key as a byte string, which is the 32 bytes the JWS `kid` encodes in base64url |
+| `CWT Claims`, label 15 | A CBOR Web Token (CWT) claims map under RFC 9597 whose `iss`, key 1, equals the receipt's `iss` and whose `sub`, key 2, equals the receipt's `sub`. RFC 9943 requires both in every signed statement |
+| Unprotected header | An empty map, as RFC 9943 requires before registration |
+
+The issuer signs with a key from the key set it publishes under Key Discovery, and it MAY use the key that signs its JWS receipts. The SHA-256 of the payload, encoded as base64url without padding, is the digest of the receipt's claims, so `prev` and the leaves of a batch refer to a receipt the same way in either envelope.
+
+**Registration** The issuer submits the signed statement to a transparency service as `application/scitt-statement+cose`. The service applies its registration policy and returns a COSE Receipt as `application/scitt-receipt+cose`. The signed statement with one or more COSE Receipts in the `receipts` header parameter, label 394, of its unprotected header is a transparent statement under RFC 9943 Section 7.
+
+**Checking** A relying party that receives a transparent statement performs these checks and rejects it at the first one that fails.
+
+1. Select the issuer's key by `kid` from the key set under Key Discovery and verify the COSE_Sign1 signature with it, after confirming that `kid` is its RFC 7638 thumbprint and that the key type matches `alg`.
+2. Verify at least one COSE Receipt in `receipts` with the key of a transparency service the relying party trusts, as RFC 9942 describes for the verifiable data structure the COSE Receipt names in `vds`, label 395. For `RFC9162_SHA256`, value 1, the inclusion proof is under label -1 of `vdp`, label 396.
+3. Confirm the payload is in canonical form and the CWT Claims `iss` and `sub` equal the payload's `iss` and `sub`.
+4. Perform checks 5 through 8 of Verification on the payload.
 
 ## Security Considerations
 
@@ -196,7 +239,7 @@ A receipt proves that the holder of the issuer's key signed a determination. It 
 
 The receipt binds the profile by digest, so an issuer cannot later claim a different version of a profile with the same identifier and version. A relying party SHOULD fetch the profile from a source it trusts and compare digests.
 
-`prev` lets a relying party detect a removed or reordered receipt in one issuer's sequence for one subject. Detecting a whole sequence withheld needs a transparency log, which this version does not define.
+`prev` lets a relying party detect a removed or reordered receipt in one issuer's sequence for one subject. Detecting a whole sequence withheld needs a transparency log, such as a SCITT transparency service used as the SCITT And COSE Profile describes.
 
 Keys used only to sign the test vectors in `vtr/vectors/keys` are public and MUST NOT sign real receipts.
 
@@ -208,11 +251,11 @@ A receipt carries digests of the evidence and of the inputs, never their content
 
 | Work | Relationship |
 |---|---|
-| IETF SCITT, RFC 9943, and COSE Receipts, RFC 9942 | A VTR can be registered with a SCITT transparency service as the payload of a signed statement. A COSE envelope and a SCITT profile are planned |
+| The SCITT architecture in RFC 9943 and COSE Receipts in RFC 9942 | The SCITT And COSE Profile registers a VTR with a SCITT transparency service as the payload of a COSE_Sign1 signed statement and checks the registration with a COSE Receipt |
 | RFC 9334 and Entity Attestation Token results | VTR takes its roles from RFC 9334 and is an attestation result whose appraisal policy is a TRP profile |
-| Individual drafts for AI agent action receipts, 2026 | Those drafts record agent actions with hash chains and signatures. A VTR also binds each decision to a content-addressed, versioned requirement profile with a result for every requirement, its coverage and its mode |
+| Individual drafts for AI agent action receipts, 2026 | Those drafts record agent actions with hash chains and signatures. A VTR also binds each decision to a content-addressed, versioned requirement profile and records a result for every requirement, along with the evaluation's coverage and mode |
 | in-toto and SLSA provenance | Those record how an artifact was built. A VTR records how a running system was judged |
 
 ## Conformance
 
-An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. The valid vectors include a receipt for each standing result, and they cover every kind and every mode. Each invalid vector names the reason a verifier must report. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.
+An issuer conforms when every receipt it produces passes the checks in Verification for a verifier that has the profile and evidence. A verifier conforms when it returns the expected result for every vector in `vtr/vectors`. The valid vectors include a receipt for each standing result, and they cover every kind and every mode. They also include version 0.5 receipts signed with `EdDSA`, and an invalid vector signs a version 0.6 receipt with `EdDSA`. Each invalid vector names the reason a verifier must report. `tests/vtr_check.py` runs the Python and Node.js reference verifiers over all vectors and confirms they agree.

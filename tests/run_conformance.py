@@ -160,7 +160,8 @@ def test_evaluator_determinism(results: Results, verbose: bool):
     """Run the reference evaluator against known evidence samples and
     verify that the standing and response match the expected values
     embedded in each evidence file. A sample is evaluated against
-    full-featured.json unless its _profile names another valid profile."""
+    full-featured.json unless its _profile names another valid profile or,
+    with a path from the repository root, an example profile."""
     profiles_dir = PROJECT_ROOT / "tests" / "profiles" / "valid"
     profile_path = profiles_dir / "full-featured.json"
     evidence_dir = PROJECT_ROOT / "tests" / "evidence"
@@ -200,7 +201,11 @@ def test_evaluator_determinism(results: Results, verbose: bool):
 
         case_profile = profile
         if "_profile" in data:
-            other = profiles_dir / data["_profile"]
+            # A bare file name is a valid test profile. A path with a slash,
+            # such as examples/manufacturing-safety/trp.json, is relative to the
+            # repository root.
+            name = data["_profile"]
+            other = (PROJECT_ROOT / name) if "/" in name else (profiles_dir / name)
             if not other.exists():
                 results.fail(f"evidence/{path.name}", f"_profile {data['_profile']} not found", verbose)
                 continue
@@ -250,6 +255,18 @@ def test_evaluator_determinism(results: Results, verbose: bool):
                 test_name,
                 f"inconclusive rules: expected {sorted(expected_inconclusive)}, "
                 f"got {got_inconclusive}",
+                verbose,
+            )
+            continue
+
+        # Check missing and mistyped scored signals (Section 3.3)
+        expected_missing = data.get("_expected_missing_signals")
+        if expected_missing is not None and \
+                result.get("missing_signals") != expected_missing:
+            results.fail(
+                test_name,
+                f"missing signals: expected {expected_missing}, "
+                f"got {result.get('missing_signals')}",
                 verbose,
             )
             continue
