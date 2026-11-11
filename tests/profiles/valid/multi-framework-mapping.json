@@ -23,7 +23,7 @@
       "direction": "higher_is_unsafe",
       "warning_threshold": 0.05,
       "critical_threshold": 0.10,
-      "reason": "NIST AI RMF MEASURE 2.6 fairness metric."
+      "reason": "NIST AI RMF MEASURE 2.11 fairness and bias metric."
     }
   ],
   "standing_bands": [
@@ -32,7 +32,7 @@
     { "band": "non-compliant", "severity": 2 }
   ],
   "assurance_mapping": [
-    { "framework": "NIST AI RMF", "reference": "MEASURE 2.6" },
+    { "framework": "NIST AI RMF", "reference": "MEASURE 2.11" },
     { "framework": "NIST AI RMF", "reference": "GOVERN 1.1" },
     { "framework": "ISO/IEC 42001", "reference": "6.1.2" },
     { "framework": "EU AI Act", "reference": "Article 13" },

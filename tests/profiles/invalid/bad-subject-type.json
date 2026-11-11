@@ -1,0 +1,22 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "x_test_description": "MUST fail: subject_type must be a listed value or a namespaced URI. robot is neither.",
+  "trp_id": "bad-subject-type",
+  "spec_version": "0.6",
+  "version": "1.0.0",
+  "authority": "aitrustalliance.com",
+  "scope": {
+    "subject_type": "robot",
+    "intended_use": "Should be rejected."
+  },
+  "standing_bands": [
+    {
+      "band": "good",
+      "severity": 0
+    },
+    {
+      "band": "failing",
+      "severity": 1
+    }
+  ]
+}

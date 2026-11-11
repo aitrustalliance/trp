@@ -1,0 +1,22 @@
+{
+  "_test_description": "latency_ms arrives as null. Section 3.3 accepts only a finite number as a scored signal value, so the value is never scored. latency_ms keeps the default on_missing incomplete, which marks the assessment incomplete. Expected standing untrusted without hard override, with latency_ms in missing_signals under the reason type_mismatch. Under 0.5.3 the Python evaluator stopped and the Node.js evaluator read null as 0 and scored it as healthy.",
+  "_expected_standing": "untrusted",
+  "_expected_response": "suspended",
+  "_expected_hard_override": false,
+  "_expected_missing_signals": [
+    {
+      "signal": "latency_ms",
+      "on_missing": "incomplete",
+      "reason": "type_mismatch"
+    }
+  ],
+  "accuracy": 0.97,
+  "latency_ms": null,
+  "bias_score": 0.03,
+  "data_freshness_hours": 4,
+  "uptime_ratio": 0.999,
+  "pii_detected": false,
+  "user_consent": true,
+  "compliance_status": "compliant",
+  "error_rate": 0.01
+}

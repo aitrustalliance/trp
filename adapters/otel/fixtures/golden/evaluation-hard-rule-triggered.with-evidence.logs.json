@@ -1,0 +1,191 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "trp-evaluator"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "trp-otel-export",
+            "version": "0.6.0"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1793793600000000000",
+              "observedTimeUnixNano": "1793793600000000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "eventName": "trp.evaluation.result",
+              "attributes": [
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 1.0
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "r73Ae436o8ONsJCz4lPQLHwZhtznc8JdNhivJwjDIeg"
+                  }
+                },
+                {
+                  "key": "trp.evidence.json",
+                  "value": {
+                    "stringValue": "{\"_expected_hard_override\":true,\"_expected_response\":\"suspended\",\"_expected_standing\":\"untrusted\",\"_test_description\":\"PII detected flag is true, triggering hard rule halt. Expected standing: untrusted with hard override.\",\"accuracy\":0.97,\"bias_score\":0.03,\"compliance_status\":\"compliant\",\"data_freshness_hours\":4,\"error_rate\":0.01,\"latency_ms\":120,\"pii_detected\":true,\"uptime_ratio\":0.999,\"user_consent\":true}"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "FClGSjGz0znJD_3IjiGqwschSg4M_5E3m-ogJxzUfMY"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "full-featured-test"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "2.1.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "3mh6N5FZVGAZAboP5Z31gdxgdQeGqr99ZnXLoa1CkFU"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:consent-missing"
+                        },
+                        {
+                          "stringValue": "rule:excessive-error-rate"
+                        },
+                        {
+                          "stringValue": "rule:pii-detected"
+                        },
+                        {
+                          "stringValue": "rule:regulation-violation"
+                        },
+                        {
+                          "stringValue": "signal:accuracy"
+                        },
+                        {
+                          "stringValue": "signal:bias_score"
+                        },
+                        {
+                          "stringValue": "signal:data_freshness_hours"
+                        },
+                        {
+                          "stringValue": "signal:latency_ms"
+                        },
+                        {
+                          "stringValue": "signal:uptime_ratio"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "violated"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.band",
+                  "value": {
+                    "stringValue": "untrusted"
+                  }
+                },
+                {
+                  "key": "trp.standing.response",
+                  "value": {
+                    "stringValue": "suspended"
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "does_not_meet"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:agent:7"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

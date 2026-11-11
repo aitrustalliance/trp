@@ -1,8 +1,8 @@
-# Roadmap
+# Planned Work
 
-This roadmap reflects the current planning direction for the TRP specification and ecosystem. Priorities will evolve based on community feedback and the outcomes of the scoping work with NSF and OSU.
+This document reflects the current planning direction for the TRP specification and ecosystem. Priorities will evolve based on community feedback and the outcomes of the scoping work with the National Science Foundation (NSF) and The Ohio State University (OSU).
 
-## Current (v0.5 Draft)
+## Current (v0.6 Draft)
 
 - [x] Core specification published
 - [x] JSON Schema for automated validation (Draft 2020-12)
@@ -21,11 +21,16 @@ This roadmap reflects the current planning direction for the TRP specification a
 - [ ] Per-signal drift window configuration (see [Issue #2][issue-2])
 - [x] Extension namespacing and registry, with `x_` and URI-namespaced keys and `extensions/registry.json` (v0.5.2, see [Issue #3][issue-3])
 - [x] Inconclusive handling for hard rules with missing fields or type mismatches in both evaluators (v0.5.2)
+- [x] Subjects beyond agents, with an optional `scope.subject_type` for models, users, datasets, workflows, routes and services (v0.6.0)
+- [x] OpenTelemetry export of evaluations and receipts as spans and log records, with registered generative AI (GenAI) names where they fit and a round trip to the receipt digest (v0.6.0)
+- [x] Export of TRP profiles to OSCAL 1.2.3 with control mappings, and an import that also starts skeletons from NIST's own catalogs (v0.6.0)
+- [ ] Validation of the OSCAL export with the OSCAL command line tool, which checks the metaschema constraints the JSON schemas leave out
 - [ ] Inheritance via `extends` in the reference evaluators (both reject it as of v0.5.2, as Section 7 requires)
-- [ ] Type handling for scored signal values that arrive as the wrong type
+- [x] Type handling for scored signal values that arrive as the wrong type, in the specification and both evaluators (v0.6.0)
 - [ ] Provenance module (`x_provenance`) for model and dataset bills of materials
 - [ ] Evidence format specification for evaluation results
-- [ ] Community feedback on v0.5 draft incorporated
+- [ ] Test vectors for the Verifiable Trust Receipt (VTR) SCITT And COSE Profile, once an independent, widely used implementation of COSE Receipts can confirm them
+- [ ] Community feedback on the v0.6 draft incorporated
 
 ## Medium-Term
 
@@ -45,9 +50,9 @@ This roadmap reflects the current planning direction for the TRP specification a
 - [ ] Interoperability testing across independent evaluation sources
 - [ ] Adoption in regulated industries (healthcare, manufacturing, financial services)
 
-## How to Contribute
+## How To Contribute
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose profiles, spec changes, or new tooling. Open an issue to suggest a roadmap item.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose profiles or changes to the spec and tooling. Open an issue to suggest planned work.
 
 [issue-2]: https://github.com/aitrustalliance/trp/issues/2
 [issue-3]: https://github.com/aitrustalliance/trp/issues/3

@@ -1,0 +1,833 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "trp-gate"
+            }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {
+            "name": "trp-otel-export",
+            "version": "0.6.0"
+          },
+          "logRecords": [
+            {
+              "timeUnixNano": "1793700000000000000",
+              "observedTimeUnixNano": "1793700000000000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "eventName": "trp.vtr.receipt",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.id",
+                  "value": {
+                    "stringValue": "assistant-7"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.version",
+                  "value": {
+                    "stringValue": "1.4.0"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "read_text_file"
+                  }
+                },
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 1.0
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "crQhGdKkm1ViOuseyY84EsQ0Ekxj7qGmMbzc8SRYXRQ"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "jcLxZWb1QcpzmUWUlF8OwxLrrTLw5tPkkBni50WRD7g"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "mcp-tool-checkpoint"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "0.1.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "kVFUWpkpL7RAPaDf8JXI8kE_JebntIJewaX6KIeax8E"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:instructions_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:path_outside_workspace"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_arguments"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:sensitive_data_in_egress"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_destination"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_tool_called"
+                        },
+                        {
+                          "stringValue": "rule:write_without_approval"
+                        },
+                        {
+                          "stringValue": "signal:calls_per_minute"
+                        },
+                        {
+                          "stringValue": "signal:egress_kb_session"
+                        },
+                        {
+                          "stringValue": "signal:steps_per_task"
+                        },
+                        {
+                          "stringValue": "signal:tool_error_rate"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.band",
+                  "value": {
+                    "stringValue": "trusted"
+                  }
+                },
+                {
+                  "key": "trp.standing.response",
+                  "value": {
+                    "stringValue": "full"
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "meets"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:agent:assistant-7"
+                  }
+                },
+                {
+                  "key": "trp.vtr.alg",
+                  "value": {
+                    "stringValue": "ES256"
+                  }
+                },
+                {
+                  "key": "trp.vtr.digest",
+                  "value": {
+                    "stringValue": "6Ug2-XvEmmH8UyfuRhpRa0BscXbg2Rs9tFze1FW6Puk"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iat",
+                  "value": {
+                    "intValue": "1793700000"
+                  }
+                },
+                {
+                  "key": "trp.vtr.input_digest",
+                  "value": {
+                    "stringValue": "CX3z8a3NnOKMk7bZQ5W6XLdHU8mbCvz-Yh_DYf9uTrE"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iss",
+                  "value": {
+                    "stringValue": "https://evaluator.example.com"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kid",
+                  "value": {
+                    "stringValue": "3qBQFeYZjG1EAH1qOEjgOeOtKd7kLTKIL8wlKbx1lYg"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kind",
+                  "value": {
+                    "stringValue": "evaluation"
+                  }
+                },
+                {
+                  "key": "trp.vtr.mode",
+                  "value": {
+                    "stringValue": "enforced"
+                  }
+                },
+                {
+                  "key": "trp.vtr.outcome",
+                  "value": {
+                    "stringValue": "allow"
+                  }
+                },
+                {
+                  "key": "trp.vtr.tool.target",
+                  "value": {
+                    "stringValue": "filesystem"
+                  }
+                },
+                {
+                  "key": "trp.vtr.version",
+                  "value": {
+                    "stringValue": "0.6"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1793700000000000000",
+              "observedTimeUnixNano": "1793700000000000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "eventName": "trp.vtr.receipt",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.id",
+                  "value": {
+                    "stringValue": "assistant-7"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.version",
+                  "value": {
+                    "stringValue": "1.4.0"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "write_file"
+                  }
+                },
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 1.0
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "hc-jPnGk-dlLDuH46tsAuOre_qmrRoB_QgPqy7PfBNs"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "jcLxZWb1QcpzmUWUlF8OwxLrrTLw5tPkkBni50WRD7g"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "mcp-tool-checkpoint"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "0.1.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "XEM8pydUSgf9caQZloOQWRqBGe4lAyTfSScTGZPf06s"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:instructions_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:path_outside_workspace"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_arguments"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:sensitive_data_in_egress"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_destination"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_tool_called"
+                        },
+                        {
+                          "stringValue": "rule:write_without_approval"
+                        },
+                        {
+                          "stringValue": "signal:calls_per_minute"
+                        },
+                        {
+                          "stringValue": "signal:egress_kb_session"
+                        },
+                        {
+                          "stringValue": "signal:steps_per_task"
+                        },
+                        {
+                          "stringValue": "signal:tool_error_rate"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "violated"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.band",
+                  "value": {
+                    "stringValue": "untrusted"
+                  }
+                },
+                {
+                  "key": "trp.standing.response",
+                  "value": {
+                    "stringValue": "suspended"
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "does_not_meet"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:agent:assistant-7"
+                  }
+                },
+                {
+                  "key": "trp.vtr.alg",
+                  "value": {
+                    "stringValue": "ES256"
+                  }
+                },
+                {
+                  "key": "trp.vtr.digest",
+                  "value": {
+                    "stringValue": "6gVZbGCpHgfhO21RNlyq8kptU1YfuFOTebIhYGkql0s"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iat",
+                  "value": {
+                    "intValue": "1793700000"
+                  }
+                },
+                {
+                  "key": "trp.vtr.input_digest",
+                  "value": {
+                    "stringValue": "_hyvcBFc_hUejA9r1Ff5CXd9xXeDttAqjuOQENx_GmQ"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iss",
+                  "value": {
+                    "stringValue": "https://evaluator.example.com"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kid",
+                  "value": {
+                    "stringValue": "3qBQFeYZjG1EAH1qOEjgOeOtKd7kLTKIL8wlKbx1lYg"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kind",
+                  "value": {
+                    "stringValue": "evaluation"
+                  }
+                },
+                {
+                  "key": "trp.vtr.mode",
+                  "value": {
+                    "stringValue": "enforced"
+                  }
+                },
+                {
+                  "key": "trp.vtr.outcome",
+                  "value": {
+                    "stringValue": "escalate"
+                  }
+                },
+                {
+                  "key": "trp.vtr.tool.target",
+                  "value": {
+                    "stringValue": "filesystem"
+                  }
+                },
+                {
+                  "key": "trp.vtr.trp_clauses",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:write_without_approval"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.vtr.version",
+                  "value": {
+                    "stringValue": "0.6"
+                  }
+                }
+              ]
+            },
+            {
+              "timeUnixNano": "1793700000000000000",
+              "observedTimeUnixNano": "1793700000000000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "eventName": "trp.vtr.receipt",
+              "attributes": [
+                {
+                  "key": "gen_ai.agent.id",
+                  "value": {
+                    "stringValue": "assistant-7"
+                  }
+                },
+                {
+                  "key": "gen_ai.agent.version",
+                  "value": {
+                    "stringValue": "1.4.0"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "fetch"
+                  }
+                },
+                {
+                  "key": "trp.coverage",
+                  "value": {
+                    "doubleValue": 1.0
+                  }
+                },
+                {
+                  "key": "trp.evaluator.implementation",
+                  "value": {
+                    "stringValue": "trp-reference-python"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.spec_version",
+                  "value": {
+                    "stringValue": "0.5"
+                  }
+                },
+                {
+                  "key": "trp.evaluator.version",
+                  "value": {
+                    "stringValue": "0.6.0"
+                  }
+                },
+                {
+                  "key": "trp.evidence.digest",
+                  "value": {
+                    "stringValue": "TRK5qN0toKJak_lGlJhlSJ0nmAUaD8z_kGGoEqaVwTM"
+                  }
+                },
+                {
+                  "key": "trp.profile.digest",
+                  "value": {
+                    "stringValue": "jcLxZWb1QcpzmUWUlF8OwxLrrTLw5tPkkBni50WRD7g"
+                  }
+                },
+                {
+                  "key": "trp.profile.id",
+                  "value": {
+                    "stringValue": "mcp-tool-checkpoint"
+                  }
+                },
+                {
+                  "key": "trp.profile.version",
+                  "value": {
+                    "stringValue": "0.1.0"
+                  }
+                },
+                {
+                  "key": "trp.result.digest",
+                  "value": {
+                    "stringValue": "EYyZx8CQFCEz5rBcLqk8Fp7H3g5TG0njz_WA-K1iupg"
+                  }
+                },
+                {
+                  "key": "trp.results.clause",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:instructions_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:path_outside_workspace"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_arguments"
+                        },
+                        {
+                          "stringValue": "rule:secret_in_tool_result"
+                        },
+                        {
+                          "stringValue": "rule:sensitive_data_in_egress"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_destination"
+                        },
+                        {
+                          "stringValue": "rule:unapproved_tool_called"
+                        },
+                        {
+                          "stringValue": "rule:write_without_approval"
+                        },
+                        {
+                          "stringValue": "signal:calls_per_minute"
+                        },
+                        {
+                          "stringValue": "signal:egress_kb_session"
+                        },
+                        {
+                          "stringValue": "signal:steps_per_task"
+                        },
+                        {
+                          "stringValue": "signal:tool_error_rate"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.results.outcome",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "violated"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        },
+                        {
+                          "stringValue": "satisfied"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.standing.band",
+                  "value": {
+                    "stringValue": "untrusted"
+                  }
+                },
+                {
+                  "key": "trp.standing.response",
+                  "value": {
+                    "stringValue": "suspended"
+                  }
+                },
+                {
+                  "key": "trp.standing.result",
+                  "value": {
+                    "stringValue": "does_not_meet"
+                  }
+                },
+                {
+                  "key": "trp.subject.id",
+                  "value": {
+                    "stringValue": "urn:example:agent:assistant-7"
+                  }
+                },
+                {
+                  "key": "trp.vtr.alg",
+                  "value": {
+                    "stringValue": "ES256"
+                  }
+                },
+                {
+                  "key": "trp.vtr.digest",
+                  "value": {
+                    "stringValue": "Ve9Wl20HzkToO_pKx9YW3QQ2R0JO7LMbLpjA9l4n6uo"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iat",
+                  "value": {
+                    "intValue": "1793700000"
+                  }
+                },
+                {
+                  "key": "trp.vtr.input_digest",
+                  "value": {
+                    "stringValue": "3mEWpWTt2hM1qYWmuVXeXVZhN0AqJBJ7aHPB5BpQkJk"
+                  }
+                },
+                {
+                  "key": "trp.vtr.iss",
+                  "value": {
+                    "stringValue": "https://evaluator.example.com"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kid",
+                  "value": {
+                    "stringValue": "3qBQFeYZjG1EAH1qOEjgOeOtKd7kLTKIL8wlKbx1lYg"
+                  }
+                },
+                {
+                  "key": "trp.vtr.kind",
+                  "value": {
+                    "stringValue": "evaluation"
+                  }
+                },
+                {
+                  "key": "trp.vtr.mode",
+                  "value": {
+                    "stringValue": "enforced"
+                  }
+                },
+                {
+                  "key": "trp.vtr.outcome",
+                  "value": {
+                    "stringValue": "stop"
+                  }
+                },
+                {
+                  "key": "trp.vtr.tool.target",
+                  "value": {
+                    "stringValue": "filesystem"
+                  }
+                },
+                {
+                  "key": "trp.vtr.trp_clauses",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "rule:unapproved_destination"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "trp.vtr.version",
+                  "value": {
+                    "stringValue": "0.6"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

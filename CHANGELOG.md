@@ -4,6 +4,230 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.6.0] - 2026-11-11
+
+TRP 0.6.0 widens the subject of a profile from agents to any endpoint or step
+in an automated system. Every profile that was valid under 0.5.3 is valid
+under 0.6.0, and both reference evaluators give it the same output. Both
+evaluators now score a signal only when its value is a finite JSON number,
+which changes the output for mistyped evidence and for nothing else.
+
+### Semantic Versioning
+This release is 0.6.0. Semantic Versioning 2.0.0 lets anything change during
+major version zero, so the choice follows Section 13 of the specification,
+which increments MINOR for a non-breaking addition, and the guidance in
+Semantic Versioning to increment MINOR when new backward compatible
+functionality reaches the public interface. `scope.subject_type` is new
+functionality. A profile that uses it fails the 0.5.3 schema, because `scope`
+does not allow additional properties, so a consumer pinned to 0.5.3 has to
+tell the two apart from the version. A PATCH release would hide that.
+- The specification header, the README, the schema title and the schema
+  description give version 0.6.0, and the VTR library names the evaluator
+  version 0.6.0.
+- The schema `$id` moves to `https://aitrustalliance.com/schema/trp/0.6/trp.schema.json`,
+  since the path carries MAJOR.MINOR. Profiles that declare the 0.5 `$schema`
+  and `spec_version: "0.5"` stay valid against the 0.6 schema, and the
+  existing examples and test profiles keep those values to prove it.
+- The Verifiable Trust Receipt (VTR) format moves to version 0.6, because
+  RFC 9864 deprecates the JSON Web Signature (JWS) algorithm identifier
+  `EdDSA` that VTR 0.5 used for Ed25519 signatures. A VTR 0.5 verifier
+  refuses a VTR 0.6 receipt, since it allows neither `vtr_version` 0.6 nor
+  `alg` `Ed25519`, so the change is incompatible for older verifiers. A VTR
+  0.6 verifier accepts every VTR 0.5 receipt. Semantic Versioning increments
+  MINOR for such a change while the major version is zero, which gives 0.6
+  in place of 0.5.1. The VTR schema `$id` moves to
+  `https://aitrustalliance.com/schema/vtr/0.6/vtr.schema.json`. The receipt
+  claims and the determination are unchanged.
+
+### Added
+- `scope.subject_type`, an optional field that names the kind of subject a
+  profile is written for. The values are `agent`, `model`, `user`, `dataset`,
+  `workflow`, `route`, `service` and `other`, or an `https://` URI or `urn:`
+  URN under a namespace its owner controls. A consumer treats an unknown
+  namespaced value as `other` and never rejects a profile for it. The field
+  describes the profile and does not change how a subject is assessed.
+- Conformance tests for `subject_type` in both namespaced forms and for two
+  values the schema must reject.
+- `tests/cross_evaluator_check.py`, the cross-evaluator check that CI ran
+  inline, now a script anyone can run. It also covers every example profile.
+- An evidence sample can name an example profile in `_profile` with a path
+  from the repository root, such as `examples/manufacturing-safety/trp.json`.
+- The Profile Authoring Guide covers `subject_type` and starts new profiles
+  at `spec_version` 0.6.
+- A Zero Trust section in the README that maps identity, custody, policy,
+  continuous monitoring and the policy decision point onto TRP for readers who know
+  National Institute of Standards and Technology (NIST) Special Publication
+  800-207, Zero Trust Architecture. It states that whoever has authority sets
+  requirements locally and that the standard is agnostic about who authors a
+  profile.
+- The SCITT And COSE Profile in `vtr/spec.md`, an informative profile that
+  carries the claims of a receipt as the payload of a COSE_Sign1 signed
+  statement of CBOR Object Signing and Encryption (COSE), where CBOR is the
+  Concise Binary Object Representation. The statement is registered with a
+  Supply Chain Integrity, Transparency, and Trust (SCITT) transparency service
+  under RFC 9943 and checked with a COSE Receipt under RFC 9942. The payload
+  is the same canonical claims a JWS receipt signs, so `prev` and batch leaves
+  name a receipt the same way in both envelopes. The profile has no test
+  vectors, because the project found no independent, widely used
+  implementation of COSE Receipts to confirm them, so the reference verifiers
+  do not check it. It uses the fully specified COSE algorithms of RFC 9864,
+  `ESP256` and `Ed25519`, since RFC 9864 deprecates the COSE values `ES256`
+  and `EdDSA`.
+- VTR 0.6 signs Ed25519 receipts with the fully specified JSON Object
+  Signing and Encryption (JOSE) identifier `Ed25519` that RFC 9864 Section
+  2.2 registers. The Internet Assigned Numbers Authority (IANA) JSON Web
+  Signature and Encryption Algorithms registry lists it with JOSE
+  Implementation Requirements `Optional`, and `EdDSA` is now `Deprecated`.
+  - New receipts and batch statements carry `vtr_version` 0.6, and the
+    reference library refuses to sign a VTR 0.5 receipt.
+  - Both verifiers accept `EdDSA` only on a receipt or batch statement that
+    declares VTR 0.5, and treat it there as `Ed25519`. A batch statement
+    carries the same `vtr_version` as every receipt in its batch.
+  - `ES256` is unchanged, since RFC 9864 Section 2.1 finds the JOSE
+    identifiers of RFC 7518 for the Elliptic Curve Digital Signature
+    Algorithm (ECDSA) fully specified already.
+  - The published Ed25519 test key carries `alg` `Ed25519`, as RFC 9864
+    Section 5 describes, under the same key identifier.
+  - The vectors are signed again at VTR 0.6 (29 valid and 20 invalid, up
+    from 27 and 18). Two valid VTR 0.5 receipts signed with `EdDSA` show
+    the older form still verifies. The invalid vector `eddsa-on-vtr-0.6`
+    signs a VTR 0.6 receipt with `EdDSA` and must be refused, and
+    `ed25519-not-allowed` shows an `Ed25519` receipt still needs the
+    operator to allow Ed25519.
+  - `tests/vtr_check.py` checks both verifiers on the old and the new
+    identifier in single receipts and in batches. Both must also refuse a
+    JOSE header that names the COSE identifier `ESP256`, along with an
+    unsupported `vtr_version` (181 checks, up from 155).
+- Conformance samples `tests/evidence/scored-signal-type-*.json` for a scored
+  signal sent as text, numeric text, a boolean, null, an object, an array and
+  an integer too large for a double, each with `on_missing` incomplete.
+  Further samples cover a mistyped signal for each other `on_missing` value
+  and a pair of mistyped signals with weight 0, and
+  `scored-signal-finite-number.json` confirms every JSON number form is
+  scored (65 tests, up from 48).
+- An evidence sample can pin the exact `missing_signals` list it expects in
+  `_expected_missing_signals`.
+- `tests/scored_signal_types_check.py` runs both evaluators on the values no
+  evidence file can carry, which are NaN and infinity passed in memory and
+  JSON numbers such as `1e400` that each parser reads as infinity. Both must
+  report a type mismatch and write the same `result_hash`. The check runs in
+  the cross-evaluator job of continuous integration.
+- `tests/vtr_check.py` confirms that both VTR verifiers give a mistyped
+  scored signal the outcome `inconclusive` and derive the same standing and
+  `result_digest` for it (188 checks, up from 181).
+- `adapters/a2a/trp_a2a.py`, the TRP gate on both sides of an A2A (Agent2Agent
+  protocol) delegation, built on a2a-sdk 1.3.0. The caller's gate judges each
+  delegation before it is sent and each returned task or message before it is
+  used. The remote agent's gate judges each inbound task with the caller's
+  authenticated identity as evidence. The profile
+  `adapters/a2a/profiles/a2a-delegation.trp.json` adds the rules
+  `unverified_remote_receipts` and `anonymous_caller`, and the policy keys
+  `receipt_mode` and `anonymous_callers` set how each one acts.
+  `adapters/a2a/vtr_verifier.py` checks each receipt a remote agent returns
+  with the VTR reference library, against the key set and profile the
+  deployment trusts for that agent. It also requires the expected issuer, the
+  returned task, this caller and an accepted mode. `tests/a2a_check.py` runs
+  the adapter against in-process a2a-sdk agents with VTR receipts minted on
+  each run.
+- `adapters/otel/trp_otel.py`, an OpenTelemetry export that writes each TRP
+  evaluation and each VTR receipt as one span or one log record in the JSON
+  encoding of the OpenTelemetry Protocol (OTLP). It needs no OpenTelemetry
+  package at runtime, and `emit_spans()` sends the same spans through a
+  `TracerProvider` of the OpenTelemetry software development kit (SDK) when one
+  is installed.
+  - Four registered names from the OpenTelemetry generative AI (GenAI)
+    semantic conventions at commit 633cbb0 carry the agent, its version, the
+    model provider and the tool of a receipt. Every other attribute sits under
+    `trp.`, and `adapters/otel/README.md` lists each one.
+  - The attributes rebuild each receipt's claims, and the digest of the rebuilt
+    claims equals the receipt digest. A claim the attribute table cannot carry
+    exactly travels as canonical JSON under `trp.vtr.json.<claim>`.
+  - An evaluation export carries the evidence digest and no evidence value.
+    `--include-evidence` adds the evidence in canonical JSON.
+  - `tests/otel_check.py` needs no OpenTelemetry package (359 checks). It
+    compares nine golden files byte for byte and rebuilds the digest of all 29
+    valid receipt vectors and of 15 built claim sets. It also confirms that no
+    marker value from the evidence reaches the export without the flag.
+  - `tests/otel_sdk_check.py` parses every golden file with
+    `opentelemetry-proto` 1.45.2 and checks the spans an `opentelemetry-sdk`
+    1.45.2 `TracerProvider` receives (110 checks). CI runs both on Python 3.10
+    and 3.12 in the `otel-export` job.
+- `tools/trp_oscal.py`, an export of TRP profiles to the Open Security Controls
+  Assessment Language (OSCAL) 1.2.3 of the National Institute of Standards and
+  Technology (NIST), and an import back. `docs/oscal.md` documents it.
+  - The export writes a TRP-native OSCAL catalog with one control per scored
+    signal and per hard rule, along with an OSCAL profile that imports it.
+    TRP data with no OSCAL field travels in props under the namespace
+    `https://aitrustalliance.com/ns/trp`, and the two thresholds of each scored
+    signal travel as OSCAL parameters, so an OSCAL profile can tailor them.
+  - `x_oscal`, a new top-level extension registered as reserved in
+    `extensions/registry.json`, declares how single requirements relate to
+    controls of other catalogs. The export then imports the mapped controls
+    and writes an OSCAL mapping collection under the Control Mapping model. It
+    refuses a control that is missing or withdrawn in a local copy of its
+    catalog.
+  - The import brings a document the export wrote back as the same profile.
+    It turns any other OSCAL catalog or profile into a skeleton whose
+    placeholder signals carry no weight and no threshold, so the skeleton
+    fails the TRP schema until a person completes it.
+  - `fixtures/oscal` vendors the official OSCAL 1.2.3 JSON schemas and NIST's
+    SP 800-53 Rev. 5 and AI RMF 1.0 catalogs with its SP 800-53 LOW baseline
+    from `oscal-content` 1.6.0, byte for byte, with their provenance in
+    `sources.json`.
+  - `tests/oscal_check.py` validates every export against the official schemas
+    and round trips every TRP profile in the repository through the OSCAL
+    profile and through the catalog alone. It imports both NIST catalogs and
+    the baseline as skeletons and tries every refusal path (255 checks). CI
+    runs it on Python 3.10 and 3.12 in the `oscal` job.
+
+### Changed
+- Section 1 and the definition of Subject cover any endpoint or step in an
+  automated system. A subject can be a software agent, a model including a
+  small model that calls tools directly, a user or the agent acting for that
+  user, a dataset, a workflow, a route or a service.
+- Specification headings use Title Case.
+- `vtr/spec.md` describes version 0.6 and gains a Versions section, and the
+  VTR schema accepts `vtr_version` 0.5 and 0.6. `vtr_emit.py --new-key`
+  takes `ed25519`, with `eddsa` kept as the older name for it.
+- `vtr/spec.md` no longer lists a COSE envelope and a SCITT profile as
+  planned. RFC 9943 and RFC 9942, which it already cited, are confirmed as the
+  published SCITT architecture and COSE Receipts. Selective Disclosure JSON
+  Web Tokens stay reserved for a later credential profile, and the `risk`
+  claim stays reserved and empty.
+- Section 3.3 of the specification states the value type of a scored signal.
+  The value MUST be a finite JSON number, and an evaluation source MUST NOT
+  score a value of any other type. It treats the signal as inconclusive, the
+  same as an absent signal, so the signal's `on_missing` value governs.
+- Both reference evaluators apply the rule. Text, numeric text such as
+  `"0.5"`, a boolean, null, an object, an array, not a number (NaN), infinity
+  and an integer too large for a double are type mismatches. A mistyped
+  signal is listed in `missing_signals` with the reason `type_mismatch` and
+  never appears in `signal_results`. Its `on_missing` value then decides the
+  outcome as it does for an absent signal, so a signal declared `critical`
+  stays a critical condition and a signal declared `ignore` is dropped from
+  the assessment.
+- In 0.5.3 the Python evaluator stopped with an error on text, null, an
+  object and an array, and it read `true` as 1 and `"0.5"` as 0.5. The
+  Node.js evaluator stopped on text and on an object, and it read null as 0,
+  `[1]` as 1, `true` as 1 and `"0.5"` as 0.5. Mistyped evidence could read as
+  compliant, and the two evaluators could disagree on the same input.
+- The entry for an absent signal is unchanged and carries no `reason`
+  member. The output and the `result_hash` match 0.5.3 for every profile and
+  evidence pair in the 0.5.3 test suite and for every VTR test vector, so the
+  published vectors stay valid.
+- A scored signal value of NaN or infinity is a type mismatch. In 0.5.3 both
+  evaluators stopped with an error on such a value. Both still stop when any
+  other member of the output would carry a non-finite number.
+- The Python evaluator treats an integer too large for a double as a type
+  mismatch in a hard rule field too, where 0.5.3 stopped with an error. The
+  Node.js evaluator looks up a scored signal among the evidence's own
+  members, so a declared signal named after an inherited object member such
+  as `constructor` is absent unless the evidence carries it.
+- `tools/README.md` and `vtr/spec.md` document the `reason` member. A
+  mistyped scored signal has the outcome `inconclusive` in a receipt's
+  `results` and does not count toward coverage. The rule changes no receipt
+  claim.
+
 ## [0.5.3] - 2026-11-04
 
 TRP 0.5.3 ships with Verifiable Trust Receipt (VTR) version 0.5. Every
@@ -99,8 +323,8 @@ evaluator behavior that differs from 0.5.2 is listed under Changed and Fixed.
   error when the output would carry one, such as a scored signal value that
   converts to not a number (NaN). In 0.5.2 both kept going and wrote the
   value as `NaN` or `null`.
-- The specification header, the schema title and description, and the
-  README give version 0.5.3, and the VTR library names the evaluator version
+- The specification header, the README, the schema title and the schema
+  description give version 0.5.3, and the VTR library names the evaluator version
   0.5.3. The schema `$id` and the `spec_version` a profile declares stay
   `0.5`.
 

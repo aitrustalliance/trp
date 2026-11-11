@@ -1,0 +1,171 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.5/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/a2a-delegation/0.1.0/trp.json",
+  "trp_id": "a2a-delegation",
+  "spec_version": "0.5",
+  "version": "0.1.0",
+  "name": "AI agent delegation over A2A",
+  "description": "Reference Trust Requirements Profile for an AI agent that hands work to other agents, or takes work from them, over A2A (the Agent2Agent protocol). It keeps every requirement of mcp-tool-checkpoint and adds two that the A2A adapter measures on the wire, one on the receipts a remote agent returns and one on the identity of an inbound caller. Illustrative draft values.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-04T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "cross-industry",
+    "use_case": "agent-delegation"
+  },
+  "scope": {
+    "intended_use": "Trust requirements for one AI agent session that delegates tasks to remote agents over A2A or receives tasks from them.",
+    "boundary": "Every A2A delegation and inbound task in one agent session with the answer to each, and the tool calls in the same session with their results.",
+    "out_of_scope": [
+      "The quality of a remote agent's answer",
+      "What a remote agent does inside its own session, which its own gate judges"
+    ]
+  },
+  "scored_signals": [
+    {
+      "signal": "steps_per_task",
+      "weight": 30,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 20,
+      "critical_threshold": 40,
+      "unit": "tool calls",
+      "reason": "Runaway step counts point to loops or to a task the agent should hand back."
+    },
+    {
+      "signal": "tool_error_rate",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 0.25,
+      "critical_threshold": 0.5,
+      "unit": "ratio",
+      "reason": "Repeated tool failures mean the agent is acting on broken information."
+    },
+    {
+      "signal": "calls_per_minute",
+      "weight": 20,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 30,
+      "critical_threshold": 60,
+      "unit": "tool calls per minute",
+      "reason": "A burst of calls is how a looping agent burns money and hammers outside systems."
+    },
+    {
+      "signal": "egress_kb_session",
+      "weight": 30,
+      "direction": "higher_is_unsafe",
+      "warning_threshold": 256,
+      "critical_threshold": 2048,
+      "unit": "KB",
+      "reason": "The volume of data an agent sends out of the session bounds what it can leak."
+    }
+  ],
+  "hard_rules": [
+    {
+      "rule": "unapproved_tool_called",
+      "field": "unapproved_tool_called",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "secret_in_arguments",
+      "field": "secret_in_arguments",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "unapproved_destination",
+      "field": "output_destination_approved",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "path_outside_workspace",
+      "field": "path_outside_workspace",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "sensitive_data_in_egress",
+      "field": "sensitive_data_in_egress",
+      "condition": "is_true",
+      "action": "halt"
+    },
+    {
+      "rule": "write_without_approval",
+      "field": "write_without_approval",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "secret_in_tool_result",
+      "field": "secret_in_tool_result",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "instructions_in_tool_result",
+      "field": "instructions_in_tool_result",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "unverified_remote_receipts",
+      "field": "unverified_receipts_refused",
+      "condition": "is_true",
+      "action": "require_review"
+    },
+    {
+      "rule": "anonymous_caller",
+      "field": "anonymous_caller_refused",
+      "condition": "is_true",
+      "action": "require_review"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "trusted",
+      "severity": 0,
+      "range": "all signals within acceptable range and no hard rule met"
+    },
+    {
+      "band": "review",
+      "severity": 1,
+      "range": "one or more signals in the warning range"
+    },
+    {
+      "band": "untrusted",
+      "severity": 2,
+      "range": "a signal in the critical range or a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "review",
+    "source_requirement": "The gate runs outside the agent and its model, so the agent cannot skip or edit its evidence.",
+    "response_bands": [
+      {
+        "band": "trusted",
+        "response": "full"
+      },
+      {
+        "band": "review",
+        "response": "restricted"
+      },
+      {
+        "band": "untrusted",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values.",
+    "Under the restricted response the gate allows reads and refuses writes, outbound calls, delegations and commands.",
+    "A halt stops the whole session until a person resets it. A review refuses only the call or withholds only the result in question.",
+    "unverified_receipts_refused is true when a remote agent's receipts fail verification and the deployment's policy sets receipt_mode to enforce. Under receipt_mode warn it stays false, and remote_receipts_verified records the failure.",
+    "anonymous_caller_refused is true when an inbound task carries no authenticated identity and the deployment's policy sets anonymous_callers to refuse. Under anonymous_callers allow it stays false, and caller_authenticated records the absence.",
+    "Secret and instruction detection matches published token formats and phrase patterns. Encoded or paraphrased content can pass it."
+  ]
+}

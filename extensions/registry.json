@@ -11,6 +11,16 @@
       "specification": null,
       "repository": null,
       "registered": "2026-10-31"
+    },
+    {
+      "key": "x_oscal",
+      "name": "TRP OSCAL Mappings",
+      "status": "reserved",
+      "maintainer": "AI Trust Alliance",
+      "summary": "Relationships between single scored signals or hard rules and controls of OSCAL catalogs, written as an OSCAL mapping collection by tools/trp_oscal.py.",
+      "specification": "docs/oscal.md",
+      "repository": null,
+      "registered": "2026-11-04"
     }
   ]
 }

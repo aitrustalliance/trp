@@ -1,6 +1,6 @@
 # Trust Requirements Profile (TRP)
 
-Version 0.5.3 public working draft. Expect field names and normative requirements may change before 1.0.
+Version 0.6.0 public working draft. Expect field names and normative requirements may change before 1.0.
 
 Author: Striv AI.
 Steward: Striv AI during the formative stage, with stewardship transferring to the AI Trust Alliance once its governance is formalized (see GOVERNANCE.md).
@@ -13,11 +13,11 @@ The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are used as defined in 
 
 There are two levels of conformance:
 
-A valid TRP document satisfies structural and referential rules in Sections 2 through 4 and validates against the published JSON Schema (provided in the repository as a v0.5.3 draft, under review).
+A valid TRP document satisfies structural and referential rules in Sections 2 through 4 and validates against the published JSON Schema (provided in the repository as a v0.6.0 draft, under review).
 
 The JSON Schema is provided in the repository at `schema/trp.schema.json`. Any standard JSON Schema validator can check a profile against it. This validates the profile's structure and is separate from any assessment of a subject against the profile, which is performed by an evaluation source and is out of scope for this standard.
 
-A conformant profile is a valid Trust Requirements Profile (TRP) document whose thresholds, rules, and bands reflect the requirements of a real domain and are authored by a qualified author (Section 5).
+A conformant profile is a valid Trust Requirements Profile (TRP) document whose values reflect the requirements of a real domain and are authored by a qualified author (Section 5).
 
 A consumer MUST reject an invalid document. Whether a valid document is conformant is decided by the authoring authority and any reviewing body.
 
@@ -29,7 +29,7 @@ Author: The domain expert who writes and maintains a profile.
 
 Authority: The party responsible for a profile. It is named in the profile and used to say who it came from and, when signing is used, to confirm it (Section 3.1).
 
-Conformant: A valid profile whose values reflect a real domain and were set by a qualified author. Whether a valid profile is also conformant is a human judgment, not an automatic check (see Conformance).
+Conformant: A valid profile whose values reflect a real domain and were set by a qualified author. Whether a valid profile is also conformant is a human judgment that no validator makes (see Conformance).
 
 Domain: The area of use a profile is written for, for example, manufacturing safety or clinical workflow.
 
@@ -53,19 +53,19 @@ Severity: The rank of a standing band, where lower is better. It lets any reader
 
 Standing: The labeled outcome of an assessment, drawn from the profile's declared bands, for example good, review, or failing.
 
-Subject: The system, workflow, or agent assessed against a profile. The profile belongs to the domain or point of use. The subject is measured against it, not described by it.
+Subject: Any endpoint or step in an automated system that is assessed against a profile. A subject can be a software agent, a model, a dataset, a workflow, a route or a service, and a model counts even when it is a small model that calls tools directly. A user is a subject too, and so is the agent acting for that user. The profile belongs to the domain or point of use. The subject is measured against it, and a profile can name the kind of subject it expects in `subject_type` (Section 3.2).
 
 Valid: A TRP document that follows the structural rules in Sections 2 through 4 and passes the schema. This check is automatic (see Conformance).
 
 ## 1. Overview
 
-A Trust Requirements Profile specifies the behavior expected of a subject, the system, workflow, or agent being assessed, in a given domain, and is authored by a domain expert. An evaluation source reads the profile, assesses the subject, and produces a standing. Keeping the profile separate from the evaluation source means one source can serve any domain by loading a different profile, and the people who understand a domain define what expected and trustworthy behavior mean in it.
+A Trust Requirements Profile specifies the behavior expected of a subject in a given domain and is authored by a domain expert. A subject is any endpoint or step in an automated system, such as a software agent, a model, a dataset or a route, and it can be a person or the agent acting for that person. An evaluation source assesses the subject against the profile and produces a standing. Keeping the profile separate from the evaluation source means one source can serve any domain by loading a different profile, and the people who understand a domain define what expected and trustworthy behavior mean in it.
 
 A TRP is a data document. It contains no executable logic. It does not define how signals are combined into a standing. The profile is the open, portable requirements contract. Assessment against it can come from any source.
 
 This specification is a developing framework that defines a profile's structure. Each industry, and each organization within it, writes its own profiles to its own requirements. Think of it as a machine-readable language for stating trust requirements.
 
-## 2. Document format
+## 2. Document Format
 
 A TRP is a JSON object (RFC 8259). UTF-8 is REQUIRED. A conforming document MUST set `additionalProperties` to false at each defined object level except within the extension namespace (Section 7).
 
@@ -75,12 +75,12 @@ Every document SHOULD declare `$schema`, the URI of the JSON Schema it validates
 
 ## 3. Fields
 
-### 3.1 Identification and metadata
+### 3.1 Identification And Metadata
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
 | trp_id | string | 1 | MUST | Stable identifier, unique within its authoring authority. Pattern `[a-z0-9][a-z0-9-]*`. |
-| spec_version | string | 1 | MUST | Version of this specification the document targets, for example 0.5. |
+| spec_version | string | 1 | MUST | Version of this specification the document targets, for example 0.6. A profile that declares 0.5 stays valid under 0.6. |
 | version | string | 1 | MUST | The profile's own version, MAJOR.MINOR.PATCH. A consumer MUST reject a profile whose MAJOR version it does not support. |
 | name | string | 1 | SHOULD | Human-readable name. |
 | description | string | 1 | SHOULD | Human-readable summary. |
@@ -98,12 +98,30 @@ Every document SHOULD declare `$schema`, the URI of the JSON Schema it validates
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
+| subject_type | string | 0..1 | MAY | The kind of subject the profile is written for. A value from the table below, or an absolute `https://` URI or a `urn:` URN that names a kind defined by the organization that controls the namespace. Added in version 0.6. |
 | intended_use | string | 1 | MUST | What the profile is for, written for a general reader. |
 | boundary | string | 1 | SHOULD | The system or operational boundary the profile governs. |
 | jurisdiction | array of string | 0..1 | MAY | Applicable jurisdictions or regulatory contexts. |
 | out_of_scope | array of string | 1 | SHOULD | What the profile does not cover. |
 
-### 3.3 Scored signals
+`subject_type` takes one of these values.
+
+| Value | Subject |
+| :-- | :-- |
+| agent | A software agent that plans and takes actions, including an agent acting for a user. |
+| model | A model called as a component of a system. This includes a small model that calls tools directly with no agent framework around it. |
+| user | A person who uses the system, together with the delegation under which an agent acts for that person. |
+| dataset | A dataset or other data source that a model trains on or that an agent or workflow reads. |
+| workflow | A sequence of automated steps run as one process. |
+| route | A path a request or data takes between components, such as an application programming interface (API) route or the destination a model router picks. |
+| service | A callable service, such as an API, a tool server, an inference endpoint or a database. |
+| other | A subject that none of the values above describes. |
+
+A profile about what a person may delegate to an agent names `user`. A profile about how the delegated agent behaves names `agent`. A profile written for more than one kind of subject omits `subject_type`.
+
+`subject_type` describes the profile and does not change how a subject is assessed. When it is absent, the profile states no kind and applies to any subject its scope covers. A consumer that does not recognize a URI-namespaced value MUST treat it as `other` and MUST NOT reject the profile for it. Because the field is optional, a profile that omits it validates exactly as it did under version 0.5.
+
+### 3.3 Scored Signals
 
 `scored_signals` is an array. Each element is one measurable signal and the thresholds at which it becomes a concern or critical. At least one element MUST be present.
 
@@ -120,7 +138,9 @@ Every document SHOULD declare `$schema`, the URI of the JSON Schema it validates
 
 When a declared signal is absent, its `on_missing` value governs. `ignore` drops it from that assessment. `critical` treats the absence as a critical condition. `incomplete` marks the assessment incomplete so that a relying party can tell it apart from a pass. The default is incomplete, so a silently missing signal never reads as good. This three-valued treatment follows the established three-valued runtime-monitoring semantics: satisfied, violated, and inconclusive.
 
-### 3.4 Hard rules
+The value of a scored signal in an assessment MUST be a finite JSON number. A boolean is never treated as a number, and text is never converted to one, so the text "0.5" is not a number. A value of any other type, which covers a string, a boolean, null, an object and an array, is a type mismatch, and so is a number the evaluation source cannot read as finite. An evaluation source that encounters a type mismatch MUST NOT score the value and MUST treat the signal as inconclusive, the same as an absent signal, so its `on_missing` value governs. A signal whose `on_missing` value is critical stays a critical condition when its value is mistyped.
+
+### 3.4 Hard Rules
 
 `hard_rules` is an array of conditions that are decisive on their own. A hard rule is not weighed against scored signals. If any hard rule is met, its action applies regardless of standing.
 
@@ -140,9 +160,9 @@ When the field a hard rule inspects is absent from an assessment, the evaluation
 
 An inconclusive hard rule marks the assessment incomplete, the same outcome as a scored signal whose on_missing value is incomplete. It does not apply the rule's action, because the condition was neither met nor shown to be unmet. The evaluation source SHOULD record each inconclusive rule and the reason, missing or type mismatch, so a relying party can tell an incomplete assessment apart from a pass.
 
-### 3.5 Drift definition
+### 3.5 Drift Definition
 
-Drift describes a sustained trend toward an unsafe state across successive assessments. It is independent of the thresholds and does not require a crossing, so a signal may drift while its values remain within an acceptable range. Thresholds evaluate a signal's current value, and drift evaluates its trend over the window. A signal may show one, both, or neither.
+Drift describes a sustained trend toward an unsafe state across successive assessments. It is independent of the thresholds and does not require a crossing, so a signal may drift while its values remain within an acceptable range. Thresholds evaluate a signal's current value, and drift evaluates its trend over the window. Either can flag a signal without the other.
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
@@ -151,9 +171,9 @@ Drift describes a sustained trend toward an unsafe state across successive asses
 
 The evaluation source determines how a trend is judged over the window. The profile declares which signals to watch and over what window.
 
-### 3.6 Standing bands
+### 3.6 Standing Bands
 
-`standing_bands` declares the vocabulary of standings and their order. It declares how standing is expressed, not how the value is computed.
+`standing_bands` declares the vocabulary of standings and their order. It declares how standing is expressed and leaves the computation to the evaluation source.
 
 | Field | Type | Card. | Req. | Description |
 | :-- | :-- | :-- | :-- | :-- |
@@ -163,7 +183,7 @@ The evaluation source determines how a trend is judged over the window. The prof
 
 Any artifact that reports a standing for a subject MUST use a band declared here.
 
-### 3.7 Required standing
+### 3.7 Required Standing
 
 `required_standing` specifies the minimum standing the profile requires of a subject and, optionally, the expected response for each observed band. A profile states a bar. It specifies a minimum acceptable rating without prescribing how the standing is determined.
 
@@ -175,7 +195,7 @@ Any artifact that reports a standing for a subject MUST use a band declared here
 
 `response_bands` lets a profile express a graduated response, from full acceptance through restriction and suspension to revocation, while the hard rules in Section 3.4 remain the decisive switch. How an observed band is computed is the evaluation source's concern and is out of scope.
 
-## 4. Referential integrity
+## 4. Referential Integrity
 
 Any artifact that references a TRP does so by trp_id and version. A valid TRP document MUST satisfy:
 
@@ -183,21 +203,21 @@ Every signal named in drift is defined in scored_signals. Every band in required
 
 A document that violates any of these is malformed and MUST be rejected.
 
-## 5. Authoring and qualification (non-normative)
+## 5. Authoring And Qualification (Non-Normative)
 
 The author sets threshold values and SHOULD reflect the real limits of the environment and applicable practice. Example values in this repository are illustrative and are not certified limits.
 
-A TRP is meant to be read by a domain expert who is not a programmer. Keep reason and scope fields plain.
+A TRP is meant to be read by a domain expert who is not a programmer. Write reason and scope fields in everyday words.
 
 Authoring a sound profile is domain work. The author block records who wrote a profile and their qualification, which a reviewing body MAY use when deciding whether a valid document is also conformant.
 
-## 6. Non-goals
+## 6. Non-Goals
 
 A TRP does not specify how scored signals are combined into a standing, how drift is judged, how any action is enforced, or how profiles and outcomes are exchanged between parties.
 
-A TRP states the requirements a subject is assessed against and works alongside existing identity, credential and governance systems. Identity and credentials for a subject, and governance, risk or security management, come from those systems.
+A TRP states the requirements a subject is assessed against and works alongside the identity, credential, governance and security systems already in place. A subject's identity and credentials come from those systems, and so does the management of governance and security risk.
 
-Assessment, enforcement, and transport are left to the evaluation source and the implementation.
+Scoring, drift judgment, enforcement and transport are left to the evaluation source and the implementation.
 
 ## 7. Extensibility
 
@@ -205,7 +225,7 @@ A profile MAY carry additional fields under an `x_` prefix or a URI-namespaced k
 
 Two key forms are recognized, and both are accepted by the schema.
 
-- An `x_` key is short and suits vendor fields and modules. Its name SHOULD be lowercase with underscores. A module intended for wide use SHOULD register its top-level key in the extension registry at `extensions/registry.json` so two modules never claim the same name.
+- An `x_` key is short and suits vendor fields and modules. Its name SHOULD use lowercase words joined by the `_` character. A module intended for wide use SHOULD register its top-level key in the extension registry at `extensions/registry.json` so two modules never claim the same name.
 - A URI-namespaced key is an absolute `https://` URI or a `urn:` URN controlled by the organization that defines the extension, for example `https://example.org/trp/ext/risk-tier`. It needs no registration, because the namespace owner prevents collisions. Another standards body or integration that extends TRP SHOULD use this form.
 
 A module that changes how a subject is assessed does so through an evidence adapter. The adapter reads the module's configuration from the profile and writes ordinary evidence values that the profile's scored signals and hard rules consume. The core evaluation semantics stay unchanged, and a consumer that does not know the module still reads the profile.
@@ -217,38 +237,38 @@ Inheritance resolves as follows:
 - The child inherits all fields of the base.
 - For single-valued fields, a value declared in the child replaces the base value. A field the child does not declare keeps the base value.
 - For scored_signals and hard_rules, entries are matched by their identifier (signal name or rule). A child entry with the same identifier as a base entry replaces that entry. A child entry with a new identifier is added.
-- A child MUST NOT remove a signal or rule declared in the base. Inheritance may add or override, not delete. This prevents a refinement from silently weakening a base profile.
+- A child MUST NOT remove a signal or rule declared in the base. Inheritance may add or override, and it never deletes. This prevents a refinement from silently weakening a base profile.
 - extends chains to a single base. A base that itself uses extends is resolved first, from the root down.
 
-## 8. Integrity and signing (optional)
+## 8. Integrity And Signing (Optional)
 
 A profile MAY be signed by its authoring authority so a relying party can confirm it is unaltered and attributed. When signing is used, the signed content MUST be a canonical serialization of the profile, for example JSON Canonicalization Scheme (RFC 8785). Canonical serialization means writing the JSON in a single agreed-upon, byte-for-byte form, so two systems produce identical bytes for the same content, and a signature verifies on both. Without it, a trivial reformat would break the signature. The signature SHOULD use an established signed-document format, and the profile SHOULD record the verification key's algorithm and location.
 
 This draft leaves the exact canonicalization and envelope to the implementation and expects to fix them in a later version.
 
-## 9. Domain taxonomy and templates
+## 9. Domain Taxonomy And Templates
 
 A two-level taxonomy classifies profiles by industry, then by use_case. This organizes profiles the way an author looks for them, making coverage gaps visible.
 
-A domain template is a profile populated for a class of environment, published for others to adopt and adapt via `extends` (Section 7). This release seeds the library with one reference template, manufacturing safety (see the example). The library grows by contribution across industries and use cases. The seed is a starting point, not a complete catalog. Each template carries its own author, version, license, and taxonomy, so templates can be attributed, versioned, and shared.
+A domain template is a profile populated for a class of environment, published for others to adopt and adapt via `extends` (Section 7). This release seeds the library with one reference template, manufacturing safety (see the example). The library grows by contribution across industries and use cases. Each template carries its own author, version, license, and taxonomy, so a template keeps its attribution and version history wherever it is shared.
 
-## 10. Assurance mapping (optional)
+## 10. Assurance Mapping (Optional)
 
 A profile MAY carry an `assurance_mapping` array that relates its requirements to external frameworks, each entry naming a framework (for example, NIST AI RMF or ISO/IEC 42001) and a reference token. Mappings are informative and do not change the normative requirements.
 
-## 11. Threat model (non-normative)
+## 11. Threat Model (Non-Normative)
 
 The format is designed to reduce specific failure modes. A profile can be versioned and signed, so changes are visible and attributable. The on_missing policy makes the handling of a missing signal an explicit decision by the author. Severity ordering lets any consumer compare bands without shared names. Optional signing binds a profile to its author.
 
 Out of scope for the format: how a subject is scored, how enforcement is carried out, and how artifacts are moved between parties.
 
-## 12. Extending the standard
+## 12. Extending The Standard
 
 This section states how the standard changes over time without fragmenting. It is the part most declaration formats leave undefined, which is why they either ossify or fork.
 
 Stable core: The fields and rules in Sections 2 through 4 are the core. Every TRP everywhere has them, and they interoperate regardless of domain. The core changes rarely and only through a MAJOR version.
 
-Profiles specialize the core: A domain template, and any profile that extends it, adds domain-specific signals, rules, and constraints on top of the core. A profile may require fields the core leaves optional and may tighten thresholds. A profile MUST NOT break the core or redefine a core field. This is how one standard serves manufacturing, healthcare, and finance without a separate standard for each. The domain-specific complexity lives in profiles, and the core stays general.
+Profiles specialize the core: A domain template, and any profile that extends it, adds domain-specific signals and rules on top of the core. A profile may require fields the core leaves optional and may tighten thresholds. A profile MUST NOT break the core or redefine a core field. This is how one standard serves every industry without a separate standard for each. The domain-specific complexity lives in profiles, and the core stays general.
 
 Extension points: New ideas enter at the declared extension points (Section 7), and the core stays unchanged. An industry can innovate in its own profiles and extensions without changing the standard and without permission. A generic consumer still reads the document because it ignores unknown extensions.
 
@@ -256,7 +276,7 @@ Promotion: When an extension proves broadly useful across many domains, the stan
 
 Governance of the core: The stable core and the promotion decision are governed by the standard's steward, which is Striv AI during the formative stage and the AI Trust Alliance after stewardship transfers (see GOVERNANCE.md). Openness under this standard covers the TRP core and its published profiles. Implementations built on the TRP standard may be licensed however their authors choose.
 
-## 13. Versioning and change policy
+## 13. Versioning And Change Policy
 
 The specification and each profile use semantic versioning. Within 0.x, MINOR versions may introduce breaking changes. From 1.0, breaking changes increment the MAJOR version. A profile's MAJOR version is in its version and, where used, its `$id` so that a consumer can reject incompatible profiles. Non-breaking additions increment MINOR and remain compatible with consumers that ignore unknown fields.
 

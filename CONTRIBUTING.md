@@ -1,6 +1,6 @@
 # Contributing to TRP
 
-Thank you for your interest in contributing to the Trust Requirements Profile standard. Contributions from domain practitioners, researchers, and engineers are what make an open standard work.
+Thank you for your interest in contributing to the Trust Requirements Profile standard. Contributions from practitioners and researchers in every domain are what make an open standard work.
 
 ## Ways to Contribute
 
@@ -20,7 +20,7 @@ Your profile carries its own author, version, license, and taxonomy. Your work s
 
 ### Report an Issue or Ask a Question
 
-Open a [GitHub Issue](../../issues) to report a problem with the spec, suggest a new feature, or ask a question. Tag your issue with the appropriate label if one exists.
+Open a [GitHub Issue](../../issues) to report a problem with the spec or ask a question, including feature requests. Tag your issue with the appropriate label if one exists.
 
 ### Propose a Spec Change
 
@@ -32,7 +32,7 @@ A module intended for wide use registers its top-level `x_` key by pull request 
 
 ### Improve Documentation
 
-Fixes to documentation, additional examples, and clarifications are always welcome. Submit a pull request directly.
+Documentation fixes and additional examples are always welcome. Submit a pull request directly.
 
 ## Validation
 

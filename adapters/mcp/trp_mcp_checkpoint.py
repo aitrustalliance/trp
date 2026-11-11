@@ -202,7 +202,7 @@ def main(argv=None):
     ap.add_argument("--server-name", default="server")
     ap.add_argument("--verify-log", metavar="LOG", help="check a decision log's chain and exit")
     ap.add_argument("--receipts", help="also sign a Verifiable Trust Receipt for every decision, one compact JWS per line")
-    ap.add_argument("--receipt-key", help="ES256 or EdDSA private key in PEM for the receipts")
+    ap.add_argument("--receipt-key", help="ES256 or Ed25519 private key in PEM for the receipts")
     ap.add_argument("--issuer", default="urn:trp:mcp-checkpoint", help="the iss claim of the receipts")
     ap.add_argument("command", nargs=argparse.REMAINDER, help="-- then the MCP server command")
     a = ap.parse_args(argv)

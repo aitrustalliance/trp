@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aitrustalliance.com/schema/vtr/0.5/vtr.schema.json",
-  "title": "Verifiable Trust Receipt (VTR) claims, version 0.5",
-  "description": "The JSON object a VTR signs. vtr/spec.md is normative. A verifier also checks the rules this schema cannot state, which are the digests, the sort order of results and the re-run of the evaluation.",
+  "$id": "https://aitrustalliance.com/schema/vtr/0.6/vtr.schema.json",
+  "title": "Verifiable Trust Receipt (VTR) claims, version 0.6",
+  "description": "The JSON object a VTR signs. vtr/spec.md is normative. A verifier also checks the rules this schema cannot state, which are the digests, the sort order of results, the re-run of the evaluation and the signature algorithm each version allows.",
   "type": "object",
   "additionalProperties": false,
   "required": ["vtr_version", "iss", "iat", "sub", "kind", "mode", "trp_ref", "standing", "coverage", "results", "evidence_digest", "result_digest", "evaluator"],
@@ -16,7 +16,7 @@
     }
   },
   "properties": {
-    "vtr_version": { "const": "0.5" },
+    "vtr_version": { "enum": ["0.5", "0.6"], "description": "0.6 for a new receipt. A verifier also accepts a receipt a VTR 0.5 issuer signed" },
     "iss": { "type": "string", "minLength": 1, "description": "The issuer, resolvable to a key set at /.well-known/jwks.json" },
     "iat": { "type": "integer", "description": "Issue time in integer Unix seconds" },
     "sub": { "type": "string", "minLength": 1, "description": "The entity evaluated" },
@@ -70,7 +70,7 @@
     },
     "nonce": { "type": "string" },
     "prev": { "$ref": "#/$defs/digest", "description": "Digest of the issuer's previous claims for the same sub" },
-    "risk": { "type": ["object", "null"], "maxProperties": 0, "description": "Empty in v0.5. A later version defines its members" },
+    "risk": { "type": ["object", "null"], "maxProperties": 0, "description": "Empty in v0.5 and v0.6. A later version defines its members" },
     "evaluators": {
       "type": "array",
       "items": { "type": "object", "required": ["name", "version"], "properties": { "name": { "type": "string" }, "version": { "type": "string" }, "decision": { "type": "string" } } }

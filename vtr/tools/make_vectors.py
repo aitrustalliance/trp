@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Writes the VTR v0.5 test vectors in vtr/vectors from fixed test keys.
+"""Writes the VTR v0.6 test vectors in vtr/vectors from fixed test keys.
 
     python vtr/tools/make_vectors.py
 
 The keys in vtr/vectors/keys exist only to sign these vectors. Never use them for real receipts. ECDSA
 signatures are randomized, so a rerun changes every ES256 signature and leaves every other byte the same.
+Every receipt is VTR 0.6 except the VTR 0.5 receipts signed with the deprecated identifier EdDSA, which a
+verifier still accepts, and the invalid VTR 0.6 receipt signed with EdDSA, which it refuses.
 """
 import base64
 import copy
@@ -31,28 +33,35 @@ def load(rel):
 def keys():
     KEYS.mkdir(parents=True, exist_ok=True)
     out = {}
-    for name, alg in (("issuer-es256", "ES256"), ("issuer-eddsa", "EdDSA")):
+    for name, alg in (("issuer-es256", "ES256"), ("issuer-ed25519", "Ed25519")):
         pem = KEYS / f"{name}.pem"
         if not pem.exists():
             pem.write_text(vtr.Key.generate(alg).pem())
         out[alg] = vtr.Key.load(pem)
-    (KEYS / "jwks.json").write_text(json.dumps({"keys": [out["ES256"].jwk(), out["EdDSA"].jwk()]}, indent=2) + "\n")
+    (KEYS / "jwks.json").write_text(json.dumps({"keys": [out["ES256"].jwk(), out["Ed25519"].jwk()]}, indent=2) + "\n")
     return out
 
 
-def resign(jws, key, change):
-    """The same receipt with its claims changed by `change`, signed again so only the change is wrong."""
+def resign(jws, key, change, alg=None):
+    """The same receipt with its claims changed by `change`, signed again so only the change is wrong. `alg` names
+    the signature in the header in place of the key's own identifier, which is how an EdDSA receipt is written."""
     payload = jws.split(".")[1]
     claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
     change(claims)
-    header = {"alg": key.alg, "kid": key.jwk()["kid"], "typ": "vtr+jwt"}
+    header = {"alg": alg or key.alg, "kid": key.jwk()["kid"], "typ": "vtr+jwt"}
     si = vtr.b64u(vtr.canonical(header).encode()) + "." + vtr.b64u(vtr.canonical(claims).encode())
     return si + "." + vtr.b64u(key.sign(si.encode()))
 
 
+def as_vtr_05_eddsa(jws, key):
+    """The same claims as a VTR 0.5 receipt signed under the deprecated JOSE identifier EdDSA, as a VTR 0.5 issuer
+    signed it. RFC 9864 deprecates EdDSA, and a verifier accepts it only on VTR 0.5."""
+    return resign(jws, key, lambda x: x.update(vtr_version="0.5"), alg="EdDSA")
+
+
 def main():
     k = keys()
-    es, ed = k["ES256"], k["EdDSA"]
+    es, ed = k["ES256"], k["Ed25519"]
     p1, p2 = load(P1), load(P2)
     healthy = {"human_distance_m": 1.8, "robot_speed_mm_s": 600, "vibration_rms_g": 0.64, "temperature_C": 56,
                "model_confidence": 0.94, "data_quality": 0.97, "estop_active": False, "safety_certification_status": "valid"}
@@ -97,8 +106,8 @@ def main():
         ("es256-nonce", vtr.sign(c(p1, "healthy", nonce="b3J2WkFWb3ZqZWhR"), es), P1, "healthy", False),
         ("es256-prev", vtr.sign(c(p1, "warning", prev=vtr.digest(first)), es), P1, "warning", False),
         ("es256-window-nonce-prev", vtr.sign(c(p1, "estop", window=window, nonce="Zm9vYmFy", prev=vtr.digest(first)), es), P1, "estop", False),
-        ("eddsa-healthy", vtr.sign(c(p1, "healthy"), ed), P1, "healthy", True),
-        ("eddsa-window-nonce", vtr.sign(c(p1, "missing", window=window, nonce="cXV4"), ed), P1, "missing", True),
+        ("ed25519-healthy", vtr.sign(c(p1, "healthy"), ed), P1, "healthy", True),
+        ("ed25519-window-nonce", vtr.sign(c(p1, "missing", window=window, nonce="cXV4"), ed), P1, "missing", True),
         ("es256-signature-only", vtr.sign(c(p1, "estop"), es), None, None, False),
         ("agent-tool-allow", vtr.sign(tool("read_text_file", "allow", "tool_allow"), es), P2, "tool_allow", False),
         ("agent-tool-stop", vtr.sign(tool("fetch", "stop", "tool_stop", trp_clauses=["rule:unapproved_destination"]), es), P2, "tool_stop", False),
@@ -119,6 +128,9 @@ def main():
               ("batch-of-5-leaf-4", batch[4], None, None, False), ("batch-of-1", single[0], P1, "healthy", False)]
 
     by_name = {v[0]: v[1] for v in valid}
+    legacy = as_vtr_05_eddsa(by_name["ed25519-healthy"], ed)
+    valid += [("vtr-0.5-eddsa-healthy", legacy, P1, "healthy", True),
+              ("vtr-0.5-eddsa-window-nonce", as_vtr_05_eddsa(by_name["ed25519-window-nonce"], ed), P1, "missing", True)]
     healthy_jws = by_name["es256-healthy"]
     bad_sig = healthy_jws[:-4] + ("AAAA" if healthy_jws[-4:] != "AAAA" else "BBBB")
     wrong_typ = healthy_jws.split(".")
@@ -148,7 +160,9 @@ def main():
         ("violation-reported-as-incomplete", resign(by_name["es256-violated-rule-and-missing-signal"], es, lambda x: x.update(standing=incomplete)), P1, "estop_missing", False, "standing does not match a re-run of the evaluation"),
         ("critical-signal-reported-as-incomplete", resign(by_name["es256-critical-signal-and-missing-signal"], es, lambda x: x.update(standing=incomplete)), P1, "critical_missing", False, "standing does not match a re-run of the evaluation"),
         ("unknown-claim", resign(healthy_jws, es, lambda x: x.update(score=812)), P1, "healthy", False, "unknown claim score"),
-        ("eddsa-not-allowed", by_name["eddsa-healthy"], P1, "healthy", False, "EdDSA receipts are refused unless the verifier allows EdDSA"),
+        ("ed25519-not-allowed", by_name["ed25519-healthy"], P1, "healthy", False, "Ed25519 receipts are refused unless the verifier allows Ed25519"),
+        ("eddsa-not-allowed", legacy, P1, "healthy", False, "EdDSA receipts are refused unless the verifier allows Ed25519"),
+        ("eddsa-on-vtr-0.6", resign(by_name["ed25519-healthy"], ed, lambda x: None, alg="EdDSA"), P1, "healthy", True, "EdDSA is allowed only on a VTR 0.5 receipt"),
         ("result-digest-mismatch", resign(healthy_jws, es, lambda x: x.update(result_digest=vtr.digest("other"))), P1, "healthy", False, "result_digest does not match a re-run of the evaluation"),
         ("unknown-kid", unknown_kid, P1, "healthy", False, "no key in the key set has this kid"),
         ("missing-subject", resign(healthy_jws, es, lambda x: x.pop("sub")), P1, "healthy", False, "missing required claim sub"),

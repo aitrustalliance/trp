@@ -1,4 +1,4 @@
-"""Verifiable Trust Receipt (VTR) v0.5, the reference library.
+"""Verifiable Trust Receipt (VTR) v0.6, the reference library.
 
 A VTR is a signed statement that one evaluation of an entity against a Trust
 Requirements Profile (TRP) happened and what it found. This module builds the
@@ -6,6 +6,10 @@ claims from a profile and an evidence object with the reference evaluator,
 signs them as a compact JSON Web Signature (JWS), verifies a receipt with or
 without the profile and evidence, and signs batches of receipts once over an
 RFC 9162 Merkle tree root. vtr/spec.md is the normative text.
+
+New receipts are VTR 0.6 and name Ed25519 signatures with the fully specified
+JOSE identifier Ed25519 of RFC 9864. The verifier also accepts VTR 0.5
+receipts, and only on those the deprecated polymorphic identifier EdDSA.
 
     from vtr import claims_for, sign, verify, Key
     key = Key.load("issuer-es256.pem")
@@ -27,10 +31,13 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 import evaluate as trp  # noqa: E402  the reference evaluator in tools/evaluate.py
 
-VTR_VERSION = "0.5"
+VTR_VERSION = "0.6"  # the version of every receipt this library signs
+VERSIONS = ("0.5", "0.6")  # the versions a verifier accepts
+LEGACY_EDDSA_VERSION = "0.5"  # the only version on which the deprecated JOSE identifier EdDSA is accepted
+ALGS = ("ES256", "Ed25519", "EdDSA")
 TYP = "vtr+jwt"
 BATCH_TYP = "vtr-batch+jwt"
-EVALUATOR = {"implementation": "trp-reference-python", "version": "0.5.3"}
+EVALUATOR = {"implementation": "trp-reference-python", "version": "0.6.0"}
 KINDS = {"evaluation", "conformance", "drill", "variance"}
 MODES = {"enforced", "test", "shadow", "observed"}
 OUTCOMES = {"satisfied", "warning", "violated", "inconclusive"}
@@ -198,7 +205,7 @@ def claims_for(profile_raw, evidence, iss, sub, kind="evaluation", mode="enforce
     }
     for k, v in optional.items():
         if k not in OPTIONAL:
-            raise VTRError(f"{k} is not a VTR v0.5 claim")
+            raise VTRError(f"{k} is not a VTR v{VTR_VERSION} claim")
         claims[k] = v
     check_claims(claims)
     return claims
@@ -216,8 +223,8 @@ def check_claims(c):
     for k in c:
         if k not in REQUIRED and k not in OPTIONAL:
             raise VTRError(f"unknown claim {k}")
-    if c["vtr_version"] != VTR_VERSION:
-        raise VTRError(f"vtr_version must be {VTR_VERSION}")
+    if c["vtr_version"] not in VERSIONS:
+        raise VTRError("vtr_version must be " + " or ".join(VERSIONS))
     if not isinstance(c["iat"], int) or isinstance(c["iat"], bool):
         raise VTRError("iat must be integer Unix seconds")
     for k in ("iss", "sub", "evidence_digest", "result_digest"):
@@ -247,7 +254,7 @@ def check_claims(c):
     if "outcome" in c and c["outcome"] is not None and c["outcome"] not in VERDICTS:
         raise VTRError("outcome must be allow, stop or escalate")
     if "risk" in c and c["risk"] not in ({}, None):
-        raise VTRError("risk must be empty in VTR v0.5")
+        raise VTRError("risk must be empty in VTR v0.5 and v0.6")
     if c["kind"] != "evaluation" and not isinstance(c.get("details"), dict):
         raise VTRError(f"kind {c['kind']} requires a details object")
 
@@ -270,7 +277,8 @@ def check_standing(s):
 # ---------------------------------------------------------------- keys and signatures
 
 class Key:
-    """An ES256 (P-256) or EdDSA (Ed25519) signing key, or a public key from a JWK."""
+    """An ES256 (P-256) or Ed25519 signing key, or a public key from a JWK. `alg` is the identifier the key signs
+    under, ES256 or the fully specified Ed25519 of RFC 9864."""
 
     def __init__(self, private=None, public=None):
         from cryptography.hazmat.primitives.asymmetric import ec, ed25519
@@ -281,7 +289,7 @@ class Key:
                 raise VTRError("only the P-256 curve is allowed")
             self.alg = "ES256"
         elif isinstance(self.public, ed25519.Ed25519PublicKey):
-            self.alg = "EdDSA"
+            self.alg = "Ed25519"
         else:
             raise VTRError("only P-256 and Ed25519 keys are allowed")
 
@@ -292,7 +300,10 @@ class Key:
 
     @classmethod
     def generate(cls, alg="ES256"):
+        """A fresh key for ES256, or for Ed25519 when alg is Ed25519 or the older name EdDSA."""
         from cryptography.hazmat.primitives.asymmetric import ec, ed25519
+        if alg not in ALGS:
+            raise VTRError(f"alg {alg} is not allowed")
         return cls(private=ec.generate_private_key(ec.SECP256R1()) if alg == "ES256" else ed25519.Ed25519PrivateKey.generate())
 
     @classmethod
@@ -362,9 +373,15 @@ def _jws(payload, key, typ):
     return signing_input + "." + b64u(key.sign(signing_input.encode("ascii")))
 
 
-def sign(claims, key):
-    """A compact JWS of the claims, signed with key."""
+def _new(claims):
     check_claims(claims)
+    if claims["vtr_version"] != VTR_VERSION:
+        raise VTRError(f"a new receipt must be VTR {VTR_VERSION}")
+
+
+def sign(claims, key):
+    """A compact JWS of the claims, signed with key under ES256 or Ed25519."""
+    _new(claims)
     return _jws(claims, key, TYP)
 
 
@@ -382,17 +399,19 @@ def _open(jws, jwks, typ, allow_eddsa):
         raise VTRError("the protected header must carry exactly alg, kid and typ")
     if header["typ"] != typ:
         raise VTRError(f"typ must be {typ}")
-    if header["alg"] == "EdDSA" and not allow_eddsa:
-        raise VTRError("EdDSA receipts are refused unless the verifier allows EdDSA")
-    if header["alg"] not in ("ES256", "EdDSA"):
+    if header["alg"] not in ALGS:
         raise VTRError(f"alg {header['alg']} is not allowed")
+    if header["alg"] == "EdDSA" and (not isinstance(payload, dict) or payload.get("vtr_version") != LEGACY_EDDSA_VERSION):
+        raise VTRError(f"EdDSA is allowed only on a VTR {LEGACY_EDDSA_VERSION} receipt")  # RFC 9864 deprecates it
+    if header["alg"] != "ES256" and not allow_eddsa:
+        raise VTRError(f"{header['alg']} receipts are refused unless the verifier allows Ed25519")
     jwk = next((k for k in jwks.get("keys", []) if k.get("kid") == header["kid"]), None)
     if jwk is None:
         raise VTRError("no key in the key set has this kid")
     if thumbprint(jwk) != header["kid"]:
         raise VTRError("kid is not the RFC 7638 thumbprint of its key")
     key = Key.from_jwk(jwk)
-    if key.alg != header["alg"]:
+    if key.alg != ("Ed25519" if header["alg"] == "EdDSA" else header["alg"]):  # EdDSA on VTR 0.5 is an Ed25519 signature
         raise VTRError("alg does not match the key type")
     if not key.check((parts[0] + "." + parts[1]).encode("ascii"), sig):
         raise VTRError("bad signature")
@@ -420,7 +439,10 @@ def check_against(claims, profile_raw=None, evidence=None):
 
 
 def verify(jws, jwks, profile=None, evidence=None, allow_eddsa=False):
-    """(True, "valid") or (False, the first reason the receipt fails)."""
+    """(True, "valid") or (False, the first reason the receipt fails).
+
+    allow_eddsa lets the verifier accept Ed25519 signatures, named Ed25519 on any receipt or EdDSA on a VTR 0.5 receipt.
+    """
     try:
         _, claims = _open(jws, jwks, TYP, allow_eddsa)
         check_claims(claims)
@@ -466,7 +488,7 @@ def _path(index, leaves):
 def sign_batch(claims_list, key, iss, iat=None):
     """Signs a batch once over the Merkle root of its receipts' digests. Returns one batched receipt per claims object."""
     for c in claims_list:
-        check_claims(c)
+        _new(c)
     digests = [unb64u(digest(c)) for c in claims_list]
     leaves = [_leaf(d) for d in digests]
     root = _root(leaves)
@@ -505,7 +527,7 @@ def verify_batched(receipt, jwks, profile=None, evidence=None, allow_eddsa=False
         claims, proof = receipt["claims"], receipt["proof"]
         check_claims(claims)
         _, batch = _open(proof.get("batch"), jwks, BATCH_TYP, allow_eddsa)
-        if set(batch) != {"vtr_version", "iss", "iat", "tree_size", "root"} or batch["vtr_version"] != VTR_VERSION:
+        if set(batch) != {"vtr_version", "iss", "iat", "tree_size", "root"} or batch["vtr_version"] != claims["vtr_version"]:
             raise VTRError("the batch statement is malformed")
         if batch["iss"] != claims["iss"]:
             raise VTRError("the batch was signed by another issuer")

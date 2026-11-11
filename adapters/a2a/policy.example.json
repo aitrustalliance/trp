@@ -1,0 +1,17 @@
+{
+  "workspace": ".",
+  "approved_tools": ["read_text_file", "list_directory", "delegate", "a2a_task"],
+  "tools": {
+    "read_text_file": {"kind": "read", "path_args": ["path"]},
+    "list_directory": {"kind": "read", "path_args": ["path"]},
+    "delegate": {"kind": "egress", "url_args": ["agent"]},
+    "a2a_task": {"kind": "read"}
+  },
+  "approved_agents": ["https://planner.example.com", "https://writer.example.com"],
+  "require_receipts": [],
+  "receipt_mode": "enforce",
+  "inbound_tool": "a2a_task",
+  "anonymous_callers": "allow",
+  "sensitive_paths": ["secrets/*", ".env"],
+  "halt_scope": "session"
+}

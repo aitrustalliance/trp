@@ -1,6 +1,6 @@
 # TRP Gate For Agent Frameworks
 
-Each adapter connects one agent framework's own tool interception point to the shared TRP gate in `adapters/gate/trp_gate.py`. The MCP checkpoint in `adapters/mcp` uses the same gate. A rule means the same thing in every framework, every decision lands in the same SHA-256 chained log, and one session file can be shared across frameworks and MCP servers, so content read through one cannot leave through another.
+Each adapter connects one agent framework's own tool interception point to the shared TRP gate in `adapters/gate/trp_gate.py`. The MCP checkpoint in `adapters/mcp` and the A2A (Agent2Agent protocol) adapter in `adapters/a2a` use the same gate. A rule means the same thing in every framework, every decision lands in the same SHA-256 chained log, and one session file can be shared across frameworks and MCP servers, so content read through one cannot leave through another.
 
 | Framework | Version Verified | Interception Point | Adapter |
 |---|---|---|---|
@@ -11,6 +11,7 @@ Each adapter connects one agent framework's own tool interception point to the s
 | CrewAI | crewai 1.15.34 | `register_before_tool_call_hook`, `register_after_tool_call_hook` | `register_trp_hooks(gate)` |
 | AG2 | ag2 1.2.2 | `BaseMiddleware.on_tool_execution` in `Agent(middleware=...)` | `trp_middleware(gate)` |
 | Any MCP client | MCP 2026-07-28 and earlier | stdio proxy in front of the server | `adapters/mcp/trp_mcp_checkpoint.py` |
+| Any A2A agent | a2a-sdk 1.3.0, A2A protocol 1.0 | A delegate tool for the caller and an `AgentExecutor` wrapper for the remote agent | `adapters/a2a/trp_a2a.py` |
 
 Each interception point was read in the framework's published source for the version listed. A later version may move it.
 

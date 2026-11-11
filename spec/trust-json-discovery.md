@@ -8,7 +8,7 @@
 
 This document specifies a discovery mechanism for Trust Requirements Profiles
 (TRP). A service operator publishes a `trust.json` file at a well-known
-location on their domain. Clients, agents, and orchestration systems fetch this
+location on their domain. Clients and agents, along with the systems that orchestrate them, fetch this
 file to discover what trust requirements the service enforces, before initiating
 a governed interaction.
 
@@ -29,7 +29,7 @@ can authenticate in milliseconds still cannot programmatically determine
 whether it meets a service's operational trust requirements.
 
 `trust.json` fills that gap. A service publishes its trust requirements at a
-known location. A client reads them, evaluates its own evidence, and knows
+known location. A client checks its own evidence against them and knows
 whether to proceed before the first API call.
 
 ## Specification
@@ -180,7 +180,7 @@ conditions of the interaction. An interaction needs both, and neither is suffici
 ## Security Considerations
 
 A `trust.json` file describes the trust requirements a service enforces. It
-does not grant access, issue tokens, or bypass authorization. Fetching a
+never grants access or tokens and never bypasses authorization. Fetching a
 `trust.json` file is a read-only discovery operation.
 
 The file MUST be served over HTTPS. Clients MUST verify TLS certificates. A

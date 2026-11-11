@@ -1,14 +1,14 @@
 # Extension Registry
 
-TRP grows through extensions, as described in Sections 7 and 12 of the specification. A profile can carry extension fields at the top level and inside any defined object, and a consumer that does not recognize an extension ignores it. This folder holds the registry of top-level `x_` keys so that two modules never claim the same name.
+TRP grows through extensions, as described in Sections 7 and 12 of the specification. A profile can carry extension fields at the top level and inside any defined object, and a consumer that does not recognize an extension ignores it. This folder contains the registry of top-level `x_` keys so that two modules never claim the same name.
 
 ## Key Forms
 
-An `x_` key is short and suits vendor fields and modules, for example `x_provenance`. Use lowercase letters, digits and underscores after the prefix. Vendor fields that stay inside one organization's profiles do not need to be registered.
+An `x_` key is short and suits vendor fields and modules, for example `x_provenance`. Use lowercase letters, digits and `_` after the prefix. Vendor fields that stay inside one organization's profiles do not need to be registered.
 
 A URI-namespaced key is an absolute `https://` URI or a `urn:` URN that the defining organization controls, for example `https://example.org/trp/ext/risk-tier` or `urn:example:trp:ext:program-code`. It needs no entry here, because the namespace owner prevents collisions. Other standards bodies and integrations that extend TRP should use this form.
 
-Plain `http://` keys and any other key outside these forms fail schema validation.
+`http://` keys and any other key outside these forms fail schema validation.
 
 ## Registering A Module Key
 

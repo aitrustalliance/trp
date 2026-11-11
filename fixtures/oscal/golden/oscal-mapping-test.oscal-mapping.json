@@ -1,0 +1,143 @@
+{
+  "mapping-collection": {
+    "uuid": "8da7a6c5-a4b8-5a35-8e06-161d96aed688",
+    "metadata": {
+      "title": "Control mappings of Test profile with OSCAL control mappings",
+      "last-modified": "2026-11-04T00:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.3",
+      "props": [
+        {
+          "name": "trp_id",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "oscal-mapping-test"
+        },
+        {
+          "name": "version",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "1.0.0"
+        },
+        {
+          "name": "authority",
+          "ns": "https://aitrustalliance.com/ns/trp",
+          "value": "aitrustalliance.com"
+        }
+      ]
+    },
+    "provenance": {
+      "method": "automation",
+      "matching-rationale": "semantic",
+      "status": "draft",
+      "mapping-description": "How the scored signals and hard rules of TRP profile oscal-mapping-test version 1.0.0 relate to controls of NIST SP 800-53 Rev. 5.2.0 and NIST AI RMF 1.0. The profile author declares each relationship in the x_oscal member of the TRP profile."
+    },
+    "mappings": [
+      {
+        "uuid": "f31795e4-2eb5-524e-b459-78767bd42ef7",
+        "source-resource": {
+          "type": "catalog",
+          "href": "oscal-mapping-test.oscal-catalog.json"
+        },
+        "target-resource": {
+          "type": "catalog",
+          "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json"
+        },
+        "maps": [
+          {
+            "uuid": "cc7f4738-e1cf-5de7-8220-d2381f488caa",
+            "relationship": "intersects-with",
+            "sources": [
+              {
+                "type": "control",
+                "id-ref": "rule.unapproved_tool_called"
+              }
+            ],
+            "targets": [
+              {
+                "type": "control",
+                "id-ref": "cm-7"
+              }
+            ]
+          },
+          {
+            "uuid": "b7ceac92-0837-5142-8cf1-77c749db9a63",
+            "relationship": "intersects-with",
+            "sources": [
+              {
+                "type": "control",
+                "id-ref": "rule.credential_in_arguments"
+              }
+            ],
+            "targets": [
+              {
+                "type": "control",
+                "id-ref": "ac-4"
+              }
+            ]
+          },
+          {
+            "uuid": "087d69a9-b56e-5925-8ee3-ef8d7f3ef12a",
+            "relationship": "intersects-with",
+            "sources": [
+              {
+                "type": "control",
+                "id-ref": "signal.decision_log_completeness"
+              }
+            ],
+            "targets": [
+              {
+                "type": "control",
+                "id-ref": "au-2"
+              }
+            ],
+            "remarks": "The signal covers whether each tool call was logged and leaves the choice of event types to the control."
+          }
+        ]
+      },
+      {
+        "uuid": "b38472fb-008c-564b-b898-aa3a79a113f4",
+        "source-resource": {
+          "type": "catalog",
+          "href": "oscal-mapping-test.oscal-catalog.json"
+        },
+        "target-resource": {
+          "type": "catalog",
+          "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.6.0/nist.gov/AI100-1/ver1/json/NIST_AI-RMF_v1_catalog.json"
+        },
+        "maps": [
+          {
+            "uuid": "f3f3f1c6-f925-537b-a434-d9123111479c",
+            "relationship": "intersects-with",
+            "sources": [
+              {
+                "type": "control",
+                "id-ref": "signal.tool_calls_denied_ratio"
+              }
+            ],
+            "targets": [
+              {
+                "type": "control",
+                "id-ref": "MEASURE_2.4"
+              }
+            ]
+          },
+          {
+            "uuid": "5fb430d0-4562-5ec9-95cd-41761f52e2d5",
+            "relationship": "intersects-with",
+            "sources": [
+              {
+                "type": "control",
+                "id-ref": "rule.review_overdue"
+              }
+            ],
+            "targets": [
+              {
+                "type": "control",
+                "id-ref": "GOVERN_1.5"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

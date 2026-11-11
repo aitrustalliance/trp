@@ -4,7 +4,8 @@
     python vtr/tools/vtr_verify.py receipt.jws --jwks jwks.json [--profile trp.json --evidence evidence.json] [--allow-eddsa]
     python vtr/tools/vtr_verify.py batched.json --jwks jwks.json ...      a receipt from a signed batch
 
-With the profile, the verifier checks trp_ref against it. With the evidence too, it re-runs the evaluation
+It accepts VTR 0.6 and VTR 0.5 receipts. --allow-eddsa accepts Ed25519 signatures, named Ed25519 on any receipt or
+EdDSA on a VTR 0.5 receipt. With the profile, the verifier checks trp_ref against it. With the evidence too, it re-runs the evaluation
 and checks result_digest, standing, results and coverage. The exit code is 0 for valid and 1 otherwise.
 """
 import argparse
@@ -22,7 +23,7 @@ def main():
     ap.add_argument("--jwks", required=True)
     ap.add_argument("--profile")
     ap.add_argument("--evidence")
-    ap.add_argument("--allow-eddsa", action="store_true")
+    ap.add_argument("--allow-eddsa", action="store_true", help="accept Ed25519 signatures")
     a = ap.parse_args()
     read = lambda p: json.loads(Path(p).read_text()) if p else None  # noqa: E731
     text = Path(a.receipt).read_text().strip()

@@ -29,6 +29,9 @@ jobs:
       - name: Run conformance test suite
         run: python tests/run_conformance.py --verbose
 
+      - name: Check release archives carry no build output or local paths
+        run: python tests/release_hygiene_check.py
+
       - name: Check the TRP checkpoint for MCP
         run: python tests/mcp_checkpoint_check.py
 
@@ -87,102 +90,52 @@ jobs:
         run: pip install jsonschema
 
       - name: Cross-validate evaluators and result_hash against all evidence
+        run: python tests/cross_evaluator_check.py
+
+      - name: Check scored signal value types in both evaluators
+        run: python tests/scored_signal_types_check.py
+
+  otel-export:
+    name: OpenTelemetry export (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check the export with no OpenTelemetry package installed
+        run: python tests/otel_check.py
+      - name: Check the export with the OpenTelemetry SDK and the OTLP message classes
+        run: pip install "opentelemetry-sdk==1.45.2" "opentelemetry-proto==1.45.2" && python tests/otel_sdk_check.py
+      - name: Type check and lint the export
+        if: matrix.python-version == '3.12'
         run: |
-          python3 -c "
-          import glob, json, subprocess, sys
-          from tools.evaluate import load_profile, evaluate, DriftDetector, UnsupportedProfileError
+          pip install "mypy==2.4.1" "ruff==0.16.8"
+          ruff check --select E,F,W,I,B,UP,SIM,RUF --line-length 120 --target-version py310 adapters/otel tests/otel_check.py tests/otel_sdk_check.py
+          MYPYPATH=vtr/tools:tools:adapters/otel mypy --strict --follow-imports=silent --python-version 3.10 adapters/otel/trp_otel.py tests/otel_check.py tests/otel_sdk_check.py
 
-          # result_hash is not volatile. Both evaluators hash the RFC 8785 canonical
-          # form of the same output, so it must match byte for byte.
-          VOLATILE = {'evaluated_at', 'evaluator'}
-
-          def strip(d):
-              if isinstance(d, dict):
-                  return {k: strip(v) for k, v in d.items() if k not in VOLATILE}
-              if isinstance(d, list):
-                  return [strip(x) for x in d]
-              return d
-
-          profiles = sorted(glob.glob('tests/profiles/valid/*.json'))
-          evidences = sorted(glob.glob('tests/evidence/*.json'))
-
-          passed = 0
-          failed = 0
-          hash_passed = 0
-          hash_failed = 0
-
-          for profile_path in profiles:
-              with open(profile_path) as f:
-                  uses_extends = 'extends' in json.load(f)
-              if uses_extends:
-                  # Section 7: both evaluators must reject a profile that uses extends.
-                  try:
-                      load_profile(profile_path)
-                      py_rejected = False
-                  except UnsupportedProfileError:
-                      py_rejected = True
-                  proc = subprocess.run(
-                      ['node', 'tools/evaluate.js', profile_path, 'tests/evidence/all-healthy.json'],
-                      capture_output=True, text=True,
-                  )
-                  node_rejected = proc.returncode == 2
-                  name = f'{profile_path} (extends rejected)'
-                  if py_rejected and node_rejected:
-                      print(f'AGREE  {name}')
-                      passed += 1
-                  else:
-                      print(f'DISAGREE  {name}: python rejected={py_rejected}, node rejected={node_rejected}')
-                      failed += 1
-                  continue
-
-              profile = load_profile(profile_path)
-              for evidence_path in evidences:
-                  with open(evidence_path) as f:
-                      raw = json.load(f)
-                  clean = {k: v for k, v in raw.items() if not k.startswith('_')}
-                  with open('/tmp/clean_ev.json', 'w') as f:
-                      json.dump(clean, f)
-
-                  drift = None
-                  if profile.drift_window > 0:
-                      drift = DriftDetector(profile.drift_window, profile.drift_signals)
-                  py_result = strip(evaluate(profile, clean, drift))
-
-                  proc = subprocess.run(
-                      ['node', 'tools/evaluate.js', profile_path, '/tmp/clean_ev.json'],
-                      capture_output=True, text=True,
-                  )
-                  name = f'{profile_path} + {evidence_path}'
-                  if proc.returncode != 0:
-                      print(f'ERROR  {name}')
-                      print(proc.stderr)
-                      failed += 1
-                      continue
-
-                  js_result = strip(json.loads(proc.stdout))
-
-                  py_hash = py_result['evaluation']['result_hash']
-                  js_hash = js_result['evaluation']['result_hash']
-                  if py_hash == js_hash:
-                      hash_passed += 1
-                  else:
-                      print(f'HASH DIFFERS  {name}: python {py_hash}, node {js_hash}')
-                      hash_failed += 1
-
-                  if py_result == js_result:
-                      print(f'AGREE  {name}')
-                      passed += 1
-                  else:
-                      print(f'DISAGREE  {name}')
-                      print(f'  Python: {py_result}')
-                      print(f'  NodeJS: {js_result}')
-                      failed += 1
-
-          print()
-          print(f'Cross-evaluator agreement: {passed}/{passed + failed}')
-          print(f'result_hash agreement: {hash_passed}/{hash_passed + hash_failed}')
-          sys.exit(1 if failed or hash_failed else 0)
-          "
+  oscal:
+    name: OSCAL export and import (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Export every profile, validate against the official OSCAL 1.2.3 schemas and import NIST's own catalogs
+        run: pip install jsonschema && python tests/oscal_check.py
+      - name: Type check and lint the tool
+        if: matrix.python-version == '3.12'
+        run: |
+          pip install "mypy==2.4.1" "ruff==0.16.8"
+          ruff check --select E,F,W,I,B,UP,SIM,RUF --line-length 120 --target-version py310 tools/trp_oscal.py tests/oscal_check.py
+          MYPYPATH=vtr/tools:tools mypy --strict --follow-imports=silent --python-version 3.10 tools/trp_oscal.py tests/oscal_check.py
 
   agent-frameworks:
     name: Agent framework adapters (${{ matrix.framework }})
@@ -214,3 +167,16 @@ jobs:
         run: pip install jsonschema ${{ matrix.install }}
       - name: Run the framework through the TRP gate with a scripted model
         run: PYTHONPATH=adapters/frameworks python tests/frameworks/${{ matrix.framework }}_check.py
+
+  a2a:
+    name: A2A adapter with in-process a2a-sdk agents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install a2a-sdk
+        run: pip install jsonschema cryptography "a2a-sdk[http-server]==1.3.0" "starlette==1.10.0" "sse-starlette==3.6.0"
+      - name: Run the A2A adapter checks
+        run: python tests/a2a_check.py

@@ -28,11 +28,11 @@ def main():
     ap.add_argument("--nonce")
     ap.add_argument("--prev")
     ap.add_argument("--window", help="start,end in RFC 3339")
-    ap.add_argument("--new-key", choices=["es256", "eddsa"])
+    ap.add_argument("--new-key", choices=["es256", "ed25519", "eddsa"], help="eddsa is the older name for ed25519")
     ap.add_argument("--jwks", metavar="PEM")
     a = ap.parse_args()
     if a.new_key:
-        print(vtr.Key.generate("ES256" if a.new_key == "es256" else "EdDSA").pem(), end="")
+        print(vtr.Key.generate("ES256" if a.new_key == "es256" else "Ed25519").pem(), end="")
         return 0
     if a.jwks:
         print(json.dumps(vtr.Key.load(a.jwks).jwks(), indent=2))
