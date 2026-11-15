@@ -6,8 +6,8 @@
 #
 #   bash adapters/openshell/record.sh [output-folder]
 #
-# A scripted agent inside the sandbox makes three kinds of request three times
-# each with curl: a read from the approved GitHub API endpoint, a write to it,
+# A scripted agent inside the sandbox, an image built from agent-image with
+# curl added, makes three kinds of request three times each: a read from the approved GitHub API endpoint, a write to it,
 # and a read from a destination the policy does not list. No model and no
 # credential is involved. OpenShell's sandbox supervisor records each decision
 # in OCSF (Open Cybersecurity Schema Framework) JSON on its stderr, and the
@@ -72,8 +72,14 @@ fi
 openshell --version | tee "$OUT/openshell-version.txt"
 openshell status | tee "$OUT/status.txt"
 
+echo "== building the scripted agent's image"
+# The default sandbox image has no curl. A Docker gateway runs local images
+# named with --from, as NVIDIA's bring-your-own-container example shows.
+docker build -q -t trp-egress-agent:local "$HERE/agent-image" | tee "$OUT/agent-image.txt"
+
 echo "== creating the sandbox under the policy"
-openshell sandbox create --name "$NAME" --policy "$OUT/policy.yaml" --no-auto-providers --no-tty -- echo ready
+openshell sandbox create --name "$NAME" --from trp-egress-agent:local --policy "$OUT/policy.yaml" \
+  --no-auto-providers --no-tty -- echo ready
 openshell settings set "$NAME" --key ocsf_json_enabled --value true
 # The setting takes effect on the next poll, every 10 seconds by default.
 sleep 15
