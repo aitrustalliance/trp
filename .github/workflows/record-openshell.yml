@@ -13,7 +13,11 @@ on:
   push:
     branches: [openshell-adapter]
     paths:
-      - "adapters/openshell/**"
+      - "adapters/openshell/record.sh"
+      - "adapters/openshell/trp_openshell.py"
+      - "adapters/openshell/agent-image/**"
+      - "adapters/openshell/profiles/**"
+      - "adapters/openshell/deployment.example.json"
       - ".github/workflows/record-openshell.yml"
 
 permissions:

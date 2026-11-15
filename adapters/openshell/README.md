@@ -46,12 +46,27 @@ Each evidence line keeps the record's `metadata.uid`, time, action, disposition,
 
 `record.sh` installs a pinned OpenShell release on a Linux machine with Docker Engine 28.0 or later, starts the gateway, creates a sandbox under the policy written from `openshell-egress`, turns on OCSF JSON export and runs a scripted agent for three rounds. Each round makes two requests to the approved GitHub API endpoint, a read and a write, and one read from a destination the policy does not list. No model and no credential is involved. `.github/workflows/record-openshell.yml` runs it on GitHub's ubuntu-24.04 runners and keeps the policy, the coverage report, the supervisor's OCSF lines, the evidence, the results and their SHA-256 digests as the `openshell-recording` artifact.
 
+The agent runs `curl` from the image in `agent-image`, which adds `curl` to NVIDIA's pinned `nvcr.io/nvidia/base/ubuntu:24.04` image and runs as user 1000, since OpenShell refuses a workload that runs as user or group 0. When `openshell sandbox exec` gives no answer, `record.sh` runs the agent over the SSH connection that `openshell sandbox ssh-config` describes.
+
+### Live Run
+
+`fixtures/live-run` keeps one run, https://github.com/aitrustalliance/trp/actions/runs/43688105555, on OpenShell 0.1.8 with Docker Engine 28.0.4. `RUN.json` names the commit, the agent image digest and the SHA-256 digest of each file.
+
+| Request | OpenShell | TRP |
+|---|---|---|
+| Read from the approved GitHub endpoint, 3 times | Allowed, HTTP 200 | No rule triggered, full service |
+| Write to the approved GitHub endpoint, 3 times | Denied by the read-only rule, HTTP 403 | `write_without_approval`, review required |
+| Read from example.com, a destination the policy does not list, 3 times | Denied, curl could not connect | `unapproved_destination`, halt |
+
+The supervisor wrote 64 OCSF lines. The adapter turned them into 18 decisions, 9 allowed and 9 denied, and TRP agreed with OpenShell on all 18. Each write and each allowed read gives two decisions, one for the connection and one for the HTTP request, and each denied destination gives two connection decisions. `tests/openshell_check.py` reads the kept supervisor log again on every CI run and checks that it still gives the same evidence and the same 18 agreements.
+
 ## Limits
 
 - Collection is best effort. OpenShell's own documentation says so, and the supervisor drops lines when its console queue of 1,024 lines is full.
 - The fixtures in `fixtures/nvidia-docs` are NVIDIA's documentation examples. They test the reader and the mapping, and only a live recording counts as evidence that a sandbox behaved this way.
 - This version writes `rest` and connection-only endpoints. OpenShell's `mcp`, `graphql`, `websocket` and `json-rpc` inspection, its filesystem and process rules beyond the deployment's settings, and its policy advisor are not used.
-- The HTTP method field is read from the OCSF standard's `http_request` object. NVIDIA's pages show no HTTP Activity example, so a live recording settles it.
+- The HTTP method is read from the OCSF standard's `http_request.http_method` field. NVIDIA's pages show no HTTP Activity example, and the live run shows OpenShell 0.1.8 writes it there.
+- The live run uses a scripted agent with three kinds of request. A run with a model as the agent is still to come.
 
 ## Sources
 

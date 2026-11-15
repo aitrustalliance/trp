@@ -14,8 +14,10 @@ specification and [Keep a Changelog](https://keepachangelog.com/) format.
   OpenShell's sandbox supervisor into evidence the reference evaluator judges.
   The reference profile `openshell-egress` covers unapproved destinations and
   writes without approval. `tests/openshell_check.py` runs it on NVIDIA's own
-  documentation examples, and `.github/workflows/record-openshell.yml` records
-  a live sandbox run on GitHub's servers.
+  documentation examples and on a live run kept in
+  `adapters/openshell/fixtures/live-run`, where TRP agreed with OpenShell 0.1.8
+  on 18 of 18 decisions. `.github/workflows/record-openshell.yml` records a new
+  live run on GitHub's servers.
 
 ## [0.6.0] - 2026-11-11
 

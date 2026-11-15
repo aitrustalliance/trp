@@ -1,0 +1,19 @@
+{
+  "note": "One live run of record.sh on a GitHub-hosted ubuntu-24.04 runner. The files here are copied unchanged from its openshell-recording artifact, which GitHub keeps for 30 days.",
+  "run_url": "https://github.com/aitrustalliance/trp/actions/runs/43688105555",
+  "commit": "fbe81722c30fec333c0a5e8604c3de26eb5780ec",
+  "started": "2026-11-15T07:02:08Z",
+  "openshell": "openshell 0.1.8",
+  "docker": "Docker Engine 28.0.4",
+  "kernel": "7.0.0-1017-azure",
+  "agent_image": "sha256:ade69f952de540b991e5ed911e21ff40e514c4695244f334eb093dad4e1f20c8",
+  "sha256": {
+    "coverage.json": "72f2f0697660d6e35c3fe488dcfbe9155ae6abe647f05e2d6d0a99f3e3d9bf49",
+    "evidence.jsonl": "42a4394aed55e19830a31e400d01e4939fcecfeba9b1016c5b22a15c387f2694",
+    "policy.yaml": "4b803edcb4bffa64a7d65d4f78a349b9e96eca007008e329a588e38112899af3",
+    "results.jsonl": "7a3f38a2fe2d0146c870b028599fed4c83d20a773519900033b40689910588a0",
+    "summary.json": "412242db8217f2b3940221d99d39d379e0c1e6bde3c7016a4690db6394bd2e85",
+    "supervisor-stderr.log": "8f2042ffda9248ecad303b747b0a00934d07e17f86b09571a2517e038b717fe5",
+    "workload.txt": "63eb16123db8b9d224b2366ddfdd3cdcbe8f06864ce97acc6fde6e4d990a368c"
+  }
+}

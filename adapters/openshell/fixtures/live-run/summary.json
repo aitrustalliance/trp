@@ -1,0 +1,13 @@
+{
+  "adapter": "trp-openshell 0.1.0",
+  "profile": {
+    "trp_id": "openshell-egress",
+    "version": "0.1.0"
+  },
+  "decisions": 18,
+  "agree": 18,
+  "disagree": 0,
+  "incomplete": 0,
+  "openshell_allowed": 9,
+  "openshell_denied": 9
+}

@@ -12,6 +12,7 @@ way OpenShell decided.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -233,6 +234,38 @@ def main() -> int:
     check(
         "a missing write field is inconclusive",
         results[4]["agree"] is None and results[4]["hard_rules_inconclusive"] == ["write_without_approval"],
+    )
+
+    # ------------------------------------------------------------ live run
+    live = HERE / "fixtures" / "live-run"
+    run = load(live / "RUN.json")
+    digests = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in live.iterdir() if p.name != "RUN.json"}
+    check("every live run file matches the digest in RUN.json", digests == run["sha256"], digests)
+    check(
+        "the live run used the policy this adapter writes from the profile",
+        (live / "policy.yaml").read_text(encoding="utf-8") == osh.to_yaml(policy, profile),
+    )
+    stderr = (live / "supervisor-stderr.log").read_text(encoding="utf-8").splitlines()
+    live_records, live_bad = osh.read_ocsf(stderr, "auto")
+    live_http = [r for r in live_records if r.get("class_uid") == 4002]
+    check(
+        "OpenShell 0.1.8 writes the HTTP method in http_request.http_method",
+        bool(live_http) and all(isinstance(osh._get(r, "http_request", "http_method"), str) for r in live_http),
+        len(live_http),
+    )
+    live_items = osh.evidence_lines(live_records)
+    committed = [json.loads(x) for x in (live / "evidence.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    check("the supervisor log gives the recorded evidence line for line", live_bad == 0 and live_items == committed)
+    results_live, summary_live = osh.evaluate_lines(PROFILE, live_items)
+    committed = [json.loads(x) for x in (live / "results.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    check("the reference evaluator gives the recorded results", results_live == committed)
+    check(
+        "TRP and OpenShell agree on all 18 recorded decisions",
+        summary_live == load(live / "summary.json")
+        and summary_live["decisions"] == 18
+        and summary_live["agree"] == 18
+        and summary_live["openshell_denied"] == 9,
+        summary_live,
     )
 
     # ------------------------------------------------------------ command line
