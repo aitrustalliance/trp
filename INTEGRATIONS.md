@@ -48,6 +48,7 @@ The adapters in `adapters/` put a TRP profile in the path of a running AI agent 
 | CrewAI | Before and after tool call hooks | `adapters/frameworks/crewai_trp.py` | crewai 1.15.34 with a scripted model |
 | AG2 | Tool execution middleware | `adapters/frameworks/ag2_trp.py` | ag2 1.2.2 with a scripted model |
 | Any A2A (Agent2Agent protocol) agent | A delegate tool that judges each message before it is sent and each answer before it is used, and an `AgentExecutor` wrapper that judges each inbound task | `adapters/a2a/trp_a2a.py` | a2a-sdk 1.3.0 and A2A protocol 1.0, with in-process a2a-sdk agents |
+| Any agent in an NVIDIA OpenShell sandbox | A sandbox policy written from the profile, and the sandbox supervisor's OCSF (Open Cybersecurity Schema Framework) records read back as evidence | `adapters/openshell/trp_openshell.py` | NVIDIA's OpenShell documentation examples, with a live run recorded by `.github/workflows/record-openshell.yml` |
 
 The reference profile `adapters/mcp/profiles/mcp-tool-checkpoint.trp.json` covers unapproved tools, paths outside the workspace, unapproved domains, credentials in outbound arguments, sensitive data leaving the session, writes that need approval, credentials in tool results and planted instructions in tool results. Four scored signals set the session's standing, and a restricted session keeps reads and pauses writes, outbound calls and commands.
 

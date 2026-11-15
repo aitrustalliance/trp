@@ -1,0 +1,23 @@
+{
+  "sandbox": "trp-egress",
+  "filesystem_policy": {
+    "include_workdir": true,
+    "read_only": ["/bin", "/usr", "/lib", "/proc", "/dev/urandom", "/app", "/etc", "/var/log"],
+    "read_write": ["/sandbox", "/tmp", "/dev/null"]
+  },
+  "landlock": {
+    "compatibility": "best_effort"
+  },
+  "endpoints": [
+    {
+      "rule": "github_api",
+      "name": "github-api-readonly",
+      "host": "api.github.com",
+      "port": 443,
+      "protocol": "rest",
+      "enforcement": "enforce",
+      "writes_approved": false,
+      "binaries": ["/usr/bin/curl"]
+    }
+  ]
+}

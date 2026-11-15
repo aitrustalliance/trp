@@ -1,0 +1,75 @@
+{
+  "$schema": "https://aitrustalliance.com/schema/trp/0.6/trp.schema.json",
+  "$id": "https://aitrustalliance.com/profiles/openshell-egress/0.1.0/trp.json",
+  "trp_id": "openshell-egress",
+  "spec_version": "0.6",
+  "version": "0.1.0",
+  "name": "Outbound requests from an agent in an NVIDIA OpenShell sandbox",
+  "description": "Reference Trust Requirements Profile for the outbound requests of one AI agent running in an NVIDIA OpenShell sandbox. Every requirement uses evidence that OpenShell's sandbox supervisor records for each connection and each inspected request, so each record can be judged on its own. Illustrative draft values.",
+  "authority": "aitrustalliance.com",
+  "author": {
+    "name": "AI Trust Alliance reference templates",
+    "role": "Reference profile author"
+  },
+  "created_at": "2026-11-15T00:00:00Z",
+  "license": "Apache-2.0",
+  "taxonomy": {
+    "industry": "cross-industry",
+    "use_case": "agent-tool-use"
+  },
+  "scope": {
+    "subject_type": "agent",
+    "intended_use": "Trust requirements for the network requests one AI agent makes from inside an OpenShell sandbox.",
+    "boundary": "Every outbound connection and every inspected HTTP request that the sandbox supervisor records as allowed or denied.",
+    "out_of_scope": [
+      "Files the agent reads or writes inside the sandbox",
+      "The content of requests and responses",
+      "Which model or agent framework drives the agent"
+    ]
+  },
+  "hard_rules": [
+    {
+      "rule": "unapproved_destination",
+      "field": "output_destination_approved",
+      "condition": "is_false",
+      "action": "halt"
+    },
+    {
+      "rule": "write_without_approval",
+      "field": "write_without_approval",
+      "condition": "is_true",
+      "action": "require_review"
+    }
+  ],
+  "standing_bands": [
+    {
+      "band": "trusted",
+      "severity": 0,
+      "range": "no hard rule met"
+    },
+    {
+      "band": "untrusted",
+      "severity": 2,
+      "range": "a hard rule met"
+    }
+  ],
+  "required_standing": {
+    "minimum_acceptable_band": "trusted",
+    "source_requirement": "OpenShell's sandbox supervisor records each decision outside the agent's process, so the agent cannot skip or edit its evidence.",
+    "response_bands": [
+      {
+        "band": "trusted",
+        "response": "full"
+      },
+      {
+        "band": "untrusted",
+        "response": "suspended"
+      }
+    ]
+  },
+  "notes": [
+    "Threshold values are illustrative draft values.",
+    "adapters/openshell/trp_openshell.py writes an OpenShell sandbox policy from this profile and a deployment file, and turns the supervisor's OCSF records into evidence for it.",
+    "OpenShell blocks a write to a read-only endpoint at once. The review this profile asks for stays with the TRP gate, since OpenShell blocks or logs a request and never pauses one for a person."
+  ]
+}
