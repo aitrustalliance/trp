@@ -94,7 +94,9 @@ in_sandbox() {
   if [ "${MODE:-exec}" = exec ]; then
     openshell sandbox exec -n "$NAME" --no-tty --no-login-shell --timeout 30 -- "$@" < /dev/null
   else
-    ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@" < /dev/null
+    # SSH joins its arguments into one remote command line, so each argument
+    # is quoted for the remote shell first.
+    ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$(printf '%q ' "$@")" < /dev/null
   fi
 }
 MODE=exec
