@@ -78,11 +78,37 @@ openshell settings set "$NAME" --key ocsf_json_enabled --value true
 # The setting takes effect on the next poll, every 10 seconds by default.
 sleep 15
 
+echo "== reaching into the sandbox"
+# sandbox exec is the documented one-shot command. NVIDIA's policy quickstart
+# script reaches the sandbox over SSH through sandbox ssh-config, so that is
+# the fallback when exec does not answer.
+SSH_CONFIG="$OUT/ssh-config"
+in_sandbox() {
+  if [ "${MODE:-exec}" = exec ]; then
+    openshell sandbox exec -n "$NAME" --no-tty --no-login-shell --timeout 30 -- "$@" < /dev/null
+  else
+    ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@" < /dev/null
+  fi
+}
+MODE=exec
+if in_sandbox echo probe > "$OUT/probe.txt" 2> "$OUT/probe-error.txt" && grep -q probe "$OUT/probe.txt"; then
+  echo "sandbox exec answers"
+else
+  echo "sandbox exec did not answer, trying SSH"
+  cat "$OUT/probe-error.txt"
+  openshell sandbox ssh-config "$NAME" > "$SSH_CONFIG"
+  SSH_HOST="$(awk '/^Host / { print $2; exit }' "$SSH_CONFIG")"
+  MODE=ssh
+  for _ in $(seq 1 15); do in_sandbox true > /dev/null 2>&1 && break; sleep 2; done
+  in_sandbox echo probe > "$OUT/probe.txt" 2> "$OUT/probe-error.txt" || true
+fi
+echo "mode $MODE" | tee -a "$OUT/workload.txt"
+
 echo "== running the scripted agent"
 request() {
   local label="$1"; shift
   local code
-  code="$(openshell sandbox exec -n "$NAME" -- curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$@" 2> /dev/null || true)"
+  code="$(in_sandbox curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$@" 2>> "$OUT/workload-errors.txt" || true)"
   printf '%s %s\n' "$label" "${code:-no response}" | tee -a "$OUT/workload.txt"
 }
 for round in 1 2 3; do
