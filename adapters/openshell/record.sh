@@ -7,8 +7,9 @@
 #   bash adapters/openshell/record.sh [output-folder]
 #
 # A scripted agent inside the sandbox, an image built from agent-image with
-# curl added, makes three kinds of request three times each: a read from the approved GitHub API endpoint, a write to it,
-# and a read from a destination the policy does not list. No model and no
+# curl added, runs three rounds. Each round makes two requests to the approved
+# GitHub API endpoint, a read and a write, and one read from a destination the
+# policy does not list. No model and no
 # credential is involved. OpenShell's sandbox supervisor records each decision
 # in OCSF (Open Cybersecurity Schema Framework) JSON on its stderr, and the
 # adapter turns those records into TRP evidence and judges them.
