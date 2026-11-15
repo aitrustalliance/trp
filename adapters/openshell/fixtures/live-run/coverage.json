@@ -1,0 +1,30 @@
+{
+  "adapter": "trp-openshell 0.1.0",
+  "profile": {
+    "trp_id": "openshell-egress",
+    "version": "0.1.0"
+  },
+  "network_rules": [
+    "github_api"
+  ],
+  "clauses": [
+    {
+      "clause": "unapproved_destination",
+      "field": "output_destination_approved",
+      "condition": "is_false",
+      "action": "halt",
+      "carried_by": "openshell",
+      "how": "OpenShell denies every outbound connection that no network policy allows, and the policy allows only the deployment's endpoints for the programs it names.",
+      "stays_with_trp_gate": "Addresses inside tool arguments that a tool fetches from outside the sandbox."
+    },
+    {
+      "clause": "write_without_approval",
+      "field": "write_without_approval",
+      "condition": "is_true",
+      "action": "require_review",
+      "carried_by": "openshell",
+      "how": "Endpoints with request inspection use the read-only preset, which allows GET, HEAD and OPTIONS, or the read-write preset where the deployment approves writes, which also allows POST, PUT and PATCH.",
+      "stays_with_trp_gate": "The review the profile asks for, since OpenShell blocks or logs a request and never pauses one for a person."
+    }
+  ]
+}

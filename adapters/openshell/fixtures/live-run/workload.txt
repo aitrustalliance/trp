@@ -1,0 +1,10 @@
+mode ssh
+round 1 read approved endpoint 200
+round 1 write approved endpoint 403
+round 1 read unlisted destination 000
+round 2 read approved endpoint 200
+round 2 write approved endpoint 403
+round 2 read unlisted destination 000
+round 3 read approved endpoint 200
+round 3 write approved endpoint 403
+round 3 read unlisted destination 000

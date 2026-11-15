@@ -1,0 +1,32 @@
+# OpenShell sandbox policy written by trp-openshell 0.1.0
+# from TRP profile openshell-egress 0.1.0.
+# Check the coverage report before applying it.
+version: 1
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - "/bin"
+    - "/usr"
+    - "/lib"
+    - "/proc"
+    - "/dev/urandom"
+    - "/app"
+    - "/etc"
+    - "/var/log"
+  read_write:
+    - "/sandbox"
+    - "/tmp"
+    - "/dev/null"
+landlock:
+  compatibility: "best_effort"
+network_policies:
+  github_api:
+    name: "github-api-readonly"
+    endpoints:
+      - host: "api.github.com"
+        port: 443
+        protocol: "rest"
+        enforcement: "enforce"
+        access: "read-only"
+    binaries:
+      - path: "/usr/bin/curl"

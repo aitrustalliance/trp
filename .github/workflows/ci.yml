@@ -117,6 +117,26 @@ jobs:
           ruff check --select E,F,W,I,B,UP,SIM,RUF --line-length 120 --target-version py310 adapters/otel tests/otel_check.py tests/otel_sdk_check.py
           MYPYPATH=vtr/tools:tools:adapters/otel mypy --strict --follow-imports=silent --python-version 3.10 adapters/otel/trp_otel.py tests/otel_check.py tests/otel_sdk_check.py
 
+  openshell:
+    name: NVIDIA OpenShell adapter (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check the policy, evidence and evaluation on NVIDIA's documentation examples
+        run: pip install jsonschema "pyyaml==6.0.3" && python tests/openshell_check.py
+      - name: Type check and lint the adapter
+        if: matrix.python-version == '3.12'
+        run: |
+          pip install "mypy==2.4.1" "ruff==0.16.8" "types-PyYAML==6.0.12.20261113"
+          ruff check --select E,F,W,I,B,UP,SIM,RUF --line-length 120 --target-version py310 adapters/openshell tests/openshell_check.py
+          MYPYPATH=tools:adapters/openshell mypy --strict --follow-imports=silent --python-version 3.10 adapters/openshell/trp_openshell.py tests/openshell_check.py
+
   oscal:
     name: OSCAL export and import (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

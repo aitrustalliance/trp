@@ -4,6 +4,21 @@ All notable changes to the TRP specification and tooling are documented here.
 This project follows [Semantic Versioning](https://semver.org/) for the
 specification and [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [Unreleased]
+
+### Added
+- An NVIDIA OpenShell adapter in `adapters/openshell/`. `trp_openshell.py`
+  writes an OpenShell sandbox policy from a TRP profile and a deployment file,
+  with a coverage report that names every requirement OpenShell carries and
+  every one that stays with the TRP gate, and turns the OCSF records of
+  OpenShell's sandbox supervisor into evidence the reference evaluator judges.
+  The reference profile `openshell-egress` covers unapproved destinations and
+  writes without approval. `tests/openshell_check.py` runs it on NVIDIA's own
+  documentation examples and on a live run kept in
+  `adapters/openshell/fixtures/live-run`, where TRP agreed with OpenShell 0.1.8
+  on 18 of 18 decisions. `.github/workflows/record-openshell.yml` records a new
+  live run on GitHub's servers.
+
 ## [0.6.0] - 2026-11-11
 
 TRP 0.6.0 widens the subject of a profile from agents to any endpoint or step

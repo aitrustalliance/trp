@@ -1,0 +1,11 @@
+{
+  "note": "Copied from NVIDIA OpenShell, Apache License 2.0, Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. These are documentation examples, used as test inputs. A live recording replaces them as evidence.",
+  "repository": "https://github.com/NVIDIA/OpenShell",
+  "commit": "2e5589b",
+  "read_on": "2026-11-15",
+  "files": {
+    "ocsf-examples.jsonl": "The allowed and denied Network Activity examples in docs/observability/ocsf-json-export.mdx, https://docs.nvidia.com/openshell/latest/observability/ocsf-json-export, one per line",
+    "supervisor-stderr.log": "The same two records in the stderr form that page describes, a UTC timestamp, the OCSF-JSON marker and the record, after the shorthand example line from that page, which the reader must pass over",
+    "quickstart-policy.yaml": "examples/sandbox-policy-quickstart/policy.yaml, unchanged"
+  }
+}

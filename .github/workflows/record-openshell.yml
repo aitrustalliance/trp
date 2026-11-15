@@ -1,0 +1,46 @@
+name: Record OpenShell
+
+# Runs a live NVIDIA OpenShell sandbox under a policy written from the
+# openshell-egress TRP profile and keeps the supervisor's OCSF records, the
+# evidence and the evaluation as a workflow artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      openshell_version:
+        description: OpenShell release tag
+        default: v0.1.8
+  push:
+    branches: [openshell-adapter]
+    paths:
+      - "adapters/openshell/record.sh"
+      - "adapters/openshell/trp_openshell.py"
+      - "adapters/openshell/agent-image/**"
+      - "adapters/openshell/profiles/**"
+      - "adapters/openshell/deployment.example.json"
+      - ".github/workflows/record-openshell.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: Live OpenShell sandbox under a TRP policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record
+        env:
+          OPENSHELL_VERSION: ${{ github.event.inputs.openshell_version || 'v0.1.8' }}
+        run: bash adapters/openshell/record.sh openshell-recording
+      - name: Keep the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openshell-recording
+          path: openshell-recording
+          retention-days: 30
